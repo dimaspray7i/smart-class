@@ -5,6 +5,9 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Symfony\Component\HttpFoundation\Response;
 
+// ⚠️ CATATAN: Throwable adalah global class, TIDAK PERLU di-import dengan 'use'
+// Cukup gunakan \Throwable dengan backslash di function parameter
+
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
@@ -21,9 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         // ═══════════════════════════════════════════════════
-        // API MIDDLEWARE GROUP
+        // API MIDDLEWARE GROUP (FIXED FOR SANCTUM)
         // ═══════════════════════════════════════════════════
         $middleware->group('api', [
+            // Sanctum middleware untuk stateful requests (SPA/frontend)
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
@@ -35,17 +39,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         // ═══════════════════════════════════════════════════
-        // CORS CONFIGURATION
+        // CSRF CONFIGURATION (API routes excluded)
         // ═══════════════════════════════════════════════════
         $middleware->validateCsrfTokens(except: [
-            'api/*', // API routes don't need CSRF
+            'api/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // ═══════════════════════════════════════════════════
         // GLOBAL EXCEPTION HANDLING FOR API
         // ═══════════════════════════════════════════════════
-        $exceptions->render(function (Throwable $e, $request) {
+        $exceptions->render(function (\Throwable $e, $request) {
             // Force JSON response for all API errors
             if ($request->is('api/*')) {
                 $statusCode = $e instanceof \Symfony\Component\HttpKernel\Exception\HttpException
@@ -92,6 +96,17 @@ return Application::configure(basePath: dirname(__DIR__))
                     'code' => 'VALIDATION_ERROR',
                     'errors' => $e->errors(),
                 ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+        });
+
+        // Handle Authentication Errors (401)
+        $exceptions->renderable(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unauthenticated. Silakan login terlebih dahulu.',
+                    'code' => 'UNAUTHENTICATED',
+                ], Response::HTTP_UNAUTHORIZED);
             }
         });
     })->create();

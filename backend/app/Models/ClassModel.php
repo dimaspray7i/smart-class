@@ -70,17 +70,25 @@ class ClassModel extends Model
     }
 
     // ═══════════════════════════════════════════════════════════
-    // RELATIONSHIPS
+    // RELATIONSHIPS ⭐ FIXED: Specify foreign keys explicitly
     // ═══════════════════════════════════════════════════════════
 
     /**
      * Class has many users (many-to-many)
+     * 
+     * Pivot table: class_user
+     * Foreign keys: class_id, user_id
      */
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'class_user')
-            ->withPivot('role_in_class', 'academic_year', 'is_active')
-            ->withTimestamps();
+        return $this->belongsToMany(
+            User::class, 
+            'class_user',      // pivot table
+            'class_id',        // foreign key for ClassModel
+            'user_id'          // foreign key for User
+        )
+        ->withPivot('role_in_class', 'academic_year', 'is_active')
+        ->withTimestamps();
     }
 
     /**
@@ -104,11 +112,16 @@ class ClassModel extends Model
      */
     public function students(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'class_user')
-            ->wherePivot('role_in_class', 'siswa')
-            ->wherePivot('is_active', true)
-            ->withPivot('academic_year')
-            ->withTimestamps();
+        return $this->belongsToMany(
+            User::class,
+            'class_user',
+            'class_id',
+            'user_id'
+        )
+        ->wherePivot('role_in_class', 'siswa')
+        ->wherePivot('is_active', true)
+        ->withPivot('academic_year')
+        ->withTimestamps();
     }
 
     /**
@@ -116,11 +129,16 @@ class ClassModel extends Model
      */
     public function teachers(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'class_user')
-            ->wherePivot('role_in_class', 'guru_pengampu')
-            ->wherePivot('is_active', true)
-            ->withPivot('academic_year')
-            ->withTimestamps();
+        return $this->belongsToMany(
+            User::class,
+            'class_user',
+            'class_id',
+            'user_id'
+        )
+        ->wherePivot('role_in_class', 'guru_pengampu')
+        ->wherePivot('is_active', true)
+        ->withPivot('academic_year')
+        ->withTimestamps();
     }
 
     /**
@@ -128,36 +146,32 @@ class ClassModel extends Model
      */
     public function waliKelas(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'class_user')
-            ->wherePivot('role_in_class', 'wali_kelas')
-            ->wherePivot('is_active', true)
-            ->withPivot('academic_year')
-            ->withTimestamps();
+        return $this->belongsToMany(
+            User::class,
+            'class_user',
+            'class_id',
+            'user_id'
+        )
+        ->wherePivot('role_in_class', 'wali_kelas')
+        ->wherePivot('is_active', true)
+        ->withPivot('academic_year')
+        ->withTimestamps();
     }
 
     // ═══════════════════════════════════════════════════════════
     // SCOPES
     // ═══════════════════════════════════════════════════════════
 
-    /**
-     * Scope: Filter by level (X, XI, XII)
-     */
     public function scopeLevel($query, string $level)
     {
         return $query->where('level', $level);
     }
 
-    /**
-     * Scope: Active classes only
-     */
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
-    /**
-     * Scope: Search by name
-     */
     public function scopeSearch($query, string $search)
     {
         return $query->where('name', 'like', "%{$search}%")
@@ -168,33 +182,21 @@ class ClassModel extends Model
     // ACCESSORS & MUTATORS
     // ═══════════════════════════════════════════════════════════
 
-    /**
-     * Accessor: Get full class name with level
-     */
     public function getFullNameAttribute(): string
     {
         return "RPL {$this->level} - {$this->name}";
     }
 
-    /**
-     * Accessor: Get current student count
-     */
     public function getStudentCountAttribute(): int
     {
         return $this->students()->count();
     }
 
-    /**
-     * Accessor: Get available capacity
-     */
     public function getAvailableCapacityAttribute(): int
     {
         return $this->capacity - $this->student_count;
     }
 
-    /**
-     * Accessor: Check if class is full
-     */
     public function getIsFullAttribute(): bool
     {
         return $this->student_count >= $this->capacity;
@@ -204,9 +206,6 @@ class ClassModel extends Model
     // BUSINESS LOGIC METHODS
     // ═══════════════════════════════════════════════════════════
 
-    /**
-     * Add student to class
-     */
     public function addStudent(User $user, int $academicYear = null): bool
     {
         if ($this->is_full) {
@@ -222,17 +221,11 @@ class ClassModel extends Model
         return true;
     }
 
-    /**
-     * Remove student from class
-     */
     public function removeStudent(User $user): void
     {
         $this->users()->detach($user->id);
     }
 
-    /**
-     * Get today's schedule for this class
-     */
     public function getTodaySchedule(): \Illuminate\Support\Collection
     {
         $day = now()->locale('id')->dayName;
@@ -245,15 +238,16 @@ class ClassModel extends Model
             ->get();
     }
 
-    /**
-     * Get attendance statistics for this class
-     */
     public function getAttendanceStats(string $date = null): array
     {
         $date = $date ?? today()->toDateString();
 
         $totalStudents = $this->student_count;
-        $attended = Attendance::whereIn('user_id', $this->students()->pluck('users.id'))
+        
+        // FIXED: Get student IDs correctly
+        $studentIds = $this->students()->pluck('users.id');
+        
+        $attended = \App\Models\Attendance::whereIn('user_id', $studentIds)
             ->where('date', $date)
             ->whereIn('status', ['Hadir', 'Terlambat'])
             ->count();
