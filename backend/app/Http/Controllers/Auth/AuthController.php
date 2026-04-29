@@ -20,7 +20,19 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        $result = $this->authService->login($request->validated());
+        
+ // 🔍 DEBUG: Log apa yang diterima Laravel
+    \Log::info('=== LOGIN DEBUG ===', [
+        'all_input' => $request->all(),
+        'email' => $request->input('email'),
+        'password' => $request->input('password'),
+        'content_type' => $request->header('Content-Type'),
+        'is_json' => $request->isJson(),
+        'method' => $request->method(),
+        'path' => $request->path(),
+    ]);
+
+    $result = $this->authService->login($request->validated());
 
         if (!$result['success']) {
             return response()->json([

@@ -135,17 +135,23 @@ class User extends Authenticatable
      */
     public function skills(): BelongsToMany
     {
-        return $this->belongsToMany(Skill::class, 'student_skills')
+        return $this->belongsToMany(Skill::class, 'student_skills', 'user_id', 'skill_id')
             ->withPivot('level', 'hours_practiced', 'last_practiced_at', 'evidence')
             ->withTimestamps();
     }
 
     /**
-     * User belongs to many classes (many-to-many)
+     * User belongs to many classes (many-to-many) ⭐ FIXED
+     * 
+     * Parameter:
+     * 1. ClassModel::class - Related model
+     * 2. 'class_user' - Pivot table name
+     * 3. 'user_id' - Foreign key for THIS model (users table)
+     * 4. 'class_id' - Foreign key for RELATED model (classes table) ⭐ INI YANG DITAMBAHKAN
      */
     public function classes(): BelongsToMany
     {
-        return $this->belongsToMany(ClassModel::class, 'class_user')
+        return $this->belongsToMany(ClassModel::class, 'class_user', 'user_id', 'class_id')
             ->withPivot('role_in_class', 'academic_year', 'is_active')
             ->withTimestamps();
     }
