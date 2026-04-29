@@ -8,28 +8,50 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Space/Tech Purple Theme
         primary: {
-          50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 
-          600: '#2563eb', 700: '#1d4ed8', 900: '#1e3a8a',
+          50: '#faf5ff',
+          100: '#f3e8ff',
+          200: '#e9d5ff',
+          300: '#d8b4fe',
+          400: '#c084fc',
+          500: '#a855f7', // Primary purple
+          600: '#9333ea',
+          700: '#7c3aed', // Deep purple
+          800: '#6b21a8',
+          900: '#581c87',
+          950: '#3b0764',
         },
         dark: {
-          bg: '#0f172a', card: '#1e293b', border: '#334155',
-          text: '#f1f5f9', muted: '#94a3b8',
+          bg: '#0f0f1a',      // Very dark purple-black
+          card: '#1a1a2e',    // Dark purple card
+          border: '#2d2d44',  // Border color
+          text: '#f8fafc',    // Light text
+          muted: '#94a3b8',   // Muted text
         },
-        success: '#22c55e', warning: '#f59e0b', danger: '#ef4444',
+        accent: {
+          cyan: '#06b6d4',
+          pink: '#ec4899',
+        },
       },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'hero-pattern': 'linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #0f0f1a 100%)',
+        'grid-pattern': "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
       },
       animation: {
-        'fade-in': 'fadeIn 0.3s ease-in-out',
-        'slide-up': 'slideUp 0.4s ease-out',
+        'float': 'float 6s ease-in-out infinite',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'sparkle': 'sparkle 2s ease-in-out infinite',
       },
       keyframes: {
-        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-        slideUp: { 
-          '0%': { transform: 'translateY(20px)', opacity: '0' }, 
-          '100%': { transform: 'translateY(0)', opacity: '1' } 
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-20px)' },
+        },
+        sparkle: {
+          '0%, 100%': { opacity: '0', transform: 'scale(0)' },
+          '50%': { opacity: '1', transform: 'scale(1)' },
         },
       },
     },

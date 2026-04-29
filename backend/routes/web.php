@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return response()->json([
-        'message' => 'RPL Smart Ecosystem API',
+        'message' => 'RPL Smart API',
         'version' => '1.0.0',
         'frontend' => 'http://localhost:5173',
         'api_docs' => '/api/health',

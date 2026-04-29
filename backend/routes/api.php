@@ -24,7 +24,7 @@ use App\Http\Controllers\Admin\ScheduleController as AdminSchedule;
 Route::get('/health', function () {
     return response()->json([
         'status' => 'success',
-        'message' => 'RPL Smart Ecosystem API is running!',
+        'message' => 'RPL Smart is running!',
         'version' => '1.0.0',
         'timestamp' => now()->toDateTimeString(),
         'environment' => config('app.env'),
