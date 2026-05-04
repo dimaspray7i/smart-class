@@ -67,7 +67,8 @@ class AdminService
         return [
             'database' => [
                 'status' => 'connected',
-                'connections' => \DB::connection()->getTotalQueries(),
+                'driver' => \DB::connection()->getDriverName(),
+                'default' => config('database.default'),
             ],
             'cache' => [
                 'status' => config('cache.default'),
