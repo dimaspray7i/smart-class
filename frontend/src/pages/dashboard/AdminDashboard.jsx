@@ -5,13 +5,28 @@ import { api } from '../../api';
 export default function AdminDashboard() {
   const { user } = useAuth();
 
-  const {  dashboard, isLoading } = useQuery({
+  const { data: dashboard, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: () => api.get('/admin/dashboard'),
+    retry: 1,
   });
 
   if (isLoading) {
     return <div className="p-8 text-center">Memuat dashboard...</div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="card p-8 text-center">
+        <h3 className="text-xl font-semibold mb-3">Gagal memuat dashboard</h3>
+        <p className="text-gray-600 dark:text-dark-muted mb-4">
+          {error?.message || 'Terjadi kesalahan saat mengambil data dashboard.'}
+        </p>
+        <button onClick={() => refetch()} className="btn btn-primary">
+          Muat ulang
+        </button>
+      </div>
+    );
   }
 
   const overview = dashboard?.data?.overview || {};
