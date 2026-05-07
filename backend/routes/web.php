@@ -20,3 +20,16 @@ Route::get('/', function () {
 Route::get('/api', function () {
     return redirect('/api/health');
 });
+
+// ═══════════════════════════════════════════════════════════
+// LOGIN ROUTE (Named for middleware redirect)
+// ═══════════════════════════════════════════════════════════
+// This route is used by Auth middleware for redirects
+// For API requests, this won't actually redirect (handled in exception)
+Route::get('/login', function () {
+    return response()->json([
+        'status' => 'error',
+        'message' => 'Authentication required. Please login.',
+        'code' => 'UNAUTHENTICATED',
+    ], 401);
+})->name('login');

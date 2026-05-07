@@ -122,7 +122,7 @@ export default function LoginPage() {
             Belum punya akun? Hubungi administrator.
           </p>
           <p className="text-xs text-gray-500 dark:text-dark-muted mt-2">
-            Default Admin: admin@rpl.id / password123
+            Default Admin: rplsmkn1@gmail.com / rpljuara
           </p>
         </div>
       </div>

@@ -21,8 +21,16 @@ class AuthService
     public function login(array $credentials): array
     {
         try {
+            Log::debug('AuthService::login called', [
+                'email' => $credentials['email'] ?? null,
+            ]);
+
             // Attempt authentication
             if (!Auth::attempt($credentials)) {
+                Log::warning('Auth::attempt failed - credentials invalid', [
+                    'email' => $credentials['email'] ?? null,
+                ]);
+
                 return [
                     'success' => false,
                     'message' => 'Email atau password salah.',
@@ -31,10 +39,17 @@ class AuthService
             }
 
             $user = Auth::user();
+            Log::debug('Auth::attempt success', [
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'role' => $user?->role,
+                'is_active' => $user?->is_active,
+            ]);
 
             // Check if user is active
-            if (!$user->is_active) {
+            if (!$user || !$user->is_active) {
                 Auth::logout();
+                Log::warning('Account inactive', ['user_id' => $user?->id]);
                 return [
                     'success' => false,
                     'message' => 'Akun Anda tidak aktif. Hubungi administrator.',
@@ -46,7 +61,20 @@ class AuthService
             $user->updateLastLogin();
 
             // Create Sanctum token
-            $token = $user->createToken('rpl_token')->plainTextToken;
+            try {
+                $token = $user->createToken('rpl_token')->plainTextToken;
+                Log::debug('Token created successfully', ['user_id' => $user->id]);
+            } catch (\Exception $tokenError) {
+                Log::error('Failed to create Sanctum token', [
+                    'user_id' => $user->id,
+                    'error' => $tokenError->getMessage(),
+                ]);
+                return [
+                    'success' => false,
+                    'message' => 'Gagal membuat token autentikasi.',
+                    'code' => 'TOKEN_FAILED'
+                ];
+            }
 
             // Load relationships
             $user->load(['profile', 'classes']);
@@ -64,6 +92,8 @@ class AuthService
                 'email' => $credentials['email'] ?? null,
                 'error' => $e->getMessage(),
                 'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
 
             return [
@@ -109,7 +139,7 @@ class AuthService
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
-                'password' => $data['password'], // Mutator will hash it
+                'password' => $data['password'], // Auto-hashed by 'hashed' cast in User model
                 'role' => $data['role'] ?? 'siswa',
                 'phone' => $data['phone'] ?? null,
                 'is_active' => true,
@@ -145,8 +175,14 @@ class AuthService
      */
     public function logout(User $user): void
     {
-        // Revoke current token
-        $user->currentAccessToken()->delete();
+        try {
+            // Revoke current token
+            if ($user->currentAccessToken()) {
+                $user->currentAccessToken()->delete();
+            }
+        } catch (\Exception $e) {
+            Log::error('AuthService::logout failed', ['error' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -154,19 +190,24 @@ class AuthService
      */
     public function profile(User $user): array
     {
-        $user->load([
-            'profile',
-            'classes',
-            'skills',
-            'projects' => function ($query) {
-                $query->latest()->limit(5);
-            },
-            'attendances' => function ($query) {
-                $query->where('date', '>=', now()->subDays(30))->latest();
-            }
-        ]);
+        try {
+            $user->load([
+                'profile',
+                'classes',
+                'skills',
+                'projects' => function ($query) {
+                    $query->latest()->limit(5);
+                },
+                'attendances' => function ($query) {
+                    $query->where('date', '>=', now()->subDays(30))->latest();
+                }
+            ]);
 
-        return $user->toArray();
+            return $user->toArray();
+        } catch (\Exception $e) {
+            Log::error('AuthService::profile failed', ['error' => $e->getMessage()]);
+            return $user->toArray(); // Return basic data even if relationships fail
+        }
     }
 
     /**
@@ -225,17 +266,22 @@ class AuthService
      */
     public function refresh(User $user): array
     {
-        // Revoke all existing tokens
-        $user->tokens()->delete();
+        try {
+            // Revoke all existing tokens
+            $user->tokens()->delete();
 
-        // Create new token
-        $token = $user->createToken('rpl_token')->plainTextToken;
+            // Create new token
+            $token = $user->createToken('rpl_token')->plainTextToken;
 
-        return [
-            'token' => $token,
-            'type' => 'Bearer',
-            'expires_in' => config('sanctum.expiration'),
-        ];
+            return [
+                'token' => $token,
+                'type' => 'Bearer',
+                'expires_in' => config('sanctum.expiration'),
+            ];
+        } catch (\Exception $e) {
+            Log::error('AuthService::refresh failed', ['error' => $e->getMessage()]);
+            throw $e; // Re-throw to be handled by controller
+        }
     }
 
     /**

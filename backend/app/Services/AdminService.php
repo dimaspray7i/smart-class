@@ -45,18 +45,32 @@ class AdminService
      */
     public function getOverview(): array
     {
-        return [
-            'users' => [
-                'total' => User::count(),
-                'admin' => User::where('role', 'admin')->count(),
-                'guru' => User::where('role', 'guru')->count(),
-                'siswa' => User::where('role', 'siswa')->count(),
-            ],
-            'classes' => ClassModel::where('is_active', true)->count(),
-            'subjects' => Subject::where('is_active', true)->count(),
-            'schedules' => Schedule::where('is_active', true)->count(),
-            'attendance_today' => Attendance::where('date', today())->count(),
-        ];
+        try {
+            return [
+                'users' => [
+                    'total' => User::count(),
+                    'admin' => User::where('role', 'admin')->count(),
+                    'guru' => User::where('role', 'guru')->count(),
+                    'siswa' => User::where('role', 'siswa')->count(),
+                ],
+                'classes' => ClassModel::count(),
+                'subjects' => Subject::count(),
+                'schedules' => Schedule::count(),
+                'attendance_today' => Attendance::whereDate('date', today())->count(),
+            ];
+        } catch (Exception $e) {
+            Log::error('AdminService::getOverview failed', [
+                'error' => $e->getMessage(),
+            ]);
+            // Return safe defaults
+            return [
+                'users' => ['total' => 0, 'admin' => 0, 'guru' => 0, 'siswa' => 0],
+                'classes' => 0,
+                'subjects' => 0,
+                'schedules' => 0,
+                'attendance_today' => 0,
+            ];
+        }
     }
 
     /**
@@ -64,25 +78,34 @@ class AdminService
      */
     public function getSystemHealth(): array
     {
-        return [
-            'database' => [
-                'status' => 'connected',
-                'driver' => \DB::connection()->getDriverName(),
-                'default' => config('database.default'),
-            ],
-            'cache' => [
-                'status' => config('cache.default'),
-                'driver' => config('cache.stores.' . config('cache.default') . '.driver'),
-            ],
-            'queue' => [
-                'status' => config('queue.default'),
-                'connection' => config('queue.connections.' . config('queue.default') . '.driver'),
-            ],
-            'storage' => [
-                'disk' => config('filesystems.default'),
-                'public_path' => storage_path('app/public'),
-            ],
-        ];
+        try {
+            return [
+                'database' => [
+                    'status' => 'connected',
+                    'driver' => \DB::connection()->getDriverName(),
+                ],
+                'cache' => [
+                    'status' => config('cache.default'),
+                ],
+                'queue' => [
+                    'status' => config('queue.default'),
+                ],
+                'app' => [
+                    'status' => 'running',
+                    'environment' => config('app.env'),
+                ],
+            ];
+        } catch (Exception $e) {
+            Log::error('AdminService::getSystemHealth failed', [
+                'error' => $e->getMessage(),
+            ]);
+            return [
+                'database' => ['status' => 'unknown'],
+                'cache' => ['status' => 'unknown'],
+                'queue' => ['status' => 'unknown'],
+                'app' => ['status' => 'unknown'],
+            ];
+        }
     }
 
     /**
@@ -90,13 +113,41 @@ class AdminService
      */
     public function getRecentActivity(): array
     {
-        return [
-            'recent_users' => User::latest()->limit(5)->get(['id', 'name', 'email', 'role', 'created_at']),
-            'recent_attendance' => Attendance::with('user:id,name')
-                ->latest()
-                ->limit(5)
-                ->get(['id', 'user_id', 'date', 'status', 'created_at']),
-        ];
+        try {
+            return [
+                'recent_users' => User::latest('created_at')->limit(5)->get(['id', 'name', 'email', 'role', 'created_at'])->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role,
+                        'created_at' => $user->created_at,
+                    ];
+                })->toArray(),
+                'recent_attendance' => Attendance::with('user:id,name')
+                    ->latest('created_at')
+                    ->limit(5)
+                    ->get()
+                    ->map(function ($attendance) {
+                        return [
+                            'id' => $attendance->id,
+                            'user_id' => $attendance->user_id,
+                            'user_name' => optional($attendance->user)->name ?? 'Unknown',
+                            'date' => $attendance->date,
+                            'status' => $attendance->status,
+                            'created_at' => $attendance->created_at,
+                        ];
+                    })->toArray(),
+            ];
+        } catch (Exception $e) {
+            Log::error('AdminService::getRecentActivity failed', [
+                'error' => $e->getMessage(),
+            ]);
+            return [
+                'recent_users' => [],
+                'recent_attendance' => [],
+            ];
+        }
     }
 
     /**

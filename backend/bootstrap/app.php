@@ -49,10 +49,28 @@ return Application::configure(basePath: dirname(__DIR__))
         // ═══════════════════════════════════════════════════
         // GLOBAL EXCEPTION HANDLING FOR API
         // ═══════════════════════════════════════════════════
-        $exceptions->render(function (\Throwable $e, $request) {
+        $exceptions->renderable(function (\Throwable $e, $request) {
             // Force JSON response for all API errors
             if ($request->is('api/*')) {
-                $statusCode = $e instanceof \Symfony\Component\HttpKernel\Exception\HttpException
+                // If it's an AuthenticationException, let the specific renderable handle it, or handle it here
+                if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Unauthenticated.',
+                        'code' => 'UNAUTHENTICATED',
+                    ], Response::HTTP_UNAUTHORIZED);
+                }
+                
+                if ($e instanceof \Illuminate\Validation\ValidationException) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Validasi gagal.',
+                        'code' => 'VALIDATION_ERROR',
+                        'errors' => $e->errors(),
+                    ], Response::HTTP_UNPROCESSABLE_ENTITY);
+                }
+
+                $statusCode = $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
                     ? $e->getStatusCode()
                     : Response::HTTP_INTERNAL_SERVER_ERROR;
 
@@ -101,6 +119,17 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Handle Authentication Errors (401)
         $exceptions->renderable(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unauthenticated. Silakan login terlebih dahulu.',
+                    'code' => 'UNAUTHENTICATED',
+                ], Response::HTTP_UNAUTHORIZED);
+            }
+        });
+
+        // Handle Route Not Found exceptions from auth middleware
+        $exceptions->renderable(function (\Symfony\Component\Routing\Exception\RouteNotFoundException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'status' => 'error',

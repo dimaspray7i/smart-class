@@ -4,11 +4,47 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Subject extends Model
 {
     use HasFactory;
+
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'subjects';
+
+    /**
+     * The primary key associated with the table.
+     *
+     * @var string
+     */
+    protected $primaryKey = 'id';
+
+    /**
+     * Indicates if the IDs are auto-incrementing.
+     *
+     * @var bool
+     */
+    public $incrementing = true;
+
+    /**
+     * The data type of the primary key ID.
+     *
+     * @var string
+     */
+    protected $keyType = 'int';
+
+    /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+     */
+    public $timestamps = true;
 
     /**
      * Attributes yang dapat di-mass-assign
@@ -45,6 +81,33 @@ class Subject extends Model
         return $this->hasMany(Schedule::class);
     }
 
+    /**
+     * Subject belongs to many profiles (teachers) via profile_subject pivot table
+     * 
+     * Usage: 
+     * - $subject->profiles (get all teacher profiles teaching this subject)
+     * - $subject->profiles()->attach($profileId)
+     * - $subject->profiles()->detach($profileId)
+     * - $subject->profiles()->sync([1, 2, 3])
+     */
+    public function profiles(): BelongsToMany
+    {
+        return $this->belongsToMany(Profile::class, 'profile_subject')
+            ->withTimestamps();
+    }
+
+    /**
+     * Subject is taught by many users (teachers) through their profiles
+     * 
+     * This is a convenient accessor to get User models directly
+     */
+    public function teachers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'profile_subject', 'subject_id', 'profile_id')
+            ->through(Profile::class)
+            ->withTimestamps();
+    }
+
     // ═══════════════════════════════════════════════════════════
     // SCOPES
     // ═══════════════════════════════════════════════════════════
@@ -74,12 +137,48 @@ class Subject extends Model
             ->orWhere('code', 'like', "%{$search}%");
     }
 
+    /**
+     * Scope: Subjects taught by specific teacher (profile)
+     */
+    public function scopeTaughtBy($query, int $profileId)
+    {
+        return $query->whereHas('profiles', function ($q) use ($profileId) {
+            $q->where('profiles.id', $profileId);
+        });
+    }
+
+    /**
+     * Scope: Subjects taught by specific user (teacher)
+     */
+    public function scopeTaughtByUser($query, int $userId)
+    {
+        return $query->whereHas('profiles', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        });
+    }
+
+    /**
+     * Scope: Subjects with at least one teacher assigned
+     */
+    public function scopeWithTeachers($query)
+    {
+        return $query->has('profiles');
+    }
+
+    /**
+     * Scope: Subjects without any teacher assigned
+     */
+    public function scopeWithoutTeachers($query)
+    {
+        return $query->doesntHave('profiles');
+    }
+
     // ═══════════════════════════════════════════════════════════
     // ACCESSORS
     // ═══════════════════════════════════════════════════════════
 
     /**
-     * Accessor: Get category label
+     * Accessor: Get category label in Indonesian
      */
     public function getCategoryLabelAttribute(): string
     {
@@ -98,5 +197,108 @@ class Subject extends Model
     public function getFullNameAttribute(): string
     {
         return "{$this->code} - {$this->name}";
+    }
+
+    /**
+     * Accessor: Get count of teachers teaching this subject
+     */
+    public function getTeachersCountAttribute(): int
+    {
+        return $this->profiles()->count();
+    }
+
+    /**
+     * Accessor: Get teacher names as comma-separated string
+     */
+    public function getTeacherNamesAttribute(): string
+    {
+        return $this->profiles
+            ->map(fn($p) => $p->user?->name)
+            ->filter()
+            ->implode(', ');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // BUSINESS LOGIC METHODS
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Check if subject is taught by specific profile
+     */
+    public function isTaughtBy(int $profileId): bool
+    {
+        return $this->profiles->contains('id', $profileId);
+    }
+
+    /**
+     * Check if subject is taught by specific user (teacher)
+     */
+    public function isTaughtByUser(int $userId): bool
+    {
+        return $this->profiles->contains('user_id', $userId);
+    }
+
+    /**
+     * Add teacher (profile) to this subject
+     */
+    public function addTeacher(int $profileId): bool
+    {
+        if ($this->isTaughtBy($profileId)) {
+            return false;
+        }
+        
+        $this->profiles()->attach($profileId);
+        return true;
+    }
+
+    /**
+     * Remove teacher (profile) from this subject
+     */
+    public function removeTeacher(int $profileId): bool
+    {
+        if (!$this->isTaughtBy($profileId)) {
+            return false;
+        }
+        
+        $this->profiles()->detach($profileId);
+        return true;
+    }
+
+    /**
+     * Sync teachers for this subject (replace all)
+     */
+    public function syncTeachers(array $profileIds): void
+    {
+        $this->profiles()->sync($profileIds);
+    }
+
+    /**
+     * Check if subject has any teacher assigned
+     */
+    public function hasTeachers(): bool
+    {
+        return $this->teachers_count > 0;
+    }
+
+    /**
+     * Get subject info for API response
+     */
+    public function toApiArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'code' => $this->code,
+            'name' => $this->name,
+            'full_name' => $this->full_name,
+            'category' => $this->category,
+            'category_label' => $this->category_label,
+            'credits' => $this->credits,
+            'description' => $this->description,
+            'is_active' => $this->is_active,
+            'teachers_count' => $this->teachers_count,
+            'teacher_names' => $this->teacher_names,
+            'created_at' => $this->created_at?->toDateTimeString(),
+            'updated_at' => $this->updated_at?->toDateTimeString(),
+        ];
     }
 }
