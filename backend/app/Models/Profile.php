@@ -5,13 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Profile extends Model
 {
     use HasFactory;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'profiles';
+
+    /**
      * Attributes yang dapat di-mass-assign
+     * 
      */
     protected $fillable = [
         'user_id',
@@ -52,6 +61,13 @@ class Profile extends Model
                 $profile->nip = self::generateNip();
             }
         });
+
+        // Auto-delete subjects pivot when profile is deleted
+        static::deleting(function ($profile) {
+            // Pivot records will be auto-deleted via foreign key constraint
+            // But we can explicitly detach if needed:
+            // $profile->subjects()->detach();
+        });
     }
 
     /**
@@ -86,6 +102,20 @@ class Profile extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Profile has many subjects (many-to-many via profile_subject pivot table)
+     * 
+     * Usage: $profile->subjects
+     *        $profile->subjects()->attach($subjectId)
+     *        $profile->subjects()->detach($subjectId)
+     *        $profile->subjects()->sync([1, 2, 3])
+     */
+    public function subjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'profile_subject')
+            ->withTimestamps();
+    }
+
     // ═══════════════════════════════════════════════════════════
     // SCOPES
     // ═══════════════════════════════════════════════════════════
@@ -112,6 +142,26 @@ class Profile extends Model
     public function scopeTeachers($query)
     {
         return $query->whereNotNull('nip');
+    }
+
+    /**
+     * Scope: Filter profiles that have specific subject
+     */
+    public function scopeWithSubject($query, int $subjectId)
+    {
+        return $query->whereHas('subjects', function ($q) use ($subjectId) {
+            $q->where('subjects.id', $subjectId);
+        });
+    }
+
+    /**
+     * Scope: Filter profiles that have any of the given subjects
+     */
+    public function scopeWithAnySubject($query, array $subjectIds)
+    {
+        return $query->whereHas('subjects', function ($q) use ($subjectIds) {
+            $q->whereIn('subjects.id', $subjectIds);
+        });
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -174,5 +224,83 @@ class Profile extends Model
         }
 
         return null;
+    }
+
+    /**
+     * Accessor: Get subjects as simple array of IDs
+     */
+    public function getSubjectIdsAttribute(): array
+    {
+        return $this->subjects->pluck('id')->toArray();
+    }
+
+    /**
+     * Accessor: Get subjects as simple array of names
+     */
+    public function getSubjectNamesAttribute(): array
+    {
+        return $this->subjects->pluck('name')->toArray();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // BUSINESS LOGIC METHODS
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Check if profile has specific subject
+     */
+    public function hasSubject(int $subjectId): bool
+    {
+        return $this->subjects->contains('id', $subjectId);
+    }
+
+    /**
+     * Add subject to profile
+     */
+    public function addSubject(int $subjectId): bool
+    {
+        if ($this->hasSubject($subjectId)) {
+            return false;
+        }
+        
+        $this->subjects()->attach($subjectId);
+        return true;
+    }
+
+    /**
+     * Remove subject from profile
+     */
+    public function removeSubject(int $subjectId): bool
+    {
+        if (!$this->hasSubject($subjectId)) {
+            return false;
+        }
+        
+        $this->subjects()->detach($subjectId);
+        return true;
+    }
+
+    /**
+     * Sync subjects (replace all with given array)
+     */
+    public function syncSubjects(array $subjectIds): void
+    {
+        $this->subjects()->sync($subjectIds);
+    }
+
+    /**
+     * Get count of subjects
+     */
+    public function getSubjectsCountAttribute(): int
+    {
+        return $this->subjects->count();
+    }
+
+    /**
+     * Check if profile is for a teacher with subjects
+     */
+    public function getIsTeacherWithSubjectsAttribute(): bool
+    {
+        return $this->role_type === 'guru' && $this->subjects_count > 0;
     }
 }

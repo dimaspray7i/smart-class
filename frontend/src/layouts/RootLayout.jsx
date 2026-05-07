@@ -38,11 +38,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await authAPI.login({ email, password });
       if (res?.status === 'success') {
-        saveAuth(res.data.token, res.data.user);
-        setUser(res.data.user);
+        saveAuth(res.token, res.user);
+        setUser(res.user);
         
         // Redirect based on role
-        const role = res.data.user.role;
+        const role = res.user.role;
         if (role === 'siswa') navigate('/dashboard/student');
         else if (role === 'guru') navigate('/dashboard/teacher');
         else if (role === 'admin') navigate('/dashboard/admin');

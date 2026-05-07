@@ -30,7 +30,7 @@ class SubjectController extends Controller
             'status' => 'success',
             'message' => 'Mapel berhasil diambil.',
             'code' => 'SUBJECTS_SUCCESS',
-            'data' => $subjects,
+            'data' => $subjects->items(),
             'meta' => [
                 'current_page' => $subjects->currentPage(),
                 'per_page' => $subjects->perPage(),

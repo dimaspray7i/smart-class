@@ -38,7 +38,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * Attributes yang harus di-cast
+     * Attributes yang harus di-cast 
      */
     protected function casts(): array
     {
@@ -141,13 +141,7 @@ class User extends Authenticatable
     }
 
     /**
-     * User belongs to many classes (many-to-many) ⭐ FIXED
-     * 
-     * Parameter:
-     * 1. ClassModel::class - Related model
-     * 2. 'class_user' - Pivot table name
-     * 3. 'user_id' - Foreign key for THIS model (users table)
-     * 4. 'class_id' - Foreign key for RELATED model (classes table) ⭐ INI YANG DITAMBAHKAN
+     * User belongs to many classes (many-to-many)
      */
     public function classes(): BelongsToMany
     {
@@ -306,14 +300,6 @@ class User extends Authenticatable
     public function getIsAdminAttribute(): bool
     {
         return $this->role === 'admin';
-    }
-
-    /**
-     * Mutator: Set password dengan hash
-     */
-    public function setPasswordAttribute(string $value): void
-    {
-        $this->attributes['password'] = bcrypt($value);
     }
 
     /**

@@ -1,13 +1,24 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+
+// Layouts
 import PublicLayout from './layouts/PublicLayout';
 import DashboardLayout from './layouts/DashboardLayout';
+
+// Public Pages
 import LoginPage from './pages/LoginPage';
 import LandingPage from './pages/LandingPage';
+
+// Student Pages
 import StudentDashboard from './pages/dashboard/StudentDashboard';
-import TeacherDashboard from './pages/dashboard/TeacherDashboard';
-import AdminDashboard from './pages/dashboard/AdminDashboard';
 import AttendancePage from './pages/dashboard/AttendancePage';
+
+// Teacher Pages
+import TeacherDashboard from './pages/dashboard/TeacherDashboard';
+
+// Admin Pages
+import AdminDashboard from './pages/dashboard/AdminDashboard';
+import UserManagement from './pages/admin/UserManagement'; // ✅ IMPORT BARU
 
 // ═══════════════════════════════════════════════════════════
 // PROTECTED ROUTE COMPONENT
@@ -47,9 +58,12 @@ function DashboardRedirect() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// ROUTE DEFINITIONS
+// ROUTE DEFINITIONS (Array format for createBrowserRouter)
 // ═══════════════════════════════════════════════════════════
 export const router = [
+  // ─────────────────────────────────────────────────────────
+  // PUBLIC ROUTES
+  // ─────────────────────────────────────────────────────────
   {
     path: '/',
     element: <PublicLayout />,
@@ -60,6 +74,10 @@ export const router = [
       { path: 'simulator', element: <div className="p-8 text-center">Simulator (Coming Soon)</div> },
     ],
   },
+
+  // ─────────────────────────────────────────────────────────
+  // DASHBOARD ROUTES (Protected)
+  // ─────────────────────────────────────────────────────────
   {
     path: '/dashboard',
     element: (
@@ -68,9 +86,10 @@ export const router = [
       </ProtectedRoute>
     ),
     children: [
-      // ─────────────────────────────────────────────────────
-      // STUDENT ROUTES
-      // ─────────────────────────────────────────────────────
+      
+      // ════════════════════════════════════════════════════
+      // 👨‍💻 STUDENT ROUTES (role: siswa)
+      // ════════════════════════════════════════════════════
       {
         path: 'student',
         element: (
@@ -81,14 +100,14 @@ export const router = [
         children: [
           { index: true, element: <StudentDashboard /> },
           { path: 'attendance', element: <AttendancePage /> },
-          { path: 'projects', element: <div className="p-8">Projects (Coming Soon)</div> },
-          { path: 'skills', element: <div className="p-8">Skills (Coming Soon)</div> },
+          { path: 'projects', element: <div className="p-8 text-center text-gray-500">🚧 Projects (Coming Soon)</div> },
+          { path: 'skills', element: <div className="p-8 text-center text-gray-500">🚧 Skills (Coming Soon)</div> },
         ],
       },
       
-      // ─────────────────────────────────────────────────────
-      // TEACHER ROUTES
-      // ─────────────────────────────────────────────────────
+      // ════════════════════════════════════════════════════
+      // 👨‍🏫 TEACHER ROUTES (role: guru)
+      // ════════════════════════════════════════════════════
       {
         path: 'teacher',
         element: (
@@ -98,15 +117,15 @@ export const router = [
         ),
         children: [
           { index: true, element: <TeacherDashboard /> },
-          { path: 'attendance', element: <div className="p-8">Attendance (Coming Soon)</div> },
-          { path: 'students', element: <div className="p-8">Students (Coming Soon)</div> },
-          { path: 'permissions', element: <div className="p-8">Permissions (Coming Soon)</div> },
+          { path: 'attendance', element: <div className="p-8 text-center text-gray-500">🚧 Attendance (Coming Soon)</div> },
+          { path: 'students', element: <div className="p-8 text-center text-gray-500">🚧 Students (Coming Soon)</div> },
+          { path: 'permissions', element: <div className="p-8 text-center text-gray-500">🚧 Permissions (Coming Soon)</div> },
         ],
       },
       
-      // ─────────────────────────────────────────────────────
-      // ADMIN ROUTES
-      // ─────────────────────────────────────────────────────
+      // ════════════════════════════════════════════════════
+      // 👨‍💼 ADMIN ROUTES (role: admin)
+      // ════════════════════════════════════════════════════
       {
         path: 'admin',
         element: (
@@ -116,19 +135,26 @@ export const router = [
         ),
         children: [
           { index: true, element: <AdminDashboard /> },
-          { path: 'users', element: <div className="p-8">Users (Coming Soon)</div> },
-          { path: 'classes', element: <div className="p-8">Classes (Coming Soon)</div> },
-          { path: 'subjects', element: <div className="p-8">Subjects (Coming Soon)</div> },
-          { path: 'schedules', element: <div className="p-8">Schedules (Coming Soon)</div> },
-          { path: 'settings', element: <div className="p-8">Settings (Coming Soon)</div> },
+          
+          // ✅ USER MANAGEMENT (CRUD) - LIVE!
+          { path: 'users', element: <UserManagement /> },
+          
+          // Coming Soon pages
+          { path: 'classes', element: <div className="p-8 text-center text-gray-500">🚧 Classes (Coming Soon)</div> },
+          { path: 'subjects', element: <div className="p-8 text-center text-gray-500">🚧 Subjects (Coming Soon)</div> },
+          { path: 'schedules', element: <div className="p-8 text-center text-gray-500">🚧 Schedules (Coming Soon)</div> },
+          { path: 'settings', element: <div className="p-8 text-center text-gray-500">🚧 Settings (Coming Soon)</div> },
+          { path: 'analytics', element: <div className="p-8 text-center text-gray-500">🚧 Analytics (Coming Soon)</div> },
         ],
       },
       
-      // Default redirect to role-based dashboard
+      // Default: redirect to role-based dashboard
       { index: true, element: <DashboardRedirect /> },
     ],
   },
   
-  // Catch-all: redirect unknown routes to home (not login, to avoid loops)
+  // ─────────────────────────────────────────────────────────
+  // CATCH-ALL: Redirect unknown routes to home
+  // ─────────────────────────────────────────────────────────
   { path: '*', element: <Navigate to="/" replace /> },
 ];
