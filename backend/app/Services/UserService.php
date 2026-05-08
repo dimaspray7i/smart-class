@@ -171,7 +171,13 @@ class UserService
 
             $profile = Profile::create($profileData);
 
-            // 5. Sync subjects for teacher (via pivot table profile_subject)
+            // 6. Handle avatar upload if provided
+            if (isset($data['avatar']) && $data['avatar']) {
+                $avatarPath = $data['avatar']->store('avatars', 'public');
+                $user->update(['avatar' => $avatarPath]);
+            }
+
+            // 7. Sync subjects for teacher (via pivot table teacher_subjects)
             if ($role === 'guru' && !empty($data['subjects'])) {
                 $profile->subjects()->sync($data['subjects']);
             }
@@ -287,6 +293,12 @@ class UserService
             // Update User
             $user->update($data);
 
+            // Handle avatar upload if provided
+            if (isset($data['avatar']) && $data['avatar']) {
+                $avatarPath = $data['avatar']->store('avatars', 'public');
+                $user->update(['avatar' => $avatarPath]);
+            }
+
             // Update or Create Profile
             $profileData = array_filter([
                 'bio' => $data['bio'] ?? null,
@@ -398,6 +410,95 @@ class UserService
                 'code' => 'SERVER_ERROR',
             ];
         }
+    }
+
+    /**
+     * Delete multiple users
+     * 
+     * @param array $ids
+     * @return array ['success' => bool, 'message' => string, 'code' => string]
+     */
+    public function deleteMultiple(array $ids): array
+    {
+        try {
+            $users = User::whereIn('id', $ids)->get();
+
+            if ($users->isEmpty()) {
+                return [
+                    'success' => false,
+                    'message' => 'Tidak ada user yang ditemukan.',
+                    'code' => 'NOT_FOUND',
+                ];
+            }
+
+            // Prevent deleting self
+            $selfId = auth()->id();
+            if (in_array($selfId, $ids)) {
+                return [
+                    'success' => false,
+                    'message' => 'Tidak dapat menghapus akun sendiri.',
+                    'code' => 'SELF_DELETE_FORBIDDEN',
+                ];
+            }
+
+            // Delete users (cascade will delete profiles via foreign key constraint)
+            User::whereIn('id', $ids)->delete();
+
+            return [
+                'success' => true,
+                'message' => count($ids) . ' user berhasil dihapus.',
+                'code' => 'DELETE_SUCCESS',
+            ];
+
+        } catch (Exception $e) {
+            Log::error('UserService::deleteMultiple failed', [
+                'user_ids' => $ids,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Gagal menghapus users.',
+                'code' => 'SERVER_ERROR',
+            ];
+        }
+    }
+
+    /**
+     * Get all users for export (without pagination)
+     * 
+     * @param array $filters
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getAllForExport(array $filters = []): \Illuminate\Database\Eloquent\Collection
+    {
+        $query = User::query();
+
+        // Filter by role
+        if (!empty($filters['role']) && in_array($filters['role'], ['admin', 'guru', 'siswa'])) {
+            $query->where('role', $filters['role']);
+        }
+
+        // Filter by is_active (handle boolean/string/int)
+        if (isset($filters['is_active'])) {
+            $isActive = filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN);
+            $query->where('is_active', $isActive);
+        }
+
+        // Search by name, email, or phone
+        if (!empty($filters['search'])) {
+            $query->where(function ($q) use ($filters) {
+                $search = "%{$filters['search']}%";
+                $q->where('name', 'like', $search)
+                  ->orWhere('email', 'like', $search)
+                  ->orWhere('phone', 'like', $search);
+            });
+        }
+
+        return $query
+            ->with(['profile'])
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**

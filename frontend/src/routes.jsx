@@ -1,24 +1,35 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
-// Layouts
+// ═══════════════════════════════════════════════════════════
+// LAYOUTS
+// ═══════════════════════════════════════════════════════════
 import PublicLayout from './layouts/PublicLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 
-// Public Pages
+// ═══════════════════════════════════════════════════════════
+// PUBLIC PAGES
+// ═══════════════════════════════════════════════════════════
 import LoginPage from './pages/LoginPage';
 import LandingPage from './pages/LandingPage';
 
-// Student Pages
+// ═══════════════════════════════════════════════════════════
+// STUDENT PAGES
+// ═══════════════════════════════════════════════════════════
 import StudentDashboard from './pages/dashboard/StudentDashboard';
 import AttendancePage from './pages/dashboard/AttendancePage';
 
-// Teacher Pages
+// ═══════════════════════════════════════════════════════════
+// TEACHER PAGES
+// ═══════════════════════════════════════════════════════════
 import TeacherDashboard from './pages/dashboard/TeacherDashboard';
 
-// Admin Pages
+// ═══════════════════════════════════════════════════════════
+// ADMIN PAGES
+// ═══════════════════════════════════════════════════════════
 import AdminDashboard from './pages/dashboard/AdminDashboard';
-import UserManagement from './pages/admin/UserManagement'; // ✅ IMPORT BARU
+import UserManagement from './pages/admin/UserManagement';
+import ClassManagement from './pages/admin/ClassManagement';        // ✅ NEW
 
 // ═══════════════════════════════════════════════════════════
 // PROTECTED ROUTE COMPONENT
@@ -58,11 +69,42 @@ function DashboardRedirect() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// PLACEHOLDER COMPONENT (Reusable for Coming Soon pages)
+// ═══════════════════════════════════════════════════════════
+function ComingSoon({ title = "Fitur", icon = "🚧" }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8">
+      <div className="text-6xl mb-4 animate-bounce">{icon}</div>
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+        {title} Coming Soon
+      </h2>
+      <p className="text-gray-600 dark:text-dark-muted max-w-md">
+        Fitur ini sedang dalam pengembangan. Silakan kembali nanti untuk update terbaru.
+      </p>
+      <div className="mt-6 flex gap-3">
+        <button 
+          onClick={() => window.history.back()}
+          className="btn btn-outline"
+        >
+          ← Kembali
+        </button>
+        <button 
+          onClick={() => window.location.href = '/dashboard'}
+          className="btn btn-primary"
+        >
+          Ke Dashboard
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
 // ROUTE DEFINITIONS (Array format for createBrowserRouter)
 // ═══════════════════════════════════════════════════════════
 export const router = [
   // ─────────────────────────────────────────────────────────
-  // PUBLIC ROUTES
+  // PUBLIC ROUTES (No Authentication Required)
   // ─────────────────────────────────────────────────────────
   {
     path: '/',
@@ -70,13 +112,13 @@ export const router = [
     children: [
       { index: true, element: <LandingPage /> },
       { path: 'login', element: <LoginPage /> },
-      { path: 'gallery', element: <div className="p-8 text-center">Gallery (Coming Soon)</div> },
-      { path: 'simulator', element: <div className="p-8 text-center">Simulator (Coming Soon)</div> },
+      { path: 'gallery', element: <ComingSoon title="Galeri Siswa" icon="🖼️" /> },
+      { path: 'simulator', element: <ComingSoon title="Career Simulator" icon="🎮" /> },
     ],
   },
 
   // ─────────────────────────────────────────────────────────
-  // DASHBOARD ROUTES (Protected)
+  // DASHBOARD ROUTES (Protected - Auth Required)
   // ─────────────────────────────────────────────────────────
   {
     path: '/dashboard',
@@ -100,8 +142,8 @@ export const router = [
         children: [
           { index: true, element: <StudentDashboard /> },
           { path: 'attendance', element: <AttendancePage /> },
-          { path: 'projects', element: <div className="p-8 text-center text-gray-500">🚧 Projects (Coming Soon)</div> },
-          { path: 'skills', element: <div className="p-8 text-center text-gray-500">🚧 Skills (Coming Soon)</div> },
+          { path: 'projects', element: <ComingSoon title="Project Management" icon="💻" /> },
+          { path: 'skills', element: <ComingSoon title="Skill Tracker" icon="🧠" /> },
         ],
       },
       
@@ -117,14 +159,14 @@ export const router = [
         ),
         children: [
           { index: true, element: <TeacherDashboard /> },
-          { path: 'attendance', element: <div className="p-8 text-center text-gray-500">🚧 Attendance (Coming Soon)</div> },
-          { path: 'students', element: <div className="p-8 text-center text-gray-500">🚧 Students (Coming Soon)</div> },
-          { path: 'permissions', element: <div className="p-8 text-center text-gray-500">🚧 Permissions (Coming Soon)</div> },
+          { path: 'attendance', element: <ComingSoon title="Attendance Control" icon="📊" /> },
+          { path: 'students', element: <ComingSoon title="Student Management" icon="👥" /> },
+          { path: 'permissions', element: <ComingSoon title="Permission Requests" icon="📋" /> },
         ],
       },
       
       // ════════════════════════════════════════════════════
-      // 👨‍💼 ADMIN ROUTES (role: admin)
+      // 👨‍💼 ADMIN ROUTES (role: admin) - LIVE FEATURES!
       // ════════════════════════════════════════════════════
       {
         path: 'admin',
@@ -134,13 +176,16 @@ export const router = [
           </ProtectedRoute>
         ),
         children: [
+          // Dashboard
           { index: true, element: <AdminDashboard /> },
           
-          // ✅ USER MANAGEMENT (CRUD) - LIVE!
+          // ✅ LIVE: User Management (CRUD)
           { path: 'users', element: <UserManagement /> },
           
-          // Coming Soon pages
-          { path: 'classes', element: <div className="p-8 text-center text-gray-500">🚧 Classes (Coming Soon)</div> },
+          // ✅ LIVE: Class Management (CRUD) - NEW!
+          { path: 'classes', element: <ClassManagement /> },
+          
+          // 🚧 Coming Soon: Other admin features
           { path: 'subjects', element: <div className="p-8 text-center text-gray-500">🚧 Subjects (Coming Soon)</div> },
           { path: 'schedules', element: <div className="p-8 text-center text-gray-500">🚧 Schedules (Coming Soon)</div> },
           { path: 'settings', element: <div className="p-8 text-center text-gray-500">🚧 Settings (Coming Soon)</div> },
