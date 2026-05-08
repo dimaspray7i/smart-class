@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
@@ -21,29 +22,40 @@ class UserController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $filters = $request->only(['role', 'is_active', 'search']);
-        
-        // Handle boolean conversion for is_active
-        if (isset($filters['is_active'])) {
-            $filters['is_active'] = filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN);
+        try {
+            $filters = $request->only(['role', 'is_active', 'search']);
+            
+            // Handle boolean conversion for is_active
+            if (isset($filters['is_active'])) {
+                $filters['is_active'] = filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN);
+            }
+
+            $users = $this->userService->paginate($filters);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'User berhasil diambil.',
+                'code' => 'USERS_SUCCESS',
+                'data' => $users->items(),
+                'meta' => [
+                    'current_page' => $users->currentPage(),
+                    'per_page' => $users->perPage(),
+                    'total' => $users->total(),
+                    'last_page' => $users->lastPage(),
+                    'from' => $users->firstItem(),
+                    'to' => $users->lastItem(),
+                ],
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('UserController::index failed', ['error' => $e->getMessage()]);
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengambil data user.',
+                'code' => 'SERVER_ERROR',
+            ], 500);
         }
-
-        $users = $this->userService->paginate($filters);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User berhasil diambil.',
-            'code' => 'USERS_SUCCESS',
-            'data' => $users->items(),
-            'meta' => [
-                'current_page' => $users->currentPage(),
-                'per_page' => $users->perPage(),
-                'total' => $users->total(),
-                'last_page' => $users->lastPage(),
-                'from' => $users->firstItem(),
-                'to' => $users->lastItem(),
-            ],
-        ], 200);
     }
 
     /**
@@ -51,25 +63,36 @@ class UserController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $user = $this->userService->find($id);
+        try {
+            $user = $this->userService->find($id);
 
-        if (!$user) {
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User tidak ditemukan.',
+                    'code' => 'NOT_FOUND',
+                ], 404);
+            }
+
+            // Load relationships for detailed view
+            $user->load(['profile', 'profile.subjects']);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'User berhasil diambil.',
+                'code' => 'USER_SUCCESS',
+                'data' => $user,
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('UserController::show failed', ['error' => $e->getMessage()]);
+            
             return response()->json([
                 'status' => 'error',
-                'message' => 'User tidak ditemukan.',
-                'code' => 'NOT_FOUND',
-            ], 404);
+                'message' => 'Gagal mengambil detail user.',
+                'code' => 'SERVER_ERROR',
+            ], 500);
         }
-
-        // Load relationships for detailed view
-        $user->load(['profile', 'profile.subjects']);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User berhasil diambil.',
-            'code' => 'USER_SUCCESS',
-            'data' => $user,
-        ], 200);
     }
 
     /**
@@ -87,6 +110,7 @@ class UserController extends Controller
             'role' => 'required|in:admin,guru,siswa',
             'phone' => 'nullable|string|max:20',
             'is_active' => 'nullable|boolean',
+            'avatar' => 'nullable|image|max:5120', // max 5MB
             
             // Profile fields (conditionally required)
             'nis' => $role === 'siswa' ? 'required|string|max:20|unique:profiles,nis' : 'nullable|string|max:20',
@@ -153,7 +177,7 @@ class UserController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             
-            \Log::error('UserController::store failed', [
+            Log::error('UserController::store failed', [
                 'error' => $e->getMessage(),
                 'trace' => config('app.debug') ? $e->getTraceAsString() : null,
             ]);
@@ -190,6 +214,7 @@ class UserController extends Controller
             'email' => 'sometimes|required|email|max:255|unique:users,email,' . $id,
             'phone' => 'nullable|string|max:20',
             'is_active' => 'nullable|boolean',
+            'avatar' => 'nullable|image|max:5120', // max 5MB
             
             // Profile fields (conditionally validated)
             'nis' => $role === 'siswa' 
@@ -255,7 +280,7 @@ class UserController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             
-            \Log::error('UserController::update failed', [
+            Log::error('UserController::update failed', [
                 'user_id' => $id,
                 'error' => $e->getMessage(),
             ]);
@@ -269,12 +294,28 @@ class UserController extends Controller
     }
 
     /**
-     * Delete user (ADMIN ONLY)
+     * Delete user(s) (ADMIN ONLY) - Support multiple IDs
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
+        $ids = $request->input('ids', []);
+        
+        // If single ID provided via route parameter, use it
+        if (!$ids && $request->route('user')) {
+            $ids = [$request->route('user')];
+        }
+        
+        // Ensure we have IDs to delete
+        if (empty($ids)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tidak ada user yang dipilih untuk dihapus.',
+                'code' => 'NO_IDS_PROVIDED',
+            ], 400);
+        }
+        
         // Prevent self-deletion
-        if ($id === auth()->id()) {
+        if (in_array(auth()->id(), $ids)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Tidak dapat menghapus akun sendiri.',
@@ -282,21 +323,158 @@ class UserController extends Controller
             ], 403);
         }
 
-        $result = $this->userService->delete($id);
+        try {
+            $result = $this->userService->deleteMultiple($ids);
 
-        if (!$result['success']) {
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'DELETE_FAILED',
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $result['message'],
+                'code' => 'DELETE_SUCCESS',
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('UserController::destroy failed', [
+                'ids' => $ids,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'status' => 'error',
-                'message' => $result['message'],
-                'code' => $result['code'] ?? 'DELETE_FAILED',
+                'message' => 'Gagal menghapus user: ' . $e->getMessage(),
+                'code' => 'SERVER_ERROR',
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk delete users (ADMIN ONLY)
+     */
+    public function bulkDelete(Request $request): JsonResponse
+    {
+        $ids = $request->input('ids', []);
+        
+        if (empty($ids)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tidak ada user yang dipilih.',
+                'code' => 'NO_IDS_PROVIDED',
             ], 400);
         }
+        
+        // Prevent self-deletion
+        if (in_array(auth()->id(), $ids)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tidak dapat menghapus akun sendiri.',
+                'code' => 'SELF_DELETE_FORBIDDEN',
+            ], 403);
+        }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => $result['message'],
-            'code' => 'DELETE_SUCCESS',
-        ], 200);
+        try {
+            $result = $this->userService->deleteMultiple($ids);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'DELETE_FAILED',
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $result['message'],
+                'code' => 'DELETE_SUCCESS',
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('UserController::bulkDelete failed', [
+                'ids' => $ids,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menghapus user: ' . $e->getMessage(),
+                'code' => 'SERVER_ERROR',
+            ], 500);
+        }
+    }
+
+    /**
+     * Export users to CSV
+     */
+    public function export(Request $request)
+    {
+        try {
+            $filters = $request->only(['role', 'is_active', 'search']);
+            
+            // Handle boolean conversion for is_active
+            if (isset($filters['is_active'])) {
+                $filters['is_active'] = filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN);
+            }
+
+            // Get users data with relationships
+            $users = $this->userService->getAllForExport($filters);
+
+            // Generate CSV content
+            $csvData = [];
+            $headers = ['ID', 'Nama', 'Email', 'Role', 'Telepon', 'Status', 'NIS', 'NIP', 'Kelas', 'Tanggal Dibuat'];
+            $csvData[] = $headers;
+
+            foreach ($users as $user) {
+                $csvData[] = [
+                    $user->id,
+                    $user->name,
+                    $user->email,
+                    strtoupper($user->role),
+                    $user->phone ?? '-',
+                    $user->is_active ? 'Aktif' : 'Non-Aktif',
+                    $user->profile?->nis ?? '-',
+                    $user->profile?->nip ?? '-',
+                    $user->profile?->class_level ? 'Kelas ' . $user->profile->class_level : '-',
+                    $user->created_at->format('d/m/Y H:i'),
+                ];
+            }
+
+            // Create CSV string with proper encoding (BOM for Excel)
+            $output = fopen('php://temp', 'r+');
+            foreach ($csvData as $row) {
+                fputcsv($output, $row, ',', '"', '\\');
+            }
+            rewind($output);
+            $csvContent = stream_get_contents($output);
+            fclose($output);
+
+            // Return as downloadable file
+            return response($csvContent)
+                ->header('Content-Type', 'text/csv; charset=UTF-8')
+                ->header('Content-Disposition', 'attachment; filename="users_export_' . date('Y-m-d_H-i-s') . '.csv"')
+                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                ->header('Expires', '0')
+                ->header('Pragma', 'no-cache');
+
+        } catch (\Exception $e) {
+            \Log::error('UserController::export failed', [
+                'error' => $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ]);
+
+            // Return JSON error (Axios will catch this)
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal export data: ' . $e->getMessage(),
+                'code' => 'EXPORT_FAILED',
+            ], 500);
+        }
     }
 
     /**
@@ -304,23 +482,37 @@ class UserController extends Controller
      */
     public function resetPassword(int $id, Request $request): JsonResponse
     {
-        $newPassword = $request->input('password', 'password123');
-        
-        $result = $this->userService->resetPassword($id, $newPassword);
+        try {
+            $newPassword = $request->input('password', 'password123');
+            
+            $result = $this->userService->resetPassword($id, $newPassword);
 
-        if (!$result['success']) {
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'RESET_FAILED',
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $result['message'],
+                'code' => 'RESET_SUCCESS',
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('UserController::resetPassword failed', [
+                'user_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'status' => 'error',
-                'message' => $result['message'],
-                'code' => $result['code'] ?? 'RESET_FAILED',
-            ], 400);
+                'message' => 'Gagal reset password.',
+                'code' => 'SERVER_ERROR',
+            ], 500);
         }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => $result['message'],
-            'code' => 'RESET_SUCCESS',
-        ], 200);
     }
 
     /**
@@ -337,25 +529,39 @@ class UserController extends Controller
             ], 403);
         }
 
-        $validated = $request->validate([
-            'role' => 'required|in:admin,guru,siswa',
-        ]);
+        try {
+            $validated = $request->validate([
+                'role' => 'required|in:admin,guru,siswa',
+            ]);
 
-        $result = $this->userService->updateRole($id, $validated['role']);
+            $result = $this->userService->updateRole($id, $validated['role']);
 
-        if (!$result['success']) {
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'ROLE_UPDATE_FAILED',
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $result['message'],
+                'code' => 'ROLE_UPDATE_SUCCESS',
+                'data' => $result['user'],
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('UserController::updateRole failed', [
+                'user_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'status' => 'error',
-                'message' => $result['message'],
-                'code' => $result['code'] ?? 'ROLE_UPDATE_FAILED',
-            ], 400);
+                'message' => 'Gagal update role.',
+                'code' => 'SERVER_ERROR',
+            ], 500);
         }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => $result['message'],
-            'code' => 'ROLE_UPDATE_SUCCESS',
-            'data' => $result['user'],
-        ], 200);
     }
 }
