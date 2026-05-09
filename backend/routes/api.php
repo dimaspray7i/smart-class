@@ -23,7 +23,6 @@ use App\Http\Controllers\Admin\ScheduleController as AdminSchedule;
 // ═══════════════════════════════════════════════════════════
 Route::middleware('api')->group(function () {
 
-    // Health check
     Route::get('/health', function () {
         return response()->json([
             'status' => 'success',
@@ -35,7 +34,7 @@ Route::middleware('api')->group(function () {
     });
 
     // ═══════════════════════════════════════════════════════════
-    // PUBLIC ROUTES
+    // PUBLIC ROUTES (No Authentication Required)
     // ═══════════════════════════════════════════════════════════
     Route::prefix('v1/public')->group(function () {
         Route::get('/landing', [LandingController::class, 'index']);
@@ -59,6 +58,7 @@ Route::middleware('api')->group(function () {
     Route::prefix('v1/auth')->group(function () {
         Route::post('/login', [AuthController::class, 'login']);
         
+        // Protected auth routes
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::get('/me', [AuthController::class, 'me']);
@@ -68,7 +68,7 @@ Route::middleware('api')->group(function () {
     });
 
     // ═══════════════════════════════════════════════════════════
-    // STUDENT ROUTES
+    // STUDENT ROUTES (Role: siswa)
     // ═══════════════════════════════════════════════════════════
     Route::prefix('v1/student')
         ->middleware(['auth:sanctum', 'role:siswa'])
@@ -94,7 +94,7 @@ Route::middleware('api')->group(function () {
         });
 
     // ═══════════════════════════════════════════════════════════
-    // TEACHER ROUTES
+    // TEACHER ROUTES (Role: guru)
     // ═══════════════════════════════════════════════════════════
     Route::prefix('v1/teacher')
         ->middleware(['auth:sanctum', 'role:guru'])
@@ -123,51 +123,29 @@ Route::middleware('api')->group(function () {
         });
 
     // ═══════════════════════════════════════════════════════════
-    // ADMIN ROUTES
+    // ADMIN ROUTES (Role: admin)
     // ═══════════════════════════════════════════════════════════
     Route::prefix('v1/admin')
         ->middleware(['auth:sanctum', 'role:admin'])
         ->group(function () {
-            
-            // Dashboard & Analytics
             Route::get('/dashboard', [AdminDashboard::class, 'index']);
             Route::get('/analytics/attendance', [AdminDashboard::class, 'attendanceAnalytics']);
             Route::get('/analytics/students', [AdminDashboard::class, 'studentAnalytics']);
             
-            // ═══════════════════════════════════════════════════
-            // USER MANAGEMENT
-            // ═══════════════════════════════════════════════════
-            Route::get('/users/export', [AdminUser::class, 'export'])->name('admin.users.export');
-            Route::post('/users/bulk-delete', [AdminUser::class, 'bulkDelete'])->name('admin.users.bulk-delete');
+            // User Management
+            Route::apiResource('users', AdminUser::class);
+            Route::get('/users/export', [AdminUser::class, 'export']);
             Route::post('/users/{user}/reset-password', [AdminUser::class, 'resetPassword']);
             Route::patch('/users/{user}/role', [AdminUser::class, 'updateRole']);
-            Route::apiResource('users', AdminUser::class);
             
-            // ═══════════════════════════════════════════════════
-            // CLASS MANAGEMENT (UPDATED)
-            // ═══════════════════════════════════════════════════
-            Route::get('/classes/export', [AdminClass::class, 'export'])->name('admin.classes.export');
-            Route::post('/classes/bulk-delete', [AdminClass::class, 'bulkDelete'])->name('admin.classes.bulk-delete');
+            // Academic Setup
             Route::apiResource('classes', AdminClass::class);
-            
-            // ═══════════════════════════════════════════════════
-            // SUBJECT MANAGEMENT
-            // ═══════════════════════════════════════════════════
-            Route::get('/subjects/export', [AdminSubject::class, 'export'])->name('admin.subjects.export');
-            Route::post('/subjects/bulk-delete', [AdminSubject::class, 'bulkDelete'])->name('admin.subjects.bulk-delete');
             Route::apiResource('subjects', AdminSubject::class);
-            
-            // ═══════════════════════════════════════════════════
-            // SCHEDULE MANAGEMENT
-            // ═══════════════════════════════════════════════════
-            Route::get('/schedules/export', [AdminSchedule::class, 'export'])->name('admin.schedules.export');
-            Route::post('/schedules/bulk-delete', [AdminSchedule::class, 'bulkDelete'])->name('admin.schedules.bulk-delete');
             Route::apiResource('schedules', AdminSchedule::class);
             
             Route::get('/schedules/check-conflict', [AdminSchedule::class, 'checkConflict']);
             Route::get('/schedules/by-teacher/{teacherId}', [AdminSchedule::class, 'byTeacher']);
             
-            // Settings
             Route::prefix('settings')->group(function () {
                 Route::get('/general', [AdminDashboard::class, 'settings']);
                 Route::put('/general', [AdminDashboard::class, 'updateSettings']);

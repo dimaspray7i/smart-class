@@ -228,26 +228,8 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
-  const [darkMode, setDarkMode] = useState(true);
 
-  // ═════════════════════════════════════════════════════════
-  // THEME TOGGLE LOGIC
-  // ═════════════════════════════════════════════════════════
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('rpl-theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('rpl-theme', 'light');
-    }
-  }, [darkMode]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem('rpl-theme');
-    if (saved === 'light') setDarkMode(false);
-    else if (saved === 'dark') setDarkMode(true);
-  }, []);
 
   // ═════════════════════════════════════════════════════════
   // API QUERIES
@@ -320,7 +302,7 @@ export default function AdminDashboard() {
       action: () => setActiveTab('analytics'),
       gradient: 'from-primary-600 to-accent-cyan hover:from-primary-500 hover:to-accent-cyan',
       description: 'Statistik & laporan',
-      badge: 'NEW',
+      badge: '',
     },
     {
       label: 'Settings',
@@ -473,38 +455,7 @@ export default function AdminDashboard() {
         
         <div className="flex items-center gap-3">
           {/* Theme Toggle */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setDarkMode(!darkMode)}
-            className="p-2.5 rounded-xl bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border 
-              hover:border-primary-500/50 transition-all shadow-sm"
-            title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {darkMode ? (
-                <motion.div
-                  key="sun"
-                  initial={{ opacity: 0, rotate: -90 }}
-                  animate={{ opacity: 1, rotate: 0 }}
-                  exit={{ opacity: 0, rotate: 90 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Sun className="w-5 h-5 text-amber-400" />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="moon"
-                  initial={{ opacity: 0, rotate: 90 }}
-                  animate={{ opacity: 1, rotate: 0 }}
-                  exit={{ opacity: 0, rotate: -90 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Moon className="w-5 h-5 text-primary-600" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.button>
+
           
           {/* Tab Navigation */}
           <div className="flex bg-white dark:bg-dark-card rounded-xl p-1 border border-gray-200 dark:border-dark-border shadow-sm">
@@ -659,7 +610,7 @@ export default function AdminDashboard() {
           <motion.div variants={itemVariants} className="card">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
-              <button className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium flex items-center gap-1 transition-colors">
+              <button onClick={() => navigate('/dashboard/admin/users')} className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium flex items-center gap-1 transition-colors">
                 View All <ChevronRight className="w-4 h-4" />
               </button>
             </div>

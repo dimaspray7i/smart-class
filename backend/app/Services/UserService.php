@@ -43,7 +43,7 @@ class UserService
         }
 
         return $query
-            ->with(['profile', 'profile.subjects'])
+            ->with(['profile', 'profile.subjects', 'classes'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
     }
@@ -164,17 +164,25 @@ class UserService
                 $profileData['nis'] = $data['nis'];
                 $profileData['class_level'] = $data['class_level'];
             }
-
             if ($role === 'guru') {
                 $profileData['nip'] = $data['nip'];
             }
 
             $profile = Profile::create($profileData);
 
+            // 5. Handle Student Class Enrollment
+            if ($role === 'siswa' && !empty($data['class_id'])) {
+                $user->classes()->attach($data['class_id'], [
+                    'role_in_class' => 'siswa',
+                    'academic_year' => date('Y'),
+                    'is_active' => true,
+                ]);
+            }
+
             // 6. Handle avatar upload if provided
             if (isset($data['avatar']) && $data['avatar']) {
                 $avatarPath = $data['avatar']->store('avatars', 'public');
-                $user->update(['avatar' => $avatarPath]);
+                $user->update(['avatar_url' => $avatarPath]);
             }
 
             // 7. Sync subjects for teacher (via pivot table teacher_subjects)
@@ -188,7 +196,7 @@ class UserService
                 'success' => true,
                 'message' => "User {$role} berhasil dibuat.",
                 'code' => 'CREATE_SUCCESS',
-                'user' => $user->fresh()->load(['profile', 'profile.subjects']),
+                'user' => $user->fresh()->load(['profile', 'profile.subjects', 'classes']),
             ];
 
         } catch (Exception $e) {
@@ -296,7 +304,7 @@ class UserService
             // Handle avatar upload if provided
             if (isset($data['avatar']) && $data['avatar']) {
                 $avatarPath = $data['avatar']->store('avatars', 'public');
-                $user->update(['avatar' => $avatarPath]);
+                $user->update(['avatar_url' => $avatarPath]);
             }
 
             // Update or Create Profile
@@ -327,6 +335,20 @@ class UserService
                 if ($role === 'guru' && isset($data['subjects']) && is_array($data['subjects'])) {
                     $user->profile->subjects()->sync($data['subjects']);
                 }
+
+                // Sync class for student if provided
+                if ($role === 'siswa' && isset($data['class_id'])) {
+                    // Detach current student class enrollment
+                    $user->classes()->wherePivot('role_in_class', 'siswa')->detach();
+                    
+                    if (!empty($data['class_id'])) {
+                        $user->classes()->attach($data['class_id'], [
+                            'role_in_class' => 'siswa',
+                            'academic_year' => date('Y'),
+                            'is_active' => true,
+                        ]);
+                    }
+                }
             } else {
                 // Create profile if doesn't exist (edge case)
                 $profileData['user_id'] = $user->id;
@@ -342,7 +364,7 @@ class UserService
                 'success' => true,
                 'message' => 'User berhasil diupdate.',
                 'code' => 'UPDATE_SUCCESS',
-                'user' => $user->fresh()->load(['profile', 'profile.subjects']),
+                'user' => $user->fresh()->load(['profile', 'profile.subjects', 'classes']),
             ];
 
         } catch (Exception $e) {

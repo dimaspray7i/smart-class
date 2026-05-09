@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Services\Admin\ClassService;
+use App\Services\ClassService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -42,7 +42,7 @@ class ClassController extends Controller
                     $q->select('users.id', 'users.name', 'users.email')
                       ->limit(5); // Limit for performance
                 },
-                'waliKelas' => function($q) {
+                'waliKelasRelation' => function($q) {
                     $q->select('users.id', 'users.name');
                 },
                 'subjects' => function($q) {
@@ -67,13 +67,23 @@ class ClassController extends Controller
             $query->where('is_active', $filters['is_active']);
         }
 
+        if ($request->has('all')) {
+            $classes = $query->orderBy('level')->orderBy('name')->get();
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Semua kelas berhasil diambil.',
+                'code' => 'CLASSES_SUCCESS',
+                'data' => $classes,
+            ], 200);
+        }
+
         $classes = $query->orderBy('level')->orderBy('name')->paginate(15);
 
         return response()->json([
             'status' => 'success',
             'message' => 'Kelas berhasil diambil.',
             'code' => 'CLASSES_SUCCESS',
-            'data' => $classes,
+            'data' => $classes->items(),
             'meta' => [
                 'current_page' => $classes->currentPage(),
                 'per_page' => $classes->perPage(),
@@ -96,7 +106,7 @@ class ClassController extends Controller
         $class = ClassModel::with([
             'students' => function($q) { $q->limit(10); },
             'teachers',
-            'waliKelas',
+            'waliKelasRelation',
             'subjects',
             'schedules' => function($q) { $q->limit(5); }
         ])->withCount(['students', 'subjects'])->find($id);
@@ -177,7 +187,7 @@ class ClassController extends Controller
             DB::commit();
 
             // Load relationships for response
-            $class->load(['teachers', 'waliKelas', 'subjects']);
+            $class->load(['teachers', 'waliKelasRelation', 'subjects']);
 
             return response()->json([
                 'status' => 'success',
@@ -240,7 +250,7 @@ class ClassController extends Controller
                 'capacity' => 'sometimes|integer|min:1|max:50',
                 'is_active' => 'nullable|boolean',
                 
-                'teacher_ids' => 'nullable|array|min:1',
+                'teacher_ids' => 'nullable|array',
                 'teacher_ids.*' => 'exists:users,id',
                 
                 'subject_ids' => 'nullable|array',
@@ -248,13 +258,16 @@ class ClassController extends Controller
             ]);
 
             // Update basic fields
-            $class->update(array_filter([
-                'name' => $validated['name'] ?? null,
-                'level' => $validated['level'] ?? null,
-                'description' => $validated['description'] ?? null,
-                'capacity' => $validated['capacity'] ?? null,
-                'is_active' => $validated['is_active'] ?? null,
-            ]));
+            $updateData = [];
+            if (isset($validated['name'])) $updateData['name'] = $validated['name'];
+            if (isset($validated['level'])) $updateData['level'] = $validated['level'];
+            if (isset($validated['description'])) $updateData['description'] = $validated['description'];
+            if (isset($validated['capacity'])) $updateData['capacity'] = $validated['capacity'];
+            if (isset($validated['is_active'])) $updateData['is_active'] = $validated['is_active'];
+            
+            if (!empty($updateData)) {
+                $class->update($updateData);
+            }
 
             // Update slug if name changed
             if ($class->isDirty('name')) {
@@ -285,7 +298,7 @@ class ClassController extends Controller
 
             DB::commit();
 
-            $class->load(['teachers', 'waliKelas', 'subjects']);
+            $class->load(['teachers', 'waliKelasRelation', 'subjects']);
 
             return response()->json([
                 'status' => 'success',
@@ -431,7 +444,7 @@ class ClassController extends Controller
                     $class->capacity,
                     $class->students_count ?? 0,
                     $class->subjects_count ?? 0,
-                    $class->waliKelas?->name ?? '-',
+                    $class->wali_kelas->name ?? '-',
                     $class->is_active ? 'Aktif' : 'Non-Aktif',
                     $class->created_at?->format('Y-m-d H:i'),
                 ]);

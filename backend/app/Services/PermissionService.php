@@ -44,7 +44,7 @@ class PermissionService
                 ];
             }
 
-            $waliKelas = $currentClass->waliKelas()->first();
+            $waliKelas = $currentClass->waliKelasRelation()->first();
 
             if (!$waliKelas) {
                 return [
