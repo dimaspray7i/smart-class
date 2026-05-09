@@ -30,6 +30,11 @@ class ClassModel extends Model
     ];
 
     /**
+     * Attributes to append to the model's array form.
+     */
+    protected $appends = ['wali_kelas'];
+
+    /**
      * Attributes yang harus di-cast
      */
     protected function casts(): array
@@ -144,7 +149,7 @@ class ClassModel extends Model
     /**
      * Get ONLY wali kelas (single user) - FIXED: Return User model, not collection
      */
-    public function waliKelas()
+    public function waliKelasRelation(): BelongsToMany
     {
         return $this->belongsToMany(
             User::class,
@@ -155,8 +160,15 @@ class ClassModel extends Model
         ->wherePivot('role_in_class', 'wali_kelas')
         ->wherePivot('is_active', true)
         ->withPivot('academic_year')
-        ->withTimestamps()
-        ->first(); // ⭐ Return first result (single User model)
+        ->withTimestamps();
+    }
+
+    /**
+     * Accessor for wali_kelas (returns single object instead of collection)
+     */
+    public function getWaliKelasAttribute()
+    {
+        return $this->waliKelasRelation()->first();
     }
 
     /**

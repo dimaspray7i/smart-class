@@ -227,8 +227,8 @@ export default function ClassManagement() {
   
   // State Management
   const [search, setSearch] = useState('');
-  const [levelFilter, setLevelFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [levelFilter] = useState('all');
+  const [statusFilter] = useState('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -238,7 +238,7 @@ export default function ClassManagement() {
   const [teachers, setTeachers] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
-  const [showFilters, setShowFilters] = useState(false);
+
   const [toast, setToast] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
@@ -250,24 +250,20 @@ export default function ClassManagement() {
   useEffect(() => {
     if (isCreateOpen || isEditOpen) {
       Promise.all([
-        api.get('/admin/users', { params: { role: 'guru', is_active: true } }),
-        api.get('/admin/subjects')
-      ]).then(([teachersRes, subjectsRes]) => {
-        setTeachers(teachersRes.data?.data?.data || []);
-        setSubjects(subjectsRes.data?.data?.data || []);
+        api.get('/admin/users', { params: { role: 'guru', is_active: true } })
+      ]).then(([teachersRes]) => {
+        setTeachers(teachersRes.data?.data || []);
       }).catch(err => console.error('Failed to fetch data:', err));
     }
   }, [isCreateOpen, isEditOpen]);
 
   // Fetch classes with filters
   const { data, isLoading, isError, isFetching } = useQuery({
-    queryKey: ['admin-classes', debouncedSearch, levelFilter, statusFilter],
+    queryKey: ['admin-classes', debouncedSearch],
     queryFn: () => api.get('/admin/classes', {
       params: {
         page: 1,
         search: debouncedSearch || undefined,
-        level: levelFilter === 'all' ? undefined : levelFilter,
-        is_active: statusFilter === 'all' ? undefined : statusFilter === 'active',
       }
     }),
     placeholderData: (prev) => prev,
@@ -342,18 +338,7 @@ export default function ClassManagement() {
     }
   });
 
-  const exportClassesMutation = useMutation({
-    mutationFn: (filters) => api.get('/admin/classes/export', { params: filters, responseType: 'blob' }),
-    onSuccess: (blob) => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `classes-${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      showToast('✅ Data berhasil diexport!', 'success');
-    },
-    onError: () => showToast('❌ Gagal export data', 'error')
-  });
+
 
   // ═══════════════════════════════════════════════════════════
   // HANDLERS
@@ -361,9 +346,9 @@ export default function ClassManagement() {
   const handleCreateSubmit = (e) => {
     e.preventDefault();
     const payload = { ...formData };
-    // Clean up teacher_ids if empty
-    if (!payload.teacher_ids || payload.teacher_ids.length === 0) {
-      delete payload.teacher_ids;
+    // Send empty array if no teachers selected to allow clearing them
+    if (!payload.teacher_ids) {
+      payload.teacher_ids = [];
     }
     createClassMutation.mutate(payload);
   };
@@ -372,8 +357,8 @@ export default function ClassManagement() {
     e.preventDefault();
     if (!selectedClass) return;
     const payload = { ...formData };
-    if (!payload.teacher_ids || payload.teacher_ids.length === 0) {
-      delete payload.teacher_ids;
+    if (!payload.teacher_ids) {
+      payload.teacher_ids = [];
     }
     updateClassMutation.mutate({ id: selectedClass.id, ...payload });
   };
@@ -387,7 +372,6 @@ export default function ClassManagement() {
       capacity: cls.capacity || 36,
       is_active: cls.is_active !== false,
       teacher_ids: cls.teachers?.map(t => t.id) || [],
-      subject_ids: cls.subjects?.map(s => s.id) || [],
     });
     setIsEditOpen(true);
     setErrors({});
@@ -411,13 +395,7 @@ export default function ClassManagement() {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
-  const handleExport = () => {
-    exportClassesMutation.mutate({
-      search: debouncedSearch || undefined,
-      level: levelFilter === 'all' ? undefined : levelFilter,
-      is_active: statusFilter === 'all' ? undefined : statusFilter === 'active',
-    });
-  };
+
 
   const clearSearch = useCallback(() => setSearch(''), []);
 
@@ -450,8 +428,24 @@ export default function ClassManagement() {
   // RENDER
   // ═══════════════════════════════════════════════════════════
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6 relative min-h-screen">
       
+      {/* ═══════════════════════════════════════════════════
+          ANIMATED BACKGROUND ORBS (Space Effect)
+          ═══════════════════════════════════════════════════ */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <motion.div 
+          animate={{ x: [0, 40, 0], y: [0, -30, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-10 left-10 w-80 h-80 bg-primary-500/10 rounded-full blur-3xl"
+        />
+        <motion.div 
+          animate={{ x: [0, -35, 0], y: [0, 35, 0], scale: [1, 0.9, 1] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute bottom-10 right-10 w-80 h-80 bg-accent-cyan/10 rounded-full blur-3xl"
+        />
+      </div>
+
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
@@ -465,8 +459,11 @@ export default function ClassManagement() {
       {/* HEADER */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Manajemen Kelas</h1>
-          <p className="text-gray-600 dark:text-dark-muted mt-1">Kelola kelas, penjadwalan, dan penugasan guru.</p>
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+            <School className="w-7 h-7 text-primary-400" />
+            <span className="text-gradient">Manajemen Kelas</span>
+          </h1>
+          <p className="text-gray-600 dark:text-dark-muted mt-1.5 ml-10">Kelola kelas, penjadwalan, dan penugasan guru.</p>
         </div>
         <div className="flex items-center gap-2">
           {selectedIds.length > 0 && (
@@ -474,9 +471,6 @@ export default function ClassManagement() {
               <Trash2 className="w-4 h-4" /> Hapus ({selectedIds.length})
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={exportClassesMutation.isLoading} className="flex items-center gap-1.5">
-            <Download className="w-4 h-4" /> {exportClassesMutation.isLoading ? 'Exporting...' : 'Export'}
-          </Button>
           <Button onClick={() => { setFormData({ level: 'X', capacity: 36, is_active: true }); setErrors({}); setIsCreateOpen(true); }} 
             className="flex items-center gap-1.5" disabled={createClassMutation.isLoading}>
             <Plus className="w-4 h-4" /> {createClassMutation.isLoading ? 'Menyimpan...' : 'Tambah Kelas'}
@@ -499,39 +493,7 @@ export default function ClassManagement() {
               )}
             </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowFilters(!showFilters)} className="btn btn-outline flex items-center gap-1.5">
-              <Filter className="w-4 h-4" /> Filter {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-            <select value={levelFilter} onChange={(e) => setLevelFilter(e.target.value)} className="input w-28">
-              <option value="all">Semua Level</option>
-              <option value="X">Kelas X</option>
-              <option value="XI">Kelas XI</option>
-              <option value="XII">Kelas XII</option>
-            </select>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-32">
-              <option value="all">Semua Status</option>
-              <option value="active">Aktif</option>
-              <option value="inactive">Non-Aktif</option>
-            </select>
-          </div>
         </div>
-        
-        {/* Extended Filters */}
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} 
-              exit={{ height: 0, opacity: 0 }} className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <InputField label="Kapasitas Min" name="capacity_min" type="number" value="" onChange={() => {}} placeholder="Min students" />
-                <InputField label="Kapasitas Max" name="capacity_max" type="number" value="" onChange={() => {}} placeholder="Max students" />
-                <SelectField label="Wali Kelas" name="wali_filter" value="" onChange={() => {}} options={[{value:'',label:'Semua Wali Kelas'}]} />
-                <Button variant="outline" className="w-full" onClick={() => { setSearch(''); setLevelFilter('all'); setStatusFilter('all'); }}>Reset Filter</Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
 
       {/* BULK ACTIONS BAR */}
@@ -707,26 +669,7 @@ export default function ClassManagement() {
               <p className="text-xs text-gray-500 dark:text-gray-600">💡 Guru pertama yang dipilih akan menjadi Wali Kelas secara default.</p>
             </div>
 
-            {/* Section 3: Subjects (Optional) */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white pb-2 border-b dark:border-dark-border flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-primary-600" /> Mata Pelajaran (Opsional)
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto border border-gray-200 dark:border-dark-border rounded-xl p-2">
-                {subjects.map((sub) => {
-                  const isSelected = (formData.subject_ids || []).includes(sub.id);
-                  return (
-                    <label key={sub.id} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-primary-500/10 border border-primary-500/30' : 'hover:bg-gray-50 dark:hover:bg-dark-card/50'}`}>
-                      <input type="checkbox" checked={isSelected} onChange={(e) => {
-                        if (e.target.checked) setFormData({...formData, subject_ids: [...(formData.subject_ids || []), sub.id]});
-                        else setFormData({...formData, subject_ids: (formData.subject_ids || []).filter(id => id !== sub.id)});
-                      }} className="w-4 h-4 text-primary-600 rounded" />
-                      <span className="text-sm text-gray-700 dark:text-dark-muted">{sub.code} - {sub.name}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
+
 
             {/* Action Buttons */}
             <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-dark-border sticky bottom-0 bg-white dark:bg-dark-card py-4">

@@ -2,15 +2,15 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Plus, Search, Edit2, Trash2, KeyRound, X, Loader2, User, Mail, Lock, Phone,
-  Download, Filter, Check, Calendar, ExternalLink, Image as ImageIcon,
-  AlertCircle, CheckCircle2, Activity, Eye
+  Download, Upload, Filter, MoreVertical, Check, ChevronDown, ChevronUp,
+  Calendar, MapPin, Link as LinkIcon, ExternalLink, Image as ImageIcon,
+  AlertCircle, CheckCircle2, Clock, Activity, Eye, Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../api';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import Toast from '../../components/ui/Toast';
-
 // ═══════════════════════════════════════════════════════════
 // ANIMATION VARIANTS
 // ═══════════════════════════════════════════════════════════
@@ -229,6 +229,11 @@ function SubjectMultiSelect({ label, value, onChange, subjects, error, required 
 // ═══════════════════════════════════════════════════════════
 function AvatarUpload({ value, onChange, error }) {
   const [preview, setPreview] = useState(value);
+
+  // Sync preview with value when value changes (e.g. after update or modal switch)
+  useEffect(() => {
+    setPreview(value);
+  }, [value]);
   
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -240,7 +245,7 @@ function AvatarUpload({ value, onChange, error }) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result);
-        onChange(reader.result);
+        onChange(file); // Pass the actual File object
       };
       reader.readAsDataURL(file);
     }
@@ -329,8 +334,8 @@ export default function UserManagement() {
   
   // State Management
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter] = useState('all');
+  const [statusFilter] = useState('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -338,31 +343,35 @@ export default function UserManagement() {
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
   const [subjects, setSubjects] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
+
   const [toast, setToast] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
 
   const debouncedSearch = useDebounce(search, 500);
 
-  // Fetch subjects
+  // Fetch subjects & classes
   useEffect(() => {
     if (isCreateOpen || isEditOpen) {
       api.get('/admin/subjects')
         .then(res => setSubjects(res.data?.data?.data || []))
         .catch(err => console.error('Failed to fetch subjects:', err));
+        
+      api.get('/admin/classes?all=1')
+        .then(res => setClasses(res.data?.data || []))
+        .catch(err => console.error('Failed to fetch classes:', err));
     }
   }, [isCreateOpen, isEditOpen]);
 
   // Fetch users with filters
   const { data, isLoading, isError, isFetching } = useQuery({
-    queryKey: ['admin-users', debouncedSearch, roleFilter, statusFilter],
+    queryKey: ['admin-users', debouncedSearch],
     queryFn: () => api.get('/admin/users', {
       params: {
         page: 1,
         search: debouncedSearch || undefined,
-        role: roleFilter === 'all' ? undefined : roleFilter,
-        is_active: statusFilter === 'all' ? undefined : statusFilter === 'active',
       }
     }),
     placeholderData: (prev) => prev,
@@ -382,7 +391,27 @@ export default function UserManagement() {
   // MUTATIONS
   // ═══════════════════════════════════════════════════════════
   const createUserMutation = useMutation({
-    mutationFn: (newUser) => api.post('/admin/users', newUser),
+    mutationFn: (payload) => {
+      // Use FormData for multipart/form-data support (avatars)
+      const formDataObj = new FormData();
+      Object.keys(payload).forEach(key => {
+        if (key === 'subjects' && Array.isArray(payload[key])) {
+          payload[key].forEach(id => formDataObj.append('subjects[]', id));
+        } else if (key === 'is_active') {
+          formDataObj.append(key, payload[key] ? '1' : '0');
+        } else if (key === 'avatar_url') {
+          // Skip avatar_url string (existing URL)
+          if (payload[key] instanceof File) {
+            formDataObj.append('avatar', payload[key]);
+          }
+        } else if (payload[key] !== undefined && payload[key] !== null && typeof payload[key] !== 'object') {
+          formDataObj.append(key, payload[key]);
+        }
+      });
+      return api.post('/admin/users', formDataObj, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setIsCreateOpen(false);
@@ -397,7 +426,30 @@ export default function UserManagement() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: ({ id, ...updatedData }) => api.put(`/admin/users/${id}`, updatedData),
+    mutationFn: ({ id, ...payload }) => {
+      // Use FormData with _method override for Laravel PUT support with files
+      const formDataObj = new FormData();
+      formDataObj.append('_method', 'PUT');
+      
+      Object.keys(payload).forEach(key => {
+        if (key === 'subjects' && Array.isArray(payload[key])) {
+          payload[key].forEach(id => formDataObj.append('subjects[]', id));
+        } else if (key === 'is_active') {
+          formDataObj.append(key, payload[key] ? '1' : '0');
+        } else if (key === 'avatar_url') {
+          // Skip avatar_url string (existing URL)
+          if (payload[key] instanceof File) {
+            formDataObj.append('avatar', payload[key]);
+          }
+        } else if (payload[key] !== undefined && payload[key] !== null && typeof payload[key] !== 'object') {
+          formDataObj.append(key, payload[key]);
+        }
+      });
+
+      return api.post(`/admin/users/${id}`, formDataObj, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setIsEditOpen(false);
@@ -443,75 +495,23 @@ export default function UserManagement() {
     onError: (err) => showToast(`❌ ${err.response?.data?.message || 'Gagal reset password'}`, 'error')
   });
 
-  // ═══════════════════════════════════════════════════════════
-  // EXPORT FUNCTION - FIXED!
-  // ═══════════════════════════════════════════════════════════
-  const handleExport = useCallback(async () => {
-    try {
-      const filters = {
-        search: debouncedSearch || undefined,
-        role: roleFilter === 'all' ? undefined : roleFilter,
-        is_active: statusFilter === 'all' ? undefined : statusFilter === 'active',
-      };
 
-      const token = localStorage.getItem('rpl_token');
-      const queryParams = new URLSearchParams();
-      
-      if (filters.search) queryParams.append('search', filters.search);
-      if (filters.role) queryParams.append('role', filters.role);
-      if (filters.is_active !== undefined) queryParams.append('is_active', filters.is_active);
-      
-      const url = `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1'}/admin/users/export?${queryParams.toString()}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'text/csv',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Gagal export data');
-      }
-
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(downloadUrl);
-      a.remove();
-      
-      showToast('✅ Data berhasil diexport!', 'success');
-      
-    } catch (error) {
-      console.error('Export error:', error);
-      showToast(`❌ ${error.message || 'Gagal export data'}`, 'error');
-    }
-  }, [debouncedSearch, roleFilter, statusFilter, showToast]);
-
-  const clearSearch = useCallback(() => setSearch(''), []);
-  const handleRoleChange = useCallback((newRole) => {
-    setFormData(prev => ({
-      ...prev, role: newRole,
-      nis: newRole === 'siswa' ? prev.nis : '',
-      nip: newRole === 'guru' ? prev.nip : '',
-      class_level: newRole === 'siswa' ? prev.class_level : '',
-      subjects: newRole === 'guru' ? prev.subjects : [],
-    }));
-  }, []);
 
   // ═══════════════════════════════════════════════════════════
-  // EVENT HANDLERS
+  // HANDLERS
   // ═══════════════════════════════════════════════════════════
   const handleCreateSubmit = (e) => {
     e.preventDefault();
     const payload = { ...formData };
-    if (payload.role !== 'siswa') { delete payload.nis; delete payload.class_level; }
+    if (payload.role !== 'siswa') { delete payload.nis; delete payload.class_level; delete payload.class_id; }
     if (payload.role !== 'guru') { delete payload.nip; delete payload.subjects; }
+    
+    // Rename avatar_url to avatar if it's a File object for multipart upload
+    if (payload.avatar_url instanceof File) {
+      payload.avatar = payload.avatar_url;
+      delete payload.avatar_url;
+    }
+    
     createUserMutation.mutate(payload);
   };
 
@@ -519,8 +519,15 @@ export default function UserManagement() {
     e.preventDefault();
     if (!selectedUser) return;
     const payload = { ...formData };
-    if (payload.role !== 'siswa') { delete payload.nis; delete payload.class_level; }
+    if (payload.role !== 'siswa') { delete payload.nis; delete payload.class_level; delete payload.class_id; }
     if (payload.role !== 'guru') { delete payload.nip; delete payload.subjects; }
+    
+    // Rename avatar_url to avatar if it's a File object for multipart upload
+    if (payload.avatar_url instanceof File) {
+      payload.avatar = payload.avatar_url;
+      delete payload.avatar_url;
+    }
+    
     updateUserMutation.mutate({ id: selectedUser.id, ...payload });
   };
 
@@ -530,7 +537,9 @@ export default function UserManagement() {
       name: user.name || '', email: user.email || '', phone: user.phone || '',
       role: user.role || 'siswa', is_active: user.is_active !== false,
       nis: user.profile?.nis || '', nip: user.profile?.nip || '',
-      class_level: user.profile?.class_level || '', bio: user.profile?.bio || '',
+      class_level: user.profile?.class_level || '', 
+      class_id: user.classes?.find(c => c.pivot?.role_in_class === 'siswa')?.id || '',
+      bio: user.profile?.bio || '',
       github_url: user.profile?.github_url || '', linkedin_url: user.profile?.linkedin_url || '',
       avatar_url: user.avatar_url || '', subjects: user.profile?.subjects?.map(s => s.id) || [],
     });
@@ -575,6 +584,23 @@ export default function UserManagement() {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
+
+
+  const clearSearch = useCallback(() => setSearch(''), []);
+  const handleRoleChange = useCallback((updater) => {
+    setFormData(prev => {
+      const nextState = typeof updater === 'function' ? updater(prev) : updater;
+      const newRole = nextState.role;
+      return {
+        ...nextState,
+        nis: newRole === 'siswa' ? prev.nis : '',
+        nip: newRole === 'guru' ? prev.nip : '',
+        class_level: newRole === 'siswa' ? prev.class_level : '',
+        subjects: newRole === 'guru' ? prev.subjects : [],
+      };
+    });
+  }, []);
+
   // ═══════════════════════════════════════════════════════════
   // LOADING & ERROR
   // ═══════════════════════════════════════════════════════════
@@ -604,8 +630,24 @@ export default function UserManagement() {
   // RENDER
   // ═══════════════════════════════════════════════════════════
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6 relative min-h-screen">
       
+      {/* ═══════════════════════════════════════════════════
+          ANIMATED BACKGROUND ORBS (Space Effect)
+          ═══════════════════════════════════════════════════ */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <motion.div 
+          animate={{ x: [0, 40, 0], y: [0, -30, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-10 left-10 w-80 h-80 bg-primary-500/10 rounded-full blur-3xl"
+        />
+        <motion.div 
+          animate={{ x: [0, -35, 0], y: [0, 35, 0], scale: [1, 0.9, 1] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute bottom-10 right-10 w-80 h-80 bg-accent-cyan/10 rounded-full blur-3xl"
+        />
+      </div>
+
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
@@ -619,8 +661,11 @@ export default function UserManagement() {
       {/* HEADER */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Manajemen User</h1>
-          <p className="text-gray-600 dark:text-dark-muted mt-1">Kelola akun Siswa, Guru, dan Admin.</p>
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+            <Users className="w-7 h-7 text-primary-400" />
+            <span className="text-gradient">Manajemen User</span>
+          </h1>
+          <p className="text-gray-600 dark:text-dark-muted mt-1.5 ml-10">Kelola akun Siswa, Guru, dan Admin.</p>
         </div>
         <div className="flex items-center gap-2">
           {selectedIds.length > 0 && (
@@ -628,60 +673,27 @@ export default function UserManagement() {
               <Trash2 className="w-4 h-4" /> Hapus ({selectedIds.length})
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={handleExport} className="flex items-center gap-1.5">
-            <Download className="w-4 h-4" /> Export
-          </Button>
           <Button onClick={() => { setFormData({ role: 'siswa', is_active: true }); setErrors({}); setIsCreateOpen(true); }} 
-            className="flex items-center gap-1.5">
-            <Plus className="w-4 h-4" /> Tambah User
+            className="flex items-center gap-1.5" disabled={createUserMutation.isLoading}>
+            <Plus className="w-4 h-4" /> {createUserMutation.isLoading ? 'Menyimpan...' : 'Tambah User'}
           </Button>
         </div>
       </motion.div>
 
-      {/* FILTERS - SIMPLIFIED */}
+      {/* FILTERS */}
       <motion.div variants={itemVariants} className="card">
-        <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center justify-between">
+        <div className="flex flex-col lg:flex-row gap-4 items-end lg:items-center justify-between">
           <div className="flex-1 w-full">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Cari nama, email, atau NIS/NIP..." 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)} 
-                className="input pl-10 pr-10 w-full" 
-              />
+              <input type="text" placeholder="Cari nama, email, atau NIS/NIP..." value={search}
+                onChange={(e) => setSearch(e.target.value)} className="input pl-10 pr-10 w-full" />
               {search && (
-                <button 
-                  onClick={clearSearch} 
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
+                <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
-          </div>
-          
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <select 
-              value={roleFilter} 
-              onChange={(e) => setRoleFilter(e.target.value)} 
-              className="input w-full sm:w-32"
-            >
-              <option value="all">Semua Role</option>
-              <option value="siswa">Siswa</option>
-              <option value="guru">Guru</option>
-              <option value="admin">Admin</option>
-            </select>
-            <select 
-              value={statusFilter} 
-              onChange={(e) => setStatusFilter(e.target.value)} 
-              className="input w-full sm:w-32"
-            >
-              <option value="all">Semua Status</option>
-              <option value="active">Aktif</option>
-              <option value="inactive">Non-Aktif</option>
-            </select>
           </div>
         </div>
       </motion.div>
@@ -703,59 +715,73 @@ export default function UserManagement() {
       {/* TABLE */}
       <motion.div variants={itemVariants} className="card overflow-hidden p-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left min-w-[700px]">
+          <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 dark:bg-dark-card border-b border-gray-200 dark:border-dark-border">
               <tr>
-                <th className="px-4 py-3 w-10">
+                <th className="px-4 py-3">
                   <input type="checkbox" checked={users.length > 0 && selectedIds.length === users.length} 
                     onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300 dark:border-dark-border" />
                 </th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-dark-muted min-w-[200px]">User</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-dark-muted min-w-[100px]">Role</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-dark-muted min-w-[150px] hidden md:table-cell">Identity</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-dark-muted min-w-[100px] hidden lg:table-cell">Status</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-dark-muted text-right min-w-[120px]">Aksi</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-dark-muted">User</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-dark-muted">Role</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-dark-muted hidden md:table-cell">Identity</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-dark-muted hidden lg:table-cell">Status</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-dark-muted text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-dark-border">
               {users.map((user) => (
                 <motion.tr key={user.id} variants={itemVariants} 
                   className={`hover:bg-gray-50 dark:hover:bg-dark-card/50 transition-colors ${selectedIds.includes(user.id) ? 'bg-primary-500/5' : ''}`}>
-                  <td className="px-4 py-4 w-10">
+                  <td className="px-4 py-4">
                     <input type="checkbox" checked={selectedIds.includes(user.id)} onChange={() => toggleSelect(user.id)} 
                       className="w-4 h-4 rounded border-gray-300 dark:border-dark-border" />
                   </td>
-                  <td className="px-4 py-4 min-w-[200px]">
+                  <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/20 to-primary-600/20 
-                        border border-primary-500/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-sm flex-shrink-0">
-                        {user.name?.charAt(0).toUpperCase() || '?'}
+                        border border-primary-500/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-sm overflow-hidden">
+                        {user.avatar_url ? (
+                          <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+                        ) : (
+                          user.name?.charAt(0).toUpperCase() || '?'
+                        )}
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-gray-900 dark:text-white truncate">{user.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-dark-muted truncate">{user.email}</p>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">{user.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-dark-muted">{user.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-4 min-w-[100px]">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wide inline-block ${
+                  <td className="px-4 py-4">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wide ${
                       user.role === 'admin' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
                       user.role === 'guru' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
                       'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                     }`}>{user.role}</span>
                   </td>
-                  <td className="px-4 py-4 text-gray-600 dark:text-dark-muted font-mono text-xs hidden md:table-cell min-w-[150px]">
-                    {user.role === 'siswa' && user.profile?.nis ? `NIS: ${user.profile.nis}` : 
+                  <td className="px-4 py-4 text-gray-600 dark:text-dark-muted font-mono text-xs hidden md:table-cell">
+                    {user.role === 'siswa' && user.profile?.nis ? (
+                      <div className="space-y-1">
+                        <div>NIS: {user.profile.nis}</div>
+                        {user.classes?.[0] && (
+                          <div className="flex items-center gap-1 text-primary-600 dark:text-primary-400 font-bold bg-primary-50 dark:bg-primary-900/20 px-1.5 py-0.5 rounded text-[10px] w-fit">
+                            <MapPin className="w-2.5 h-2.5" />
+                            {user.classes[0].name}
+                          </div>
+                        )}
+                      </div>
+                    ) : 
                      user.role === 'guru' && user.profile?.nip ? `NIP: ${user.profile.nip}` : '-'}
                   </td>
-                  <td className="px-4 py-4 hidden lg:table-cell min-w-[100px]">
+                  <td className="px-4 py-4 hidden lg:table-cell">
                     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${user.is_active ? 'text-success' : 'text-danger'}`}>
                       <span className={`w-2 h-2 rounded-full ${user.is_active ? 'bg-success animate-pulse' : 'bg-danger'}`} />
                       {user.is_active ? 'Aktif' : 'Non-Aktif'}
                     </span>
                   </td>
-                  <td className="px-4 py-4 text-right min-w-[120px]">
-                    <div className="flex items-center justify-end gap-1 flex-shrink-0">
+                  <td className="px-4 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1">
                       <button onClick={() => openViewModal(user)} title="Lihat Detail" 
                         className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors">
                         <Eye className="w-4 h-4" />
@@ -784,7 +810,7 @@ export default function UserManagement() {
           </table>
         </div>
         {/* Pagination */}
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-dark-border text-sm text-gray-600 dark:text-dark-muted flex flex-col sm:flex-row justify-between items-center gap-2">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-dark-border text-sm text-gray-600 dark:text-dark-muted flex justify-between items-center">
           <span>Menampilkan <strong>{meta.from || 0}</strong> - <strong>{meta.to || 0}</strong> dari <strong>{meta.total || 0}</strong> data</span>
         </div>
       </motion.div>
@@ -822,19 +848,28 @@ export default function UserManagement() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white pb-2 border-b dark:border-dark-border flex items-center gap-2">
                 <ImageIcon className="w-5 h-5 text-primary-600" /> Foto Profil
               </h3>
-              <AvatarUpload value={formData.avatar_url} onChange={(url) => setFormData({...formData, avatar_url: url})} error={errors.avatar_url} />
+              <AvatarUpload value={formData.avatar_url} onChange={(file) => setFormData({...formData, avatar_url: file})} error={errors.avatar} />
             </div>
 
             {/* Section 3: Role-Specific */}
             {formData.role === 'siswa' && (
               <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
                 <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">🎓 Informasi Siswa</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <InputField label="NIS" name="nis" value={formData.nis} onChange={setFormData} error={errors.nis} required placeholder="Contoh: 20250001" />
-                  <SelectField label="Kelas" name="class_level" value={formData.class_level || 'X'} onChange={setFormData} 
-                    options={[{value:'X',label:'Kelas X'}, {value:'XI',label:'Kelas XI'}, {value:'XII',label:'Kelas XII'}]} error={errors.class_level} required />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <InputField label="NIS" name="nis" value={formData.nis} onChange={setFormData} error={errors.nis} required placeholder="Contoh: 20250001" />
+                    <SelectField label="Tingkat" name="class_level" value={formData.class_level || 'X'} 
+                      onChange={(setter) => {
+                        setFormData(prev => {
+                          const newState = setter(prev);
+                          return { ...newState, class_id: '' };
+                        });
+                      }} 
+                      options={[{value:'X',label:'Kelas X'}, {value:'XI',label:'Kelas XI'}, {value:'XII',label:'Kelas XII'}]} error={errors.class_level} required />
+                    <SelectField label="Pilih Kelas" name="class_id" value={formData.class_id} onChange={setFormData}
+                      options={classes.filter(c => c.level === (formData.class_level || 'X')).map(c => ({ value: c.id, label: c.name }))} 
+                      placeholder="Pilih Kelas" error={errors.class_id} />
+                  </div>
                 </div>
-              </div>
             )}
 
             {formData.role === 'guru' && (

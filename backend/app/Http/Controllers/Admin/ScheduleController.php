@@ -30,7 +30,7 @@ class ScheduleController extends Controller
             'status' => 'success',
             'message' => 'Jadwal berhasil diambil.',
             'code' => 'SCHEDULES_SUCCESS',
-            'data' => $schedules,
+            'data' => $schedules->items(),
             'meta' => [
                 'current_page' => $schedules->currentPage(),
                 'per_page' => $schedules->perPage(),
