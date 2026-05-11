@@ -292,8 +292,8 @@ export default function ClassManagement() {
       showToast('✅ Kelas berhasil dibuat!', 'success');
     },
     onError: (err) => {
-      setErrors(err.response?.data?.errors || {});
-      showToast(`❌ ${err.response?.data?.message || 'Gagal membuat kelas'}`, 'error');
+      setErrors(err.errors || err.response?.data?.errors || {});
+      showToast(`❌ ${err.message || err.response?.data?.message || 'Gagal membuat kelas'}`, 'error');
     }
   });
 
@@ -308,8 +308,8 @@ export default function ClassManagement() {
       showToast('✅ Kelas berhasil diupdate!', 'success');
     },
     onError: (err) => {
-      setErrors(err.response?.data?.errors || {});
-      showToast(`❌ ${err.response?.data?.message || 'Gagal update kelas'}`, 'error');
+      setErrors(err.errors || err.response?.data?.errors || {});
+      showToast(`❌ ${err.message || err.response?.data?.message || 'Gagal update kelas'}`, 'error');
     }
   });
 
@@ -321,7 +321,7 @@ export default function ClassManagement() {
       setConfirmDelete(null);
     },
     onError: (err) => {
-      showToast(`❌ ${err.response?.data?.message || 'Gagal menghapus kelas'}`, 'error');
+      showToast(`❌ ${err.message || err.response?.data?.message || 'Gagal menghapus kelas'}`, 'error');
     }
   });
 
@@ -334,7 +334,7 @@ export default function ClassManagement() {
       setConfirmBulkDelete(false);
     },
     onError: (err) => {
-      showToast(`❌ ${err.response?.data?.message || 'Gagal menghapus kelas'}`, 'error');
+      showToast(`❌ ${err.message || err.response?.data?.message || 'Gagal menghapus kelas'}`, 'error');
     }
   });
 
@@ -345,21 +345,22 @@ export default function ClassManagement() {
   // ═══════════════════════════════════════════════════════════
   const handleCreateSubmit = (e) => {
     e.preventDefault();
-    const payload = { ...formData };
-    // Send empty array if no teachers selected to allow clearing them
-    if (!payload.teacher_ids) {
-      payload.teacher_ids = [];
-    }
+    const payload = { 
+      ...formData,
+      capacity: formData.capacity ? parseInt(formData.capacity) : 36,
+      teacher_ids: (formData.teacher_ids && formData.teacher_ids.length > 0) ? formData.teacher_ids : undefined
+    };
     createClassMutation.mutate(payload);
   };
 
   const handleEditSubmit = (e) => {
     e.preventDefault();
     if (!selectedClass) return;
-    const payload = { ...formData };
-    if (!payload.teacher_ids) {
-      payload.teacher_ids = [];
-    }
+    const payload = { 
+      ...formData,
+      capacity: formData.capacity ? parseInt(formData.capacity) : 36,
+      teacher_ids: (formData.teacher_ids && formData.teacher_ids.length > 0) ? formData.teacher_ids : undefined
+    };
     updateClassMutation.mutate({ id: selectedClass.id, ...payload });
   };
 

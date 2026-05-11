@@ -82,13 +82,16 @@ class Subject extends Model
     }
 
     /**
+     * Subject belongs to many classes via class_subject pivot table
+     */
+    public function classes(): BelongsToMany
+    {
+        return $this->belongsToMany(ClassModel::class, 'class_subject')
+            ->withTimestamps();
+    }
+
+    /**
      * Subject belongs to many profiles (teachers) via profile_subject pivot table
-     * 
-     * Usage: 
-     * - $subject->profiles (get all teacher profiles teaching this subject)
-     * - $subject->profiles()->attach($profileId)
-     * - $subject->profiles()->detach($profileId)
-     * - $subject->profiles()->sync([1, 2, 3])
      */
     public function profiles(): BelongsToMany
     {
@@ -98,8 +101,6 @@ class Subject extends Model
 
     /**
      * Subject is taught by many users (teachers) through their profiles
-     * 
-     * This is a convenient accessor to get User models directly
      */
     public function teachers(): BelongsToMany
     {
@@ -138,12 +139,12 @@ class Subject extends Model
     }
 
     /**
-     * Scope: Subjects taught by specific teacher (profile)
+     * Scope: Subjects taught by specific profile
      */
     public function scopeTaughtBy($query, int $profileId)
     {
-        return $query->whereHas('profiles', function ($q) use ($profileId) {
-            $q->where('profiles.id', $profileId);
+        return $query->whereHas('profiles', function ($query) use ($profileId) {
+            $query->where('profiles.id', $profileId);
         });
     }
 
@@ -152,8 +153,8 @@ class Subject extends Model
      */
     public function scopeTaughtByUser($query, int $userId)
     {
-        return $query->whereHas('profiles', function ($q) use ($userId) {
-            $q->where('user_id', $userId);
+        return $query->whereHas('profiles', function ($query) use ($userId) {
+            $query->where('user_id', $userId);
         });
     }
 
@@ -213,7 +214,9 @@ class Subject extends Model
     public function getTeacherNamesAttribute(): string
     {
         return $this->profiles
-            ->map(fn($p) => $p->user?->name)
+            ->map(function ($profile) {
+                return $profile->user?->name;
+            })
             ->filter()
             ->implode(', ');
     }
@@ -281,7 +284,7 @@ class Subject extends Model
     }
 
     /**
-     * Get subject info for API response
+     * Get subject info for API response with counts
      */
     public function toApiArray(): array
     {
@@ -295,6 +298,8 @@ class Subject extends Model
             'credits' => $this->credits,
             'description' => $this->description,
             'is_active' => $this->is_active,
+            'schedules_count' => $this->schedules_count ?? 0,
+            'classes_count' => $this->classes_count ?? 0,
             'teachers_count' => $this->teachers_count,
             'teacher_names' => $this->teacher_names,
             'created_at' => $this->created_at?->toDateTimeString(),

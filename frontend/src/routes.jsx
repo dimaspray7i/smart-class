@@ -29,7 +29,8 @@ import TeacherDashboard from './pages/dashboard/TeacherDashboard';
 // ═══════════════════════════════════════════════════════════
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
-import ClassManagement from './pages/admin/ClassManagement';        // ✅ NEW
+import ClassManagement from './pages/admin/ClassManagement';
+import SubjectManagement from './pages/admin/SubjectManagement'; // ✅ NEW: Subject Management
 
 // ═══════════════════════════════════════════════════════════
 // PROTECTED ROUTE COMPONENT
@@ -179,17 +180,19 @@ export const router = [
           // Dashboard
           { index: true, element: <AdminDashboard /> },
           
-          // ✅ LIVE: User Management (CRUD)
+          // User Management 
           { path: 'users', element: <UserManagement /> },
           
-          // ✅ LIVE: Class Management (CRUD) - NEW!
+          // Class Management
           { path: 'classes', element: <ClassManagement /> },
           
+          //  Subject Management 
+          { path: 'subjects', element: <SubjectManagement /> },
+          
           // 🚧 Coming Soon: Other admin features
-          { path: 'subjects', element: <div className="p-8 text-center text-gray-500">🚧 Subjects (Coming Soon)</div> },
-          { path: 'schedules', element: <div className="p-8 text-center text-gray-500">🚧 Schedules (Coming Soon)</div> },
-          { path: 'settings', element: <div className="p-8 text-center text-gray-500">🚧 Settings (Coming Soon)</div> },
-          { path: 'analytics', element: <div className="p-8 text-center text-gray-500">🚧 Analytics (Coming Soon)</div> },
+          { path: 'schedules', element: <ComingSoon title="Schedule Management" icon="📅" /> },
+          { path: 'settings', element: <ComingSoon title="System Settings" icon="⚙️" /> },
+          { path: 'analytics', element: <ComingSoon title="Analytics & Reports" icon="📈" /> },
         ],
       },
       

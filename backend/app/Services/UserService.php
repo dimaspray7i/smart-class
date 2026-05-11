@@ -187,6 +187,10 @@ class UserService
 
             // 7. Sync subjects for teacher (via pivot table teacher_subjects)
             if ($role === 'guru' && !empty($data['subjects'])) {
+                Log::info('UserService::create - Syncing subjects for teacher', [
+                    'user_id' => $user->id,
+                    'subjects' => $data['subjects']
+                ]);
                 $profile->subjects()->sync($data['subjects']);
             }
 
@@ -333,6 +337,10 @@ class UserService
                 
                 // Sync subjects for teacher if provided in request
                 if ($role === 'guru' && isset($data['subjects']) && is_array($data['subjects'])) {
+                    Log::info('UserService::update - Syncing subjects for teacher', [
+                        'user_id' => $user->id,
+                        'subjects' => $data['subjects']
+                    ]);
                     $user->profile->subjects()->sync($data['subjects']);
                 }
 

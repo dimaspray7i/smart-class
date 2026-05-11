@@ -355,9 +355,15 @@ export default function UserManagement() {
   // Fetch subjects & classes
   useEffect(() => {
     if (isCreateOpen || isEditOpen) {
-      api.get('/admin/subjects')
-        .then(res => setSubjects(res.data?.data?.data || []))
-        .catch(err => console.error('Failed to fetch subjects:', err));
+      api.get('/admin/subjects?all=1')
+        .then(res => {
+          console.log('[UserManagement] Subjects fetched:', res.data?.data);
+          setSubjects(res.data?.data || []);
+        })
+        .catch(err => {
+          console.error('[UserManagement] Failed to fetch subjects:', err);
+          showToast('❌ Gagal memuat data mata pelajaran', 'error');
+        });
         
       api.get('/admin/classes?all=1')
         .then(res => setClasses(res.data?.data || []))
@@ -392,19 +398,23 @@ export default function UserManagement() {
   // ═══════════════════════════════════════════════════════════
   const createUserMutation = useMutation({
     mutationFn: (payload) => {
-      // Use FormData for multipart/form-data support (avatars)
       const formDataObj = new FormData();
       Object.keys(payload).forEach(key => {
         if (key === 'subjects' && Array.isArray(payload[key])) {
+          // Only send subjects if array has items
           payload[key].forEach(id => formDataObj.append('subjects[]', id));
         } else if (key === 'is_active') {
           formDataObj.append(key, payload[key] ? '1' : '0');
         } else if (key === 'avatar_url') {
-          // Skip avatar_url string (existing URL)
           if (payload[key] instanceof File) {
             formDataObj.append('avatar', payload[key]);
           }
-        } else if (payload[key] !== undefined && payload[key] !== null && typeof payload[key] !== 'object') {
+        } else if (
+          payload[key] !== undefined &&
+          payload[key] !== null &&
+          payload[key] !== '' &&           // ← skip empty strings
+          typeof payload[key] !== 'object'
+        ) {
           formDataObj.append(key, payload[key]);
         }
       });
@@ -420,28 +430,34 @@ export default function UserManagement() {
       showToast('✅ User berhasil dibuat!', 'success');
     },
     onError: (err) => {
-      setErrors(err.response?.data?.errors || {});
-      showToast(`❌ ${err.response?.data?.message || 'Gagal membuat user'}`, 'error');
+      // Support both axios interceptor shapes
+      const fieldErrors = err.errors || err.response?.data?.errors || {};
+      const msg = err.message || err.response?.data?.message || 'Gagal membuat user';
+      setErrors(fieldErrors);
+      showToast(`❌ ${msg}`, 'error');
     }
   });
 
   const updateUserMutation = useMutation({
     mutationFn: ({ id, ...payload }) => {
-      // Use FormData with _method override for Laravel PUT support with files
       const formDataObj = new FormData();
       formDataObj.append('_method', 'PUT');
       
       Object.keys(payload).forEach(key => {
         if (key === 'subjects' && Array.isArray(payload[key])) {
-          payload[key].forEach(id => formDataObj.append('subjects[]', id));
+          payload[key].forEach(sid => formDataObj.append('subjects[]', sid));
         } else if (key === 'is_active') {
           formDataObj.append(key, payload[key] ? '1' : '0');
         } else if (key === 'avatar_url') {
-          // Skip avatar_url string (existing URL)
           if (payload[key] instanceof File) {
             formDataObj.append('avatar', payload[key]);
           }
-        } else if (payload[key] !== undefined && payload[key] !== null && typeof payload[key] !== 'object') {
+        } else if (
+          payload[key] !== undefined &&
+          payload[key] !== null &&
+          payload[key] !== '' &&           // ← skip empty strings
+          typeof payload[key] !== 'object'
+        ) {
           formDataObj.append(key, payload[key]);
         }
       });
@@ -459,8 +475,10 @@ export default function UserManagement() {
       showToast('✅ User berhasil diupdate!', 'success');
     },
     onError: (err) => {
-      setErrors(err.response?.data?.errors || {});
-      showToast(`❌ ${err.response?.data?.message || 'Gagal update user'}`, 'error');
+      const fieldErrors = err.errors || err.response?.data?.errors || {};
+      const msg = err.message || err.response?.data?.message || 'Gagal update user';
+      setErrors(fieldErrors);
+      showToast(`❌ ${msg}`, 'error');
     }
   });
 
@@ -472,7 +490,8 @@ export default function UserManagement() {
       setConfirmDelete(null);
     },
     onError: (err) => {
-      showToast(`❌ ${err.response?.data?.message || 'Gagal menghapus user'}`, 'error');
+      const msg = err.message || err.response?.data?.message || 'Gagal menghapus user';
+      showToast(`❌ ${msg}`, 'error');
     }
   });
 
@@ -485,14 +504,15 @@ export default function UserManagement() {
       setConfirmBulkDelete(false);
     },
     onError: (err) => {
-      showToast(`❌ ${err.response?.data?.message || 'Gagal menghapus user'}`, 'error');
+      const msg = err.message || err.response?.data?.message || 'Gagal menghapus user';
+      showToast(`❌ ${msg}`, 'error');
     }
   });
 
   const resetPasswordMutation = useMutation({
     mutationFn: (id) => api.post(`/admin/users/${id}/reset-password`, { password: 'password123' }),
     onSuccess: () => showToast('✅ Password direset ke "password123"', 'success'),
-    onError: (err) => showToast(`❌ ${err.response?.data?.message || 'Gagal reset password'}`, 'error')
+    onError: (err) => showToast(`❌ ${err.message || err.response?.data?.message || 'Gagal reset password'}`, 'error')
   });
 
 
@@ -593,10 +613,11 @@ export default function UserManagement() {
       const newRole = nextState.role;
       return {
         ...nextState,
-        nis: newRole === 'siswa' ? prev.nis : '',
-        nip: newRole === 'guru' ? prev.nip : '',
-        class_level: newRole === 'siswa' ? prev.class_level : '',
-        subjects: newRole === 'guru' ? prev.subjects : [],
+        nis:         newRole === 'siswa' ? (prev.nis || '') : '',
+        nip:         newRole === 'guru'  ? (prev.nip || '') : '',
+        class_level: newRole === 'siswa' ? (prev.class_level || 'X') : '',  // ← default 'X'
+        class_id:    newRole === 'siswa' ? (prev.class_id || '') : '',
+        subjects:    newRole === 'guru'  ? (prev.subjects || []) : [],
       };
     });
   }, []);
@@ -673,7 +694,11 @@ export default function UserManagement() {
               <Trash2 className="w-4 h-4" /> Hapus ({selectedIds.length})
             </Button>
           )}
-          <Button onClick={() => { setFormData({ role: 'siswa', is_active: true }); setErrors({}); setIsCreateOpen(true); }} 
+          <Button onClick={() => {
+            setFormData({ role: 'siswa', is_active: true, class_level: 'X', subjects: [], class_id: '' });
+            setErrors({});
+            setIsCreateOpen(true);
+          }} 
             className="flex items-center gap-1.5" disabled={createUserMutation.isLoading}>
             <Plus className="w-4 h-4" /> {createUserMutation.isLoading ? 'Menyimpan...' : 'Tambah User'}
           </Button>
@@ -761,18 +786,31 @@ export default function UserManagement() {
                     }`}>{user.role}</span>
                   </td>
                   <td className="px-4 py-4 text-gray-600 dark:text-dark-muted font-mono text-xs hidden md:table-cell">
-                    {user.role === 'siswa' && user.profile?.nis ? (
-                      <div className="space-y-1">
-                        <div>NIS: {user.profile.nis}</div>
-                        {user.classes?.[0] && (
-                          <div className="flex items-center gap-1 text-primary-600 dark:text-primary-400 font-bold bg-primary-50 dark:bg-primary-900/20 px-1.5 py-0.5 rounded text-[10px] w-fit">
-                            <MapPin className="w-2.5 h-2.5" />
-                            {user.classes[0].name}
-                          </div>
-                        )}
+                    <div className="space-y-1">
+                      <div>
+                        {user.role === 'siswa' && user.profile?.nis ? `NIS: ${user.profile.nis}` : 
+                         user.role === 'guru' && user.profile?.nip ? `NIP: ${user.profile.nip}` : '-'}
                       </div>
-                    ) : 
-                     user.role === 'guru' && user.profile?.nip ? `NIP: ${user.profile.nip}` : '-'}
+                      
+                      {/* Teacher Subjects Badges */}
+                      {user.role === 'guru' && user.profile?.subjects?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {user.profile.subjects.map(s => (
+                            <span key={s.id} className="px-1.5 py-0.5 rounded bg-primary-500/10 text-[10px] text-primary-600 dark:text-primary-400 border border-primary-500/20 font-sans font-bold">
+                              {s.code}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Student Class Badge */}
+                      {user.role === 'siswa' && user.classes?.[0] && (
+                        <div className="flex items-center gap-1 text-primary-600 dark:text-primary-400 font-bold bg-primary-50 dark:bg-primary-900/20 px-1.5 py-0.5 rounded text-[10px] w-fit">
+                          <MapPin className="w-2.5 h-2.5" />
+                          {user.classes[0].name}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-4 hidden lg:table-cell">
                     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${user.is_active ? 'text-success' : 'text-danger'}`}>
@@ -821,18 +859,18 @@ export default function UserManagement() {
       {(isCreateOpen || isEditOpen) && (
         <Modal isOpen={isCreateOpen || isEditOpen} onClose={() => { setIsCreateOpen(false); setIsEditOpen(false); }} 
           title={isCreateOpen ? "✨ Tambah User Baru" : "✏️ Edit User"} size="2xl">
-          <form onSubmit={isCreateOpen ? handleCreateSubmit : handleEditSubmit} className="space-y-6 max-h-[75vh] overflow-y-auto pr-2">
+          <form onSubmit={isCreateOpen ? handleCreateSubmit : handleEditSubmit} className="space-y-5 max-h-[80vh] overflow-y-auto pr-2">
             
             {/* Section 1: Basic Info */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white pb-2 border-b dark:border-dark-border flex items-center gap-2">
-                <User className="w-5 h-5 text-primary-600" /> Informasi Dasar
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white pb-2 border-b dark:border-dark-border flex items-center gap-2">
+                <User className="w-4 h-4 text-primary-600" /> Informasi Dasar
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <InputField label="Nama Lengkap" name="name" value={formData.name} onChange={setFormData} error={errors.name} required placeholder="Contoh: Ahmad Rizki" icon={User} />
                 <InputField label="Email" name="email" type="email" value={formData.email} onChange={setFormData} error={errors.email} required placeholder="email@rpl.id" icon={Mail} />
               </div>
-              {isCreateOpen && <InputField label="Password" name="password" type="password" value={formData.password} onChange={setFormData} error={errors.password} required placeholder="Minimal 8 karakter" icon={Lock} helperText="Gunakan kombinasi huruf, angka, dan simbol" />}
+              {isCreateOpen && <InputField label="Password" name="password" type="password" value={formData.password} onChange={setFormData} error={errors.password} required placeholder="Minimal 8 karakter (contoh: password123)" icon={Lock} helperText="ℹ️ Minimal 8 karakter" />}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <SelectField label="Role" name="role" value={formData.role || 'siswa'} onChange={handleRoleChange} 
                   options={[{value:'siswa',label:'🎓 Siswa'}, {value:'guru',label:'👨‍🏫 Guru'}, {value:'admin',label:'🛡️ Admin'}]} 
@@ -843,21 +881,13 @@ export default function UserManagement() {
               </div>
             </div>
 
-            {/* Section 2: Avatar */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white pb-2 border-b dark:border-dark-border flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-primary-600" /> Foto Profil
-              </h3>
-              <AvatarUpload value={formData.avatar_url} onChange={(file) => setFormData({...formData, avatar_url: file})} error={errors.avatar} />
-            </div>
-
-            {/* Section 3: Role-Specific */}
+            {/* Section 2: Role-Specific (langsung setelah role picker) */}
             {formData.role === 'siswa' && (
               <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">🎓 Informasi Siswa</h3>
+                <h3 className="text-base font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">🎓 Data Siswa <span className="text-xs font-normal text-blue-600 dark:text-blue-300">(wajib diisi)</span></h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <InputField label="NIS" name="nis" value={formData.nis} onChange={setFormData} error={errors.nis} required placeholder="Contoh: 20250001" />
-                    <SelectField label="Tingkat" name="class_level" value={formData.class_level || 'X'} 
+                    <InputField label="NIS" name="nis" value={formData.nis} onChange={setFormData} error={errors.nis} required placeholder="Contoh: 20250001" helperText="Nomor Induk Siswa" />
+                    <SelectField label="Tingkat Kelas" name="class_level" value={formData.class_level || 'X'} 
                       onChange={(setter) => {
                         setFormData(prev => {
                           const newState = setter(prev);
@@ -867,39 +897,43 @@ export default function UserManagement() {
                       options={[{value:'X',label:'Kelas X'}, {value:'XI',label:'Kelas XI'}, {value:'XII',label:'Kelas XII'}]} error={errors.class_level} required />
                     <SelectField label="Pilih Kelas" name="class_id" value={formData.class_id} onChange={setFormData}
                       options={classes.filter(c => c.level === (formData.class_level || 'X')).map(c => ({ value: c.id, label: c.name }))} 
-                      placeholder="Pilih Kelas" error={errors.class_id} />
+                      placeholder="— Pilih Kelas —" error={errors.class_id} helperText="Pilih kelas untuk pendaftaran" />
                   </div>
                 </div>
             )}
 
             {formData.role === 'guru' && (
               <div className="space-y-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
-                <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100 flex items-center gap-2">👨‍🏫 Informasi Guru</h3>
-                <InputField label="NIP" name="nip" value={formData.nip} onChange={setFormData} error={errors.nip} required placeholder="Contoh: 198001012020011001" />
-                <SubjectMultiSelect label="Mata Pelajaran" value={formData.subjects} onChange={(v) => setFormData({...formData, subjects: v})} subjects={subjects} error={errors.subjects} required />
+                <h3 className="text-base font-semibold text-purple-900 dark:text-purple-100 flex items-center gap-2">👨‍🏫 Data Guru <span className="text-xs font-normal text-purple-600 dark:text-purple-300">(wajib diisi)</span></h3>
+                <InputField label="NIP" name="nip" value={formData.nip} onChange={setFormData} error={errors.nip} required placeholder="Contoh: 198001012020011001" helperText="Nomor Induk Pegawai" />
+                <SubjectMultiSelect label="Mata Pelajaran yang Diajar" value={formData.subjects} onChange={(v) => setFormData({...formData, subjects: v})} subjects={subjects} error={errors.subjects} required />
               </div>
             )}
 
             {formData.role === 'admin' && (
-              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800">
-                <p className="text-sm text-orange-800 dark:text-orange-200 flex items-start gap-2">⚠️ <span><strong>Admin</strong> tidak memerlukan NIS/NIP.</span></p>
+              <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800">
+                <p className="text-sm text-orange-800 dark:text-orange-200 flex items-start gap-2">⚠️ <span><strong>Admin</strong> tidak memerlukan NIS/NIP. Hanya nama, email, dan password.</span></p>
               </div>
             )}
 
-            {/* Section 4: Profile Details */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white pb-2 border-b dark:border-dark-border flex items-center gap-2">
-                <User className="w-5 h-5 text-primary-600" /> Detail Profil (Opsional)
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputField label="Nomor Telepon" name="phone" value={formData.phone} onChange={setFormData} error={errors.phone} placeholder="08123456789" icon={Phone} />
-                <InputField label="Bio Singkat" name="bio" value={formData.bio} onChange={setFormData} error={errors.bio} placeholder="Ceritakan tentang diri Anda..." />
+            {/* Section 3: Profile Details (Opsional - bisa di-collapse) */}
+            <details className="group">
+              <summary className="cursor-pointer text-sm font-medium text-gray-500 dark:text-dark-muted hover:text-gray-700 dark:hover:text-white flex items-center gap-2 list-none select-none py-1">
+                <span className="group-open:rotate-90 transition-transform inline-block">▶</span>
+                Foto Profil & Detail Tambahan (Opsional)
+              </summary>
+              <div className="mt-4 space-y-4 pt-3 border-t dark:border-dark-border">
+                <AvatarUpload value={formData.avatar_url} onChange={(file) => setFormData({...formData, avatar_url: file})} error={errors.avatar} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <InputField label="Nomor Telepon" name="phone" value={formData.phone} onChange={setFormData} error={errors.phone} placeholder="08123456789" icon={Phone} />
+                  <InputField label="Bio Singkat" name="bio" value={formData.bio} onChange={setFormData} error={errors.bio} placeholder="Ceritakan tentang diri Anda..." />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <InputField label="GitHub" name="github_url" value={formData.github_url} onChange={setFormData} error={errors.github_url} placeholder="https://github.com/username" icon={ExternalLink} />
+                  <InputField label="LinkedIn" name="linkedin_url" value={formData.linkedin_url} onChange={setFormData} error={errors.linkedin_url} placeholder="https://linkedin.com/in/username" icon={ExternalLink} />
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputField label="GitHub" name="github_url" value={formData.github_url} onChange={setFormData} error={errors.github_url} placeholder="https://github.com/username" icon={ExternalLink} />
-                <InputField label="LinkedIn" name="linkedin_url" value={formData.linkedin_url} onChange={setFormData} error={errors.linkedin_url} placeholder="https://linkedin.com/in/username" icon={ExternalLink} />
-              </div>
-            </div>
+            </details>
 
             {/* Action Buttons */}
             <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-dark-border sticky bottom-0 bg-white dark:bg-dark-card py-4">
@@ -910,6 +944,7 @@ export default function UserManagement() {
             </div>
           </form>
         </Modal>
+
       )}
 
       {/* ═══════════════════════════════════════════════════════════
