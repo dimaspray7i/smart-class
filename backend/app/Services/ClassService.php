@@ -127,7 +127,7 @@ class ClassService
             // Assign subjects if provided (requires class_subjects pivot table)
             if (!empty($data['subject_ids']) && is_array($data['subject_ids'])) {
                 // Check if pivot table exists before attaching
-                if (DB::getSchemaBuilder()->hasTable('class_subjects')) {
+                if (DB::getSchemaBuilder()->hasTable('class_subject')) {
                     $class->subjects()->attach($data['subject_ids']);
                 }
             }
@@ -212,7 +212,7 @@ class ClassService
 
             // Update subjects if provided
             if (isset($data['subject_ids']) && is_array($data['subject_ids'])) {
-                if (DB::getSchemaBuilder()->hasTable('class_subjects')) {
+                if (DB::getSchemaBuilder()->hasTable('class_subject')) {
                     $class->subjects()->sync($data['subject_ids']);
                 }
             }

@@ -32,7 +32,7 @@ class ClassModel extends Model
     /**
      * Attributes to append to the model's array form.
      */
-    protected $appends = ['wali_kelas'];
+    protected $appends = ['wali_kelas', 'student_count', 'subject_count'];
 
     /**
      * Attributes yang harus di-cast
@@ -293,11 +293,11 @@ class ClassModel extends Model
      */
     public function getSubjectCountAttribute(): int
     {
-        // Since subjects() uses join, we count via schedules
-        if (isset($this->attributes['schedules_count'])) {
-            // This is approximate; for exact subject count, query directly
-            return $this->schedules()->distinct('subject_id')->count('subject_id');
+        // If withCount was used, use the loaded attribute
+        if (isset($this->attributes['subjects_count'])) {
+            return (int) $this->attributes['subjects_count'];
         }
+        // Fallback: query database
         return $this->subjects()->count();
     }
 

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\DB;
+use App\Models\User;
 
 class UserController extends Controller
 {
@@ -77,13 +78,19 @@ class UserController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        \Illuminate\Support\Facades\Log::info('UserController::store request', [
+            'role' => $request->input('role'),
+            'subjects' => $request->input('subjects'),
+            'has_file' => $request->hasFile('avatar')
+        ]);
+
         $role = $request->input('role');
         
         // Base validation rules
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
-            'password' => ['required', Password::min(8)->mixedCase()->numbers()],
+            'password' => ['required', 'string', 'min:8'],
             'role' => 'required|in:admin,guru,siswa',
             'phone' => 'nullable|string|max:20',
             'is_active' => 'nullable|boolean',
@@ -174,7 +181,15 @@ class UserController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $user = $this->userService->find($id);
+        $user = User::findOrFail($id);
+        $role = $user->role;
+
+        \Illuminate\Support\Facades\Log::info('UserController::update request', [
+            'user_id' => $id,
+            'role' => $role,
+            'subjects' => $request->input('subjects'),
+            'all_input' => $request->all()
+        ]);
         
         if (!$user) {
             return response()->json([
