@@ -41,6 +41,7 @@ class StudentService
                     ],
                     'stats' => $this->getDashboardStats($userId),
                     'today_schedule' => $this->getTodaySchedule($userId),
+                    'detailed_today_schedule' => $this->getDetailedTodaySchedule($userId),
                     'quick_actions' => $this->getQuickActions($userId),
                     'recent_attendance' => $this->getRecentAttendance($userId),
                     'recent_projects' => $this->getRecentProjects($userId),
@@ -122,6 +123,76 @@ class StudentService
                 'is_now' => $schedule->is_now,
             ];
         })->toArray();
+    }
+
+    /**
+     * Get detailed today's schedule broken down by periods
+     */
+    public function getDetailedTodaySchedule(int $userId): array
+    {
+        $user = User::find($userId);
+        $currentClass = $user->getCurrentClass();
+
+        if (!$currentClass) {
+            return [];
+        }
+
+        $day = now()->locale('id')->dayName;
+
+        $schedules = Schedule::where('class_id', $currentClass->id)
+            ->where('day', strtolower($day))
+            ->where('is_active', true)
+            ->with(['subject', 'teacher'])
+            ->get();
+
+        $detailedSchedule = [];
+        $periods = Schedule::PERIODS;
+
+        foreach ($periods as $period) {
+            $periodStart = Carbon::parse($period['start']);
+            $periodEnd = Carbon::parse($period['end']);
+            
+            // Current time for is_now check
+            $now = now();
+            $isNow = $now->format('H:i') >= $period['start'] && $now->format('H:i') < $period['end'];
+
+            $matchingSchedule = $schedules->first(function ($s) use ($period) {
+                $sStart = Carbon::parse($s->start_time)->format('H:i');
+                $sEnd = Carbon::parse($s->end_time)->format('H:i');
+                
+                // A period matches if its start time is within the schedule's range
+                return $period['start'] >= $sStart && $period['start'] < $sEnd;
+            });
+
+            if ($period['is_break'] ?? false) {
+                $detailedSchedule[] = [
+                    'type' => 'break',
+                    'label' => $period['label'],
+                    'time' => $period['start'] . ' - ' . $period['end'],
+                    'is_now' => $isNow,
+                ];
+            } elseif ($matchingSchedule) {
+                $detailedSchedule[] = [
+                    'type' => 'subject',
+                    'label' => $period['label'],
+                    'subject' => $matchingSchedule->subject->name,
+                    'subject_code' => $matchingSchedule->subject->code,
+                    'teacher' => $matchingSchedule->teacher->name,
+                    'time' => $period['start'] . ' - ' . $period['end'],
+                    'room' => $matchingSchedule->room,
+                    'is_now' => $isNow,
+                ];
+            } else {
+                $detailedSchedule[] = [
+                    'type' => 'empty',
+                    'label' => $period['label'],
+                    'time' => $period['start'] . ' - ' . $period['end'],
+                    'is_now' => $isNow,
+                ];
+            }
+        }
+
+        return $detailedSchedule;
     }
 
     /**

@@ -17,7 +17,7 @@ class UserService
      * @param array $filters ['role', 'is_active', 'search']
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function paginate(array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function paginate(array $filters = []): mixed
     {
         $query = User::query();
 
@@ -40,6 +40,13 @@ class UserService
                   ->orWhere('email', 'like', $search)
                   ->orWhere('phone', 'like', $search);
             });
+        }
+
+        if (!empty($filters['all'])) {
+            return $query
+                ->with(['profile', 'profile.subjects', 'classes'])
+                ->orderBy('name', 'asc')
+                ->get();
         }
 
         return $query

@@ -30,8 +30,8 @@ import TeacherDashboard from './pages/dashboard/TeacherDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import ClassManagement from './pages/admin/ClassManagement';
-import SubjectManagement from './pages/admin/SubjectManagement'; // ✅ NEW: Subject Management
-
+import SubjectManagement from './pages/admin/SubjectManagement';
+import ScheduleManagement from './pages/admin/ScheduleManagement'; 
 // ═══════════════════════════════════════════════════════════
 // PROTECTED ROUTE COMPONENT
 // ═══════════════════════════════════════════════════════════
@@ -186,11 +186,13 @@ export const router = [
           // Class Management
           { path: 'classes', element: <ClassManagement /> },
           
-          //  Subject Management 
+          // Subject Management 
           { path: 'subjects', element: <SubjectManagement /> },
           
+          // Schedule Management
+          { path: 'schedules', element: <ScheduleManagement /> },
+          
           // 🚧 Coming Soon: Other admin features
-          { path: 'schedules', element: <ComingSoon title="Schedule Management" icon="📅" /> },
           { path: 'settings', element: <ComingSoon title="System Settings" icon="⚙️" /> },
           { path: 'analytics', element: <ComingSoon title="Analytics & Reports" icon="📈" /> },
         ],

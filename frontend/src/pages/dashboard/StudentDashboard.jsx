@@ -239,38 +239,103 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {/* Today's Schedule (if available) */}
-      {dashboard?.data?.today_schedule?.length > 0 && (
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Jadwal Hari Ini</h3>
-          <div className="space-y-3">
-            {dashboard.data.today_schedule.map((schedule, index) => (
-              <div 
-                key={schedule.id || index}
-                className={`p-4 rounded-xl border-l-4 ${
-                  schedule.is_now 
-                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' 
-                    : 'border-gray-300 dark:border-dark-border'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-gray-900 dark:text-white">{schedule.subject}</p>
-                    <p className="text-sm text-gray-600 dark:text-dark-muted">
-                      {schedule.teacher} • {schedule.room}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-mono text-sm font-medium">{schedule.time}</p>
-                    {schedule.is_now && (
-                      <span className="inline-block mt-1 px-2 py-0.5 bg-primary-500 text-white text-xs rounded-full animate-pulse">
-                        Sedang Berlangsung
-                      </span>
-                    )}
-                  </div>
-                </div>
+      {/* Detailed Today's Schedule */}
+      {dashboard?.data?.detailed_today_schedule?.length > 0 && (
+        <div className="card overflow-hidden">
+          <div className="flex items-center justify-between mb-4 px-1">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+                <Clock className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               </div>
-            ))}
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Jadwal Pelajaran Hari Ini</h3>
+            </div>
+            <span className="text-xs font-medium px-3 py-1 bg-gray-100 dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-full text-gray-600 dark:text-dark-muted shadow-sm">
+              {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}
+            </span>
+          </div>
+          
+          <div className="overflow-x-auto -mx-1">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-dark-card/50 border-y border-gray-100 dark:border-dark-border">
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 dark:text-dark-muted uppercase tracking-wider w-32">Waktu</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 dark:text-dark-muted uppercase tracking-wider">Mata Pelajaran</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 dark:text-dark-muted uppercase tracking-wider">Guru & Ruang</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 dark:text-dark-muted uppercase tracking-wider text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-dark-border">
+                {dashboard.data.detailed_today_schedule.map((slot, index) => (
+                  <tr 
+                    key={index}
+                    className={`transition-colors ${
+                      slot.is_now 
+                        ? 'bg-primary-50/50 dark:bg-primary-900/10' 
+                        : slot.type === 'break' 
+                          ? 'bg-amber-50/20 dark:bg-amber-900/5' 
+                          : 'hover:bg-gray-50/50 dark:hover:bg-dark-card/30'
+                    }`}
+                  >
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className={`text-sm font-bold ${slot.is_now ? 'text-primary-700 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
+                          {slot.time}
+                        </span>
+                        <span className="text-[10px] font-medium text-gray-400 uppercase tracking-tight">{slot.label}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      {slot.type === 'subject' ? (
+                        <div className="flex flex-col">
+                          <p className={`text-sm font-bold ${slot.is_now ? 'text-primary-900 dark:text-white' : 'text-gray-800 dark:text-gray-200'}`}>
+                            {slot.subject}
+                          </p>
+                          <span className="text-[10px] font-bold text-primary-600/70 dark:text-primary-400/70 uppercase">
+                            {slot.subject_code}
+                          </span>
+                        </div>
+                      ) : slot.type === 'break' ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-amber-600 dark:text-amber-400 uppercase italic tracking-widest flex items-center gap-1">
+                            <span className="text-lg">☕</span> {slot.label}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-300 dark:text-gray-600 italic font-medium">Jam Kosong</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4">
+                      {slot.type === 'subject' ? (
+                        <div className="flex flex-col">
+                          <p className="text-sm text-gray-600 dark:text-dark-muted font-medium">{slot.teacher}</p>
+                          <div className="flex items-center gap-1 text-[10px] text-gray-400 italic">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                            {slot.room || 'Ruang Kelas'}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-300 dark:text-gray-700">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      {slot.is_now && (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300 border border-primary-200 dark:border-primary-800 shadow-sm animate-pulse">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary-600 dark:bg-primary-400 mr-1.5"></span>
+                          SEDANG BERLANGSUNG
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/20">
+            <p className="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <span>Jadwal di atas adalah pembagian waktu per jam pelajaran (SKS). Pastikan Anda berada di kelas tepat waktu.</span>
+            </p>
           </div>
         </div>
       )}

@@ -167,6 +167,7 @@ Route::middleware('api')->group(function () {
             
             // Admin Schedule Management Routes
             Route::apiResource('schedules', AdminSchedule::class);
+            Route::get('/schedules/export', [AdminSchedule::class, 'export']);
             Route::get('/schedules/check-conflict', [AdminSchedule::class, 'checkConflict']);
             Route::get('/schedules/by-teacher/{teacherId}', [AdminSchedule::class, 'byTeacher']);
             

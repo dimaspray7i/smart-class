@@ -12,6 +12,22 @@ class Schedule extends Model
     use HasFactory;
 
     /**
+     * Standard time periods for the school
+     */
+    public const PERIODS = [
+        ['start' => '07:15', 'end' => '08:05', 'label' => 'Jam ke-1'],
+        ['start' => '08:05', 'end' => '08:55', 'label' => 'Jam ke-2'],
+        ['start' => '08:55', 'end' => '09:45', 'label' => 'Jam ke-3'],
+        ['start' => '09:45', 'end' => '10:15', 'label' => 'ISTIRAHAT 1', 'is_break' => true],
+        ['start' => '10:15', 'end' => '11:05', 'label' => 'Jam ke-4'],
+        ['start' => '11:05', 'end' => '11:55', 'label' => 'Jam ke-5'],
+        ['start' => '11:55', 'end' => '12:45', 'label' => 'ISTIRAHAT 2', 'is_break' => true],
+        ['start' => '12:45', 'end' => '13:35', 'label' => 'Jam ke-6'],
+        ['start' => '13:35', 'end' => '14:25', 'label' => 'Jam ke-7'],
+        ['start' => '14:25', 'end' => '15:15', 'label' => 'Jam ke-8'],
+    ];
+
+    /**
      * Attributes yang dapat di-mass-assign
      */
     protected $fillable = [
