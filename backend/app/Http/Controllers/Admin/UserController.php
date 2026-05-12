@@ -29,22 +29,27 @@ class UserController extends Controller
             $filters['is_active'] = filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN);
         }
 
-        $users = $this->userService->paginate($filters);
+        $users = $this->userService->paginate($filters + ['all' => $request->has('all')]);
 
-        return response()->json([
+        $responseData = [
             'status' => 'success',
             'message' => 'User berhasil diambil.',
             'code' => 'USERS_SUCCESS',
-            'data' => $users->items(),
-            'meta' => [
+            'data' => $request->has('all') ? $users : $users->items(),
+        ];
+
+        if (!$request->has('all')) {
+            $responseData['meta'] = [
                 'current_page' => $users->currentPage(),
                 'per_page' => $users->perPage(),
                 'total' => $users->total(),
                 'last_page' => $users->lastPage(),
                 'from' => $users->firstItem(),
                 'to' => $users->lastItem(),
-            ],
-        ], 200);
+            ];
+        }
+
+        return response()->json($responseData, 200);
     }
 
     /**
