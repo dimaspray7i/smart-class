@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Attendance;
 use App\Models\AttendanceSession;
+use App\Models\PklLocation;
 use App\Models\User;
 use App\Helpers\GeoHelper;
 use Carbon\Carbon;
@@ -55,30 +56,69 @@ class AttendanceService
                 ];
             }
 
-            // 3. Validate: Location radius
+            // ═══════════════════════════════════════════════════════════
+            // PKL LOCATION VALIDATION FOR CLASS 12 STUDENTS
+            // ═══════════════════════════════════════════════════════════
+            $userProfile = $user->profile;
+            $isClass12 = $userProfile && $userProfile->class_level === 'XII';
+            $pklEnabled = config('app.pkl_enable_pkl_attendance', true);
+            
+            // Default values (school location)
+            $maxRadius = $session->radius_meters ?? config('app.attendance_radius_meters', 100);
+            $centerLat = $session->center_lat ?? config('app.school_latitude', -6.200000);
+            $centerLng = $session->center_lng ?? config('app.school_longitude', 106.816666);
+            
+            $isPklLocation = false;
+            $matchedPklLocation = null;
+
+            // If class 12 and PKL enabled, check approved PKL locations
+            if ($isClass12 && $pklEnabled) {
+                $approvedPklLocations = PklLocation::approved()->get();
+                
+                foreach ($approvedPklLocations as $pklLoc) {
+                    $distance = GeoHelper::calculateDistance(
+                        $data['lat'], $data['lng'],
+                        $pklLoc->latitude, $pklLoc->longitude
+                    );
+                    
+                    if ($distance <= $pklLoc->radius_meters) {
+                        // Found matching PKL location! Use its radius and center
+                        $maxRadius = $pklLoc->radius_meters;
+                        $centerLat = $pklLoc->latitude;
+                        $centerLng = $pklLoc->longitude;
+                        $isPklLocation = true;
+                        $matchedPklLocation = $pklLoc;
+                        break;
+                    }
+                }
+            }
+
+            // 3. Validate: Location radius (using determined center & radius)
             $distance = GeoHelper::calculateDistance(
                 $data['lat'],
                 $data['lng'],
-                $session->center_lat ?? config('app.school_latitude', -6.200000),
-                $session->center_lng ?? config('app.school_longitude', 106.816666)
+                $centerLat,
+                $centerLng
             );
-
-            $maxRadius = $session->radius_meters ?? config('app.attendance_radius_meters', 100);
 
             if ($distance > $maxRadius) {
                 DB::rollBack();
+                
+                $errorMsg = $isPklLocation 
+                    ? sprintf('Lokasi terlalu jauh (%.0f m) dari titik PKL. Maksimal %d m.', $distance, $maxRadius)
+                    : sprintf('Lokasi terlalu jauh (%.0f m). Maksimal %d m dari titik absensi.', $distance, $maxRadius);
+                
                 return [
                     'success' => false,
-                    'message' => sprintf(
-                        'Lokasi terlalu jauh (%.0f m). Maksimal %d m dari titik absensi.',
-                        $distance,
-                        $maxRadius
-                    ),
+                    'message' => $errorMsg,
                     'code' => 'OUT_OF_RADIUS',
                     'debug' => config('app.debug') ? [
                         'distance' => round($distance),
                         'max_radius' => $maxRadius,
                         'your_location' => ['lat' => $data['lat'], 'lng' => $data['lng']],
+                        'center_location' => ['lat' => $centerLat, 'lng' => $centerLng],
+                        'is_pkl_location' => $isPklLocation,
+                        'pkl_location_name' => $matchedPklLocation?->company_name,
                     ] : null,
                 ];
             }
@@ -114,6 +154,9 @@ class AttendanceService
                 'code_used' => strtoupper($data['code']),
                 'device_info' => $data['device'] ?? 'web',
                 'verification_method' => 'auto',
+                // PKL Fields
+                'pkl_location_id' => $matchedPklLocation?->id,
+                'location_name' => $matchedPklLocation?->company_name,
             ]);
 
             // 7. Increment session usage counter
@@ -123,12 +166,16 @@ class AttendanceService
 
             return [
                 'success' => true,
-                'message' => 'Absensi berhasil dicatat.',
+                'message' => $isPklLocation 
+                    ? 'Absensi PKL berhasil dicatat.' 
+                    : 'Absensi berhasil dicatat.',
                 'code' => 'ATTENDANCE_SUCCESS',
-                'data' => $attendance->load('user:id,name,avatar_url'),
+                'data' => $attendance->load('user:id,name,avatar_url', 'pklLocation:id,company_name'),
                 'meta' => [
                     'status' => $status,
-                    'distance_from_school' => round($distance) . ' m',
+                    'distance_from_center' => round($distance) . ' m',
+                    'location_type' => $isPklLocation ? 'pkl' : 'school',
+                    'location_name' => $matchedPklLocation?->company_name ?? 'Sekolah',
                     'session_remaining' => $session->remaining_time,
                     'check_in_time' => $now->format('H:i:s'),
                 ],
@@ -157,7 +204,9 @@ class AttendanceService
      */
     public function getHistory(int $userId, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        $query = Attendance::where('user_id', $userId)->orderBy('date', 'desc');
+        $query = Attendance::where('user_id', $userId)
+            ->with('pklLocation:id,company_name,address')
+            ->orderBy('date', 'desc');
 
         if (!empty($filters['month']) && is_numeric($filters['month'])) {
             $query->whereMonth('date', (int) $filters['month']);
@@ -174,12 +223,15 @@ class AttendanceService
         if (!empty($filters['end_date'])) {
             $query->whereDate('date', '<=', $filters['end_date']);
         }
+        if (isset($filters['pkl_only']) && filter_var($filters['pkl_only'], FILTER_VALIDATE_BOOLEAN)) {
+            $query->whereNotNull('pkl_location_id');
+        }
 
         // Retention policy
         $retentionDays = config('app.analytics_retention_days', 90);
         $query->where('date', '>=', Carbon::today()->subDays($retentionDays));
 
-        return $query->paginate(15);
+        return $query->paginate($filters['per_page'] ?? 15);
     }
 
     /**
@@ -196,6 +248,7 @@ class AttendanceService
         $izin = Attendance::where('user_id', $userId)->where('status', 'Izin')->where('date', '>=', $since)->count();
         $sakit = Attendance::where('user_id', $userId)->where('status', 'Sakit')->where('date', '>=', $since)->count();
         $alpha = Attendance::where('user_id', $userId)->where('status', 'Alpha')->where('date', '>=', $since)->count();
+        $pklCount = Attendance::where('user_id', $userId)->whereNotNull('pkl_location_id')->where('date', '>=', $since)->count();
 
         return [
             'period' => [
@@ -210,15 +263,18 @@ class AttendanceService
                 'izin' => $izin,
                 'sakit' => $sakit,
                 'alpha' => $alpha,
+                'pkl_count' => $pklCount,
             ],
             'percentage' => [
                 'hadir' => $total > 0 ? round(($hadir / $total) * 100, 2) : 0,
                 'on_time' => $total > 0 ? round((($hadir + $terlambat) / $total) * 100, 2) : 0,
+                'pkl' => $total > 0 ? round(($pklCount / $total) * 100, 2) : 0,
             ],
             'streak' => $this->calculateCurrentStreak($userId),
             'last_attendance' => Attendance::where('user_id', $userId)
+                ->with('pklLocation:id,company_name')
                 ->latest('date')
-                ->first(['date', 'status', 'created_at'])
+                ->first(['date', 'status', 'created_at', 'pkl_location_id'])
                 ?->toArray(),
         ];
     }
@@ -231,6 +287,7 @@ class AttendanceService
         $today = today()->toDateString();
         $attendance = Attendance::where('user_id', $userId)
             ->where('date', $today)
+            ->with('pklLocation:id,company_name')
             ->first();
 
         $openTime = config('app.attendance_open_time', '06:00');
@@ -248,6 +305,107 @@ class AttendanceService
                 'current' => $currentTime,
             ],
         ];
+    }
+
+    /**
+     * Get approved PKL locations for class 12 student
+     */
+    public function getPklLocationsForStudent(User $user): array
+    {
+        $userProfile = $user->profile;
+        
+        // Only class 12 students can use PKL locations
+        if (!$userProfile || $userProfile->class_level !== 'XII') {
+            return [];
+        }
+
+        if (!config('app.pkl_enable_pkl_attendance', true)) {
+            return [];
+        }
+
+        $locations = PklLocation::approved()
+            ->select('id', 'company_name', 'address', 'latitude', 'longitude', 'radius_meters', 'supervisor_name', 'supervisor_phone')
+            ->orderBy('company_name')
+            ->get();
+
+        return $locations->map(function ($loc) {
+            return [
+                'id' => $loc->id,
+                'company_name' => $loc->company_name,
+                'address' => $loc->address,
+                'latitude' => $loc->latitude,
+                'longitude' => $loc->longitude,
+                'radius_meters' => $loc->radius_meters,
+                'supervisor_name' => $loc->supervisor_name,
+                'supervisor_phone' => $loc->supervisor_phone,
+                'google_maps_url' => $loc->google_maps_url,
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Validate if student can attend at given coordinates
+     */
+    public function validateAttendanceLocation(User $user, float $lat, float $lng): array
+    {
+        $result = [
+            'can_attend' => false,
+            'location_type' => null,
+            'location_name' => null,
+            'distance' => null,
+            'max_radius' => null,
+            'message' => '',
+        ];
+
+        // Check school location first
+        $schoolLat = config('app.school_latitude', -6.200000);
+        $schoolLng = config('app.school_longitude', 106.816666);
+        $schoolRadius = config('app.attendance_radius_meters', 100);
+        
+        $distanceToSchool = GeoHelper::calculateDistance(
+            $lat, $lng, $schoolLat, $schoolLng
+        );
+
+        if ($distanceToSchool <= $schoolRadius) {
+            $result['can_attend'] = true;
+            $result['location_type'] = 'school';
+            $result['location_name'] = config('app.school_name', 'Sekolah');
+            $result['distance'] = round($distanceToSchool);
+            $result['max_radius'] = $schoolRadius;
+            $result['message'] = 'Lokasi valid (dalam radius sekolah).';
+            return $result;
+        }
+
+        // If class 12, check approved PKL locations
+        $userProfile = $user->profile;
+        $isClass12 = $userProfile && $userProfile->class_level === 'XII';
+        
+        if ($isClass12 && config('app.pkl_enable_pkl_attendance', true)) {
+            $approvedPklLocations = PklLocation::approved()->get();
+            
+            foreach ($approvedPklLocations as $pklLoc) {
+                $distanceToPkl = GeoHelper::calculateDistance(
+                    $lat, $lng, $pklLoc->latitude, $pklLoc->longitude
+                );
+                
+                if ($distanceToPkl <= $pklLoc->radius_meters) {
+                    $result['can_attend'] = true;
+                    $result['location_type'] = 'pkl';
+                    $result['location_name'] = $pklLoc->company_name;
+                    $result['distance'] = round($distanceToPkl);
+                    $result['max_radius'] = $pklLoc->radius_meters;
+                    $result['message'] = "Lokasi valid (dalam radius {$pklLoc->company_name}).";
+                    return $result;
+                }
+            }
+        }
+
+        // If we reach here, location is not valid
+        $result['message'] = 'Lokasi tidak valid. Pastikan Anda berada di sekolah atau lokasi PKL yang disetujui.';
+        $result['distance'] = round($distanceToSchool);
+        $result['max_radius'] = $schoolRadius;
+        
+        return $result;
     }
 
     /**
@@ -271,6 +429,8 @@ class AttendanceService
                 'radius_meters' => $data['radius_meters'] ?? config('app.attendance_radius_meters', 100),
                 'center_lat' => $data['center_lat'] ?? config('app.school_latitude', -6.200000),
                 'center_lng' => $data['center_lng'] ?? config('app.school_longitude', 106.816666),
+                // PKL: Link to PKL location if session is for PKL
+                'pkl_location_id' => $data['pkl_location_id'] ?? null,
             ]);
 
             return [
@@ -284,6 +444,7 @@ class AttendanceService
                     'radius_meters' => $session->radius_meters,
                     'center_location' => $session->center_location,
                     'max_uses' => $session->max_uses,
+                    'is_pkl_session' => $session->pkl_location_id !== null,
                 ],
             ];
 
@@ -401,7 +562,7 @@ class AttendanceService
      */
     public function monitorSession(int $sessionId): array
     {
-        $session = AttendanceSession::with(['class', 'teacher'])->find($sessionId);
+        $session = AttendanceSession::with(['class', 'teacher', 'pklLocation:id,company_name'])->find($sessionId);
 
         if (!$session) {
             return [
@@ -424,6 +585,8 @@ class AttendanceService
                 'remaining_uses' => $session->remaining_uses,
                 'is_valid' => $session->is_valid,
                 'remaining_time' => $session->remaining_time,
+                'is_pkl_session' => $session->pkl_location_id !== null,
+                'pkl_location' => $session->pklLocation,
                 'attendances' => $attendances,
             ],
         ];
@@ -445,7 +608,7 @@ class AttendanceService
             ->pluck('user_id');
 
         $query = Attendance::whereIn('user_id', $studentIds)
-            ->with('user:id,name,avatar_url')
+            ->with(['user:id,name,avatar_url', 'pklLocation:id,company_name'])
             ->orderBy('date', 'desc')
             ->orderBy('created_at', 'desc');
 
@@ -458,8 +621,11 @@ class AttendanceService
         if (!empty($filters['status']) && in_array($filters['status'], ['Hadir', 'Terlambat', 'Izin', 'Sakit', 'Alpha'])) {
             $query->where('status', $filters['status']);
         }
+        if (!empty($filters['pkl_only']) && filter_var($filters['pkl_only'], FILTER_VALIDATE_BOOLEAN)) {
+            $query->whereNotNull('pkl_location_id');
+        }
 
-        return $query->paginate(20);
+        return $query->paginate($filters['per_page'] ?? 20);
     }
 
     /**
@@ -512,7 +678,7 @@ class AttendanceService
                 'success' => true,
                 'message' => "Status absensi diubah menjadi {$status}.",
                 'code' => 'VERIFIED',
-                'data' => $attendance->fresh(),
+                'data' => $attendance->fresh()->load('user:id,name,avatar_url', 'pklLocation:id,company_name'),
             ];
 
         } catch (Exception $e) {

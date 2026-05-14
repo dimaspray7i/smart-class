@@ -425,8 +425,11 @@ export default function SubjectManagement() {
       {/* HEADER */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Manajemen Mata Pelajaran</h1>
-          <p className="text-gray-600 dark:text-dark-muted mt-1">Kelola mata pelajaran produktif, normatif, dan adaptif.</p>
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2.5">
+            <BookOpen className="w-6 h-6 text-primary-400" />
+            <span className="text-gradient">Manajemen Mata Pelajaran</span>
+          </h1>
+          <p className="text-gray-600 dark:text-dark-muted mt-1.5 ml-9">Kelola mata pelajaran produktif, normatif, dan adaptif.</p>
         </div>
         <div className="flex items-center gap-2">
           {selectedIds.length > 0 && (

@@ -1,0 +1,671 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
+
+class SettingController extends Controller
+{
+    /**
+     * Display all settings grouped by section.
+     * 
+     * @return JsonResponse
+     */
+    public function index(): JsonResponse
+    {
+        // Try to get from cache first (1 hour TTL)
+        $settings = Cache::remember('app_settings', 3600, function () {
+            $dbSettings = DB::table('settings')->pluck('value', 'key')->toArray();
+            
+            $defaults = [
+                // ═══════════════════════════════════════════════════
+                // GENERAL SETTINGS
+                // ═══════════════════════════════════════════════════
+                'general' => [
+                    // School Identity
+                    'app_name' => config('app.name', 'RPL Smart Ecosystem'),
+                    'school_name' => config('app.school_name', ''),
+                    'npsn' => config('app.npsn', ''),
+                    'school_slogan' => config('app.school_slogan', ''),
+                    'school_description' => config('app.school_description', ''),
+                    'address' => config('app.address', ''),
+                    'province' => config('app.province', ''),
+                    'city' => config('app.city', ''),
+                    'district' => config('app.district', ''),
+                    'postal_code' => config('app.postal_code', ''),
+                    'website' => config('app.website', ''),
+                    'support_email' => config('app.support_email', ''),
+                    'support_phone' => config('app.support_phone', ''),
+                    'academic_year' => config('app.academic_year', '2024/2025'),
+                    'semester' => config('app.semester', '1'),
+                    
+                    // Branding
+                    'primary_color' => config('app.primary_color', '#a855f7'),
+                    'secondary_color' => config('app.secondary_color', '#3b82f6'),
+                    'default_theme' => config('app.default_theme', 'dark'),
+                    'logo_url' => config('app.logo_url', ''),
+                    'login_background' => config('app.login_background', ''),
+                    'dashboard_banner' => config('app.dashboard_banner', ''),
+                    
+                    // Dashboard Widgets
+                    'default_page' => config('app.default_page', 'dashboard'),
+                    'show_realtime_stats' => config('app.show_realtime_stats', true),
+                    'show_weather' => config('app.show_weather', true),
+                    'show_daily_motivation' => config('app.show_daily_motivation', true),
+                    'show_academic_calendar' => config('app.show_academic_calendar', true),
+                    
+                    // Time Settings
+                    'timezone' => config('app.timezone', 'Asia/Jakarta'),
+                    'date_format' => config('app.date_format', 'DD/MM/YYYY'),
+                    'time_format' => config('app.time_format', '24h'),
+                    'auto_logout_minutes' => config('app.auto_logout_minutes', 120),
+                    'sync_server_time' => config('app.sync_server_time', true),
+                    
+                    // Notifications
+                    'email_notifications' => config('app.email_notifications', true),
+                    'push_notifications' => config('app.push_notifications', true),
+                    'attendance_notification' => config('app.attendance_notification', true),
+                    'login_notification' => config('app.login_notification', true),
+                    'pkl_notification' => config('app.pkl_notification', true),
+                    'violation_notification' => config('app.violation_notification', true),
+                ],
+
+                // ═══════════════════════════════════════════════════
+                // ATTENDANCE SETTINGS
+                // ═══════════════════════════════════════════════════
+                'attendance' => [
+                    // GPS & Location
+                    'school_latitude' => config('app.school_latitude', ''),
+                    'school_longitude' => config('app.school_longitude', ''),
+                    'multiple_locations' => config('app.multiple_locations', false),
+                    
+                    // Validation Rules
+                    'radius_meters' => config('app.attendance_radius_meters', 100),
+                    'max_late_minutes' => config('app.attendance_max_late_minutes', 15),
+                    'check_in_time' => config('app.attendance_check_in_time', '06:00'),
+                    'check_out_time' => config('app.attendance_check_out_time', '16:00'),
+                    'break_start' => config('app.attendance_break_start', '12:00'),
+                    'break_end' => config('app.attendance_break_end', '12:30'),
+                    'overtime_start' => config('app.attendance_overtime_start', '16:00'),
+                    'late_tolerance' => config('app.attendance_late_tolerance', 5),
+                    'auto_alpha' => config('app.attendance_auto_alpha', true),
+                    
+                    // Smart Attendance Features
+                    'face_verification' => config('app.attendance_face_verification', false),
+                    'selfie_verification' => config('app.attendance_selfie_verification', true),
+                    'anti_fake_gps' => config('app.attendance_anti_fake_gps', true),
+                    'anti_screenshot' => config('app.attendance_anti_screenshot', true),
+                    'device_verification' => config('app.attendance_device_verification', true),
+                    'mock_location_detection' => config('app.attendance_mock_location_detection', true),
+                    'wifi_validation' => config('app.attendance_wifi_validation', false),
+                    'wifi_ssid' => config('app.attendance_wifi_ssid', ''),
+                    'bluetooth_validation' => config('app.attendance_bluetooth_validation', false),
+                    
+                    // QR Code Settings
+                    'qr_enabled' => config('app.attendance_qr_enabled', true),
+                    'qr_expired_seconds' => config('app.attendance_qr_expired_seconds', 30),
+                    'qr_random' => config('app.attendance_qr_random', true),
+                    'qr_animated' => config('app.attendance_qr_animated', true),
+                    
+                    // Advanced Features
+                    'multiple_shifts' => config('app.attendance_multiple_shifts', false),
+                    'flexible_schedule' => config('app.attendance_flexible_schedule', false),
+                    'online_permission' => config('app.attendance_online_permission', true),
+                    'teacher_approval' => config('app.attendance_teacher_approval', true),
+                    'parent_notification' => config('app.attendance_parent_notification', false),
+                    'whatsapp_integration' => config('app.attendance_whatsapp_integration', false),
+                ],
+
+                // ═══════════════════════════════════════════════════
+                // PKL / INTERNSHIP SETTINGS
+                // ═══════════════════════════════════════════════════
+                'pkl' => [
+                    // General PKL Settings
+                    'enable_pkl_attendance' => config('app.pkl_enable_pkl_attendance', true),
+                    'require_supervisor_approval' => config('app.pkl_require_supervisor_approval', true),
+                    'max_distance_km' => config('app.pkl_max_distance_km', 5),
+                    
+                    // Monitoring & Reports
+                    'show_progress_tracking' => config('app.pkl_show_progress_tracking', true),
+                    'require_weekly_report' => config('app.pkl_require_weekly_report', true),
+                    'auto_reminder' => config('app.pkl_auto_reminder', true),
+                    'reminder_day' => config('app.pkl_reminder_day', 5),
+                    
+                    // Integration
+                    'google_maps_integration' => config('app.pkl_google_maps_integration', true),
+                    'whatsapp_notification' => config('app.pkl_whatsapp_notification', false),
+                    'email_reminder' => config('app.pkl_email_reminder', true),
+                ],
+
+                // ═══════════════════════════════════════════════════
+                // SECURITY SETTINGS
+                // ═══════════════════════════════════════════════════
+                'security' => [
+                    // Authentication
+                    'two_factor_auth' => config('app.security_two_factor_auth', false),
+                    'otp_email' => config('app.security_otp_email', true),
+                    'otp_whatsapp' => config('app.security_otp_whatsapp', false),
+                    'biometric_login' => config('app.security_biometric_login', false),
+                    'trusted_devices' => config('app.security_trusted_devices', true),
+                    'session_limit' => config('app.security_session_limit', 3),
+                    
+                    // Login Security
+                    'login_history_enabled' => config('app.security_login_history_enabled', true),
+                    'device_history_enabled' => config('app.security_device_history_enabled', true),
+                    'ip_tracking' => config('app.security_ip_tracking', true),
+                    'suspicious_login_detection' => config('app.security_suspicious_login_detection', true),
+                    'failed_login_lockout' => config('app.security_failed_login_lockout', true),
+                    'failed_attempts_max' => config('app.security_failed_attempts_max', 5),
+                    'lockout_duration_minutes' => config('app.security_lockout_duration_minutes', 30),
+                    
+                    // Password Policy
+                    'min_password_length' => config('app.security_min_password_length', 8),
+                    'password_expire_days' => config('app.security_password_expire_days', 90),
+                    'require_uppercase' => config('app.security_require_uppercase', true),
+                    'require_number' => config('app.security_require_number', true),
+                    'require_special_char' => config('app.security_require_special_char', true),
+                    'password_strength_meter' => config('app.security_password_strength_meter', true),
+                    'password_history_count' => config('app.security_password_history_count', 5),
+                    
+                    // API & Access
+                    'api_token_enabled' => config('app.security_api_token_enabled', true),
+                    'rate_limit_per_minute' => config('app.security_rate_limit_per_minute', 60),
+                    'audit_log_enabled' => config('app.security_audit_log_enabled', true),
+                    
+                    // Monitoring
+                    'security_score_enabled' => config('app.security_score_enabled', true),
+                    'threat_monitoring' => config('app.security_threat_monitoring', true),
+                ],
+
+                // ═══════════════════════════════════════════════════
+                // FEATURE FLAGS
+                // ═══════════════════════════════════════════════════
+                'features' => [
+                    // Public Website
+                    'public_gallery' => config('app.feature_public_gallery', true),
+                    'career_simulator' => config('app.feature_career_simulator', true),
+                    'achievement_showcase' => config('app.feature_achievement_showcase', true),
+                    'landing_page_editor' => config('app.feature_landing_page_editor', false),
+                    'news_management' => config('app.feature_news_management', true),
+                    
+                    // AI Features
+                    'ai_student_recommendation' => config('app.feature_ai_student_recommendation', false),
+                    'ai_analytics' => config('app.feature_ai_analytics', false),
+                    'ai_chatbot' => config('app.feature_ai_chatbot', false),
+                    'ai_monitoring' => config('app.feature_ai_monitoring', false),
+                    'ai_attendance_prediction' => config('app.feature_ai_attendance_prediction', false),
+                    
+                    // System Modules
+                    'e_learning' => config('app.feature_e_learning', false),
+                    'cbt_exam' => config('app.feature_cbt_exam', false),
+                    'e_raport' => config('app.feature_e_raport', true),
+                    'digital_library' => config('app.feature_digital_library', false),
+                    'smart_classroom' => config('app.feature_smart_classroom', false),
+                    'school_inventory' => config('app.feature_school_inventory', false),
+                    
+                    // Advanced
+                    'dynamic_config' => config('app.feature_dynamic_config', true),
+                    'realtime_update' => config('app.feature_realtime_update', true),
+                    'cache_refresh_auto' => config('app.feature_cache_refresh_auto', true),
+                ],
+
+                // ═══════════════════════════════════════════════════
+                // BACKUP & SYSTEM SETTINGS
+                // ═══════════════════════════════════════════════════
+                'backup' => [
+                    'auto_backup' => config('app.backup_auto_backup', true),
+                    'backup_schedule' => config('app.backup_schedule', 'daily'),
+                    'backup_time' => config('app.backup_time', '02:00'),
+                    'backup_retention_days' => config('app.backup_retention_days', 30),
+                    'cloud_backup' => config('app.backup_cloud_backup', false),
+                    'compress_backup' => config('app.backup_compress_backup', true),
+                    'encrypt_backup' => config('app.backup_encrypt_backup', true),
+                ],
+            ];
+
+            // Merge with database settings
+            foreach ($defaults as $section => &$items) {
+                foreach ($items as $key => &$value) {
+                    $dbKey = "{$section}_{$key}";
+                    if (isset($dbSettings[$dbKey])) {
+                        $dbValue = $dbSettings[$dbKey];
+                        // Convert booleans
+                        if ($dbValue === '1') $value = true;
+                        elseif ($dbValue === '0') $value = false;
+                        else $value = $dbValue;
+                    }
+                }
+            }
+
+            return $defaults;
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Pengaturan berhasil diambil.',
+            'code' => 'SETTINGS_SUCCESS',
+            'data' => $settings,
+        ], 200);
+    }
+
+    /**
+     * Update settings by section.
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function update(Request $request): JsonResponse
+    {
+        $section = $request->input('section');
+        $data = $request->input('data');
+
+        // If no explicit section/data provided, check if sections are sent as root keys
+        if (!$section && !$data) {
+            $sections = ['general', 'attendance', 'pkl', 'security', 'features', 'backup'];
+            $multiData = $request->only($sections);
+            
+            if (!empty($multiData)) {
+                $section = 'all';
+                $data = $multiData;
+            }
+        }
+
+        // Final check: Section and data required
+        if (empty($section) || empty($data)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Format payload tidak valid atau data kosong.',
+                'code' => 'VALIDATION_ERROR',
+                'received' => $request->all() // Helpful for debugging
+            ], 400);
+        }
+
+        try {
+            if ($section === 'all') {
+                DB::beginTransaction();
+                foreach ($data as $s => $d) {
+                    if (in_array($s, ['general', 'attendance', 'pkl', 'security', 'features', 'backup'])) {
+                        $validated = $this->validateSettings($s, $d);
+                        $this->saveSettings($s, $validated);
+                    }
+                }
+                DB::commit();
+            } else {
+                // Validate based on section
+                $validated = $this->validateSettings($section, $data);
+                $this->saveSettings($section, $validated);
+            }
+
+            // Clear cache
+            Cache::forget('app_settings');
+
+            // Log the change
+            Log::info('Settings updated', [
+                'section' => $section,
+                'updated_by' => auth()->id(),
+                'timestamp' => now()->toDateTimeString(),
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $section === 'all' ? "Semua pengaturan berhasil disimpan." : "Pengaturan {$section} berhasil disimpan.",
+                'code' => 'SETTINGS_UPDATED',
+                'data' => [
+                    'section' => $section,
+                    'updated_at' => now()->toDateTimeString(),
+                    'updated_by' => auth()->user()?->name,
+                ],
+            ], 200);
+
+        } catch (ValidationException $e) {
+            if (DB::transactionLevel() > 0) DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validasi pengaturan gagal.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+
+        } catch (\Exception $e) {
+            if (DB::transactionLevel() > 0) DB::rollBack();
+            Log::error('SettingController::update failed', [
+                'section' => $section,
+                'error' => $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menyimpan pengaturan.',
+                'code' => 'SERVER_ERROR',
+                'debug' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
+        }
+    }
+
+    /**
+     * Get setting value by key.
+     * 
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    public static function get(string $key, mixed $default = null): mixed
+    {
+        $settings = Cache::remember('app_settings', 3600, function () {
+            $dbSettings = DB::table('settings')->pluck('value', 'key')->toArray();
+            
+            // Merge with config fallbacks
+            return array_merge(self::getDefaultSettings(), $dbSettings);
+        });
+
+        return $settings[$key] ?? $default;
+    }
+
+    /**
+     * Validate settings data based on section.
+     * 
+     * @param string $section
+     * @param array $data
+     * @return array
+     * @throws ValidationException
+     */
+    private function validateSettings(string $section, array $data): array
+    {
+        $validator = match ($section) {
+            'general' => Validator::make($data, [
+                // School Identity
+                'app_name' => 'required|string|max:255',
+                'school_name' => 'required|string|max:255',
+                'npsn' => 'nullable|string|max:20',
+                'school_slogan' => 'nullable|string|max:255',
+                'school_description' => 'nullable|string|max:1000',
+                'address' => 'nullable|string|max:500',
+                'province' => 'nullable|string|max:100',
+                'city' => 'nullable|string|max:100',
+                'district' => 'nullable|string|max:100',
+                'postal_code' => 'nullable|string|max:10',
+                'website' => 'nullable|url|max:255',
+                'support_email' => 'nullable|email|max:255',
+                'support_phone' => 'nullable|string|max:20',
+                'academic_year' => 'required|string|max:20',
+                'semester' => 'required|in:1,2',
+                
+                // Branding
+                'primary_color' => 'nullable|regex:/^#[0-9A-F]{6}$/i',
+                'secondary_color' => 'nullable|regex:/^#[0-9A-F]{6}$/i',
+                'default_theme' => 'nullable|in:light,dark,system',
+                'logo_url' => 'nullable|url|max:500',
+                'login_background' => 'nullable|url|max:500',
+                'dashboard_banner' => 'nullable|url|max:500',
+                
+                // Dashboard
+                'default_page' => 'nullable|in:dashboard,attendance,projects,profile',
+                'show_realtime_stats' => 'boolean',
+                'show_weather' => 'boolean',
+                'show_daily_motivation' => 'boolean',
+                'show_academic_calendar' => 'boolean',
+                
+                // Time
+                'timezone' => 'nullable|timezone',
+                'date_format' => 'nullable|in:DD/MM/YYYY,MM/DD/YYYY,YYYY-MM-DD',
+                'time_format' => 'nullable|in:12h,24h',
+                'auto_logout_minutes' => 'nullable|integer|min:5|max:1440',
+                'sync_server_time' => 'boolean',
+                
+                // Notifications
+                'email_notifications' => 'boolean',
+                'push_notifications' => 'boolean',
+                'attendance_notification' => 'boolean',
+                'login_notification' => 'boolean',
+                'pkl_notification' => 'boolean',
+                'violation_notification' => 'boolean',
+            ]),
+
+            'attendance' => Validator::make($data, [
+                // GPS
+                'school_latitude' => 'nullable|numeric|between:-90,90',
+                'school_longitude' => 'nullable|numeric|between:-180,180',
+                'multiple_locations' => 'boolean',
+                
+                // Validation
+                'radius_meters' => 'required|integer|min:10|max:1000',
+                'max_late_minutes' => 'nullable|integer|min:0|max:120',
+                'check_in_time' => 'required|date_format:H:i',
+                'check_out_time' => 'required|date_format:H:i|after:check_in_time',
+                'break_start' => 'nullable|date_format:H:i',
+                'break_end' => 'nullable|date_format:H:i|after:break_start',
+                'overtime_start' => 'nullable|date_format:H:i',
+                'late_tolerance' => 'nullable|integer|min:0|max:30',
+                'auto_alpha' => 'boolean',
+                
+                // Smart Features
+                'face_verification' => 'boolean',
+                'selfie_verification' => 'boolean',
+                'anti_fake_gps' => 'boolean',
+                'anti_screenshot' => 'boolean',
+                'device_verification' => 'boolean',
+                'mock_location_detection' => 'boolean',
+                'wifi_validation' => 'boolean',
+                'wifi_ssid' => 'nullable|string|max:100',
+                'bluetooth_validation' => 'boolean',
+                
+                // QR
+                'qr_enabled' => 'boolean',
+                'qr_expired_seconds' => 'nullable|integer|min:10|max:300',
+                'qr_random' => 'boolean',
+                'qr_animated' => 'boolean',
+                
+                // Advanced
+                'multiple_shifts' => 'boolean',
+                'flexible_schedule' => 'boolean',
+                'online_permission' => 'boolean',
+                'teacher_approval' => 'boolean',
+                'parent_notification' => 'boolean',
+                'whatsapp_integration' => 'boolean',
+            ]),
+
+            'pkl' => Validator::make($data, [
+                'enable_pkl_attendance' => 'boolean',
+                'require_supervisor_approval' => 'boolean',
+                'max_distance_km' => 'nullable|integer|min:1|max:100',
+                'show_progress_tracking' => 'boolean',
+                'require_weekly_report' => 'boolean',
+                'auto_reminder' => 'boolean',
+                'reminder_day' => 'nullable|integer|min:1|max:30',
+                'google_maps_integration' => 'boolean',
+                'whatsapp_notification' => 'boolean',
+                'email_reminder' => 'boolean',
+            ]),
+
+            'security' => Validator::make($data, [
+                // Authentication
+                'two_factor_auth' => 'boolean',
+                'otp_email' => 'boolean',
+                'otp_whatsapp' => 'boolean',
+                'biometric_login' => 'boolean',
+                'trusted_devices' => 'boolean',
+                'session_limit' => 'nullable|integer|min:1|max:10',
+                
+                // Login Security
+                'login_history_enabled' => 'boolean',
+                'device_history_enabled' => 'boolean',
+                'ip_tracking' => 'boolean',
+                'suspicious_login_detection' => 'boolean',
+                'failed_login_lockout' => 'boolean',
+                'failed_attempts_max' => 'nullable|integer|min:1|max:20',
+                'lockout_duration_minutes' => 'nullable|integer|min:5|max:1440',
+                
+                // Password Policy
+                'min_password_length' => 'nullable|integer|min:6|max:32',
+                'password_expire_days' => 'nullable|integer|min:1|max:365',
+                'require_uppercase' => 'boolean',
+                'require_number' => 'boolean',
+                'require_special_char' => 'boolean',
+                'password_strength_meter' => 'boolean',
+                'password_history_count' => 'nullable|integer|min:0|max:20',
+                
+                // API
+                'api_token_enabled' => 'boolean',
+                'rate_limit_per_minute' => 'nullable|integer|min:1|max:1000',
+                'audit_log_enabled' => 'boolean',
+                
+                // Monitoring
+                'security_score_enabled' => 'boolean',
+                'threat_monitoring' => 'boolean',
+            ]),
+
+            'features' => Validator::make($data, [
+                // Public Website
+                'public_gallery' => 'boolean',
+                'career_simulator' => 'boolean',
+                'achievement_showcase' => 'boolean',
+                'landing_page_editor' => 'boolean',
+                'news_management' => 'boolean',
+                
+                // AI Features
+                'ai_student_recommendation' => 'boolean',
+                'ai_analytics' => 'boolean',
+                'ai_chatbot' => 'boolean',
+                'ai_monitoring' => 'boolean',
+                'ai_attendance_prediction' => 'boolean',
+                
+                // System Modules
+                'e_learning' => 'boolean',
+                'cbt_exam' => 'boolean',
+                'e_raport' => 'boolean',
+                'digital_library' => 'boolean',
+                'smart_classroom' => 'boolean',
+                'school_inventory' => 'boolean',
+                
+                // Advanced
+                'dynamic_config' => 'boolean',
+                'realtime_update' => 'boolean',
+                'cache_refresh_auto' => 'boolean',
+            ]),
+
+            'backup' => Validator::make($data, [
+                'auto_backup' => 'boolean',
+                'backup_schedule' => 'nullable|in:daily,weekly,monthly',
+                'backup_time' => 'nullable|date_format:H:i',
+                'backup_retention_days' => 'nullable|integer|min:1|max:365',
+                'cloud_backup' => 'boolean',
+                'compress_backup' => 'boolean',
+                'encrypt_backup' => 'boolean',
+            ]),
+
+            default => throw new \InvalidArgumentException("Unknown settings section: {$section}"),
+        };
+
+        return $validator->validated();
+    }
+
+    /**
+     * Save settings to database.
+     * 
+     * @param string $section
+     * @param array $data
+     * @return void
+     */
+    private function saveSettings(string $section, array $data): void
+    {
+        DB::beginTransaction();
+        
+        try {
+            foreach ($data as $key => $value) {
+                $settingKey = "{$section}_{$key}";
+                
+                // Convert boolean to string for storage
+                $storedValue = is_bool($value) ? ($value ? '1' : '0') : $value;
+                
+                DB::table('settings')->updateOrInsert(
+                    ['key' => $settingKey],
+                    [
+                        'value' => $storedValue,
+                        'updated_at' => now(),
+                    ]
+                );
+            }
+            
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Get default settings fallback values.
+     * 
+     * @return array
+     */
+    private static function getDefaultSettings(): array
+    {
+        return [
+            'general_app_name' => 'RPL Smart Ecosystem',
+            'general_default_theme' => 'dark',
+            'general_timezone' => 'Asia/Jakarta',
+            'attendance_radius_meters' => 100,
+            'attendance_check_in_time' => '06:00',
+            'attendance_check_out_time' => '16:00',
+            'pkl_enable_pkl_attendance' => true,
+            'security_min_password_length' => 8,
+            'features_public_gallery' => true,
+            'backup_auto_backup' => true,
+            'backup_schedule' => 'daily',
+        ];
+    }
+
+    /**
+     * Reset settings to default values.
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function reset(Request $request): JsonResponse
+    {
+        $section = $request->input('section');
+        
+        if (!$section || $section === 'all') {
+            // Reset all settings
+            DB::table('settings')->truncate();
+            $message = 'Semua pengaturan berhasil direset ke default.';
+        } else {
+            // Reset specific section
+            DB::table('settings')->where('key', 'like', "{$section}_%")->delete();
+            $message = "Pengaturan {$section} berhasil direset ke default.";
+        }
+        
+        Cache::forget('app_settings');
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => $message,
+            'code' => 'SETTINGS_RESET',
+        ], 200);
+    }
+
+    /**
+     * Export settings to JSON file.
+     * 
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function export()
+    {
+        $settings = $this->index()->getData(true);
+        
+        $filename = 'rpl-settings-' . now()->format('Y-m-d') . '.json';
+        $path = Storage::disk('local')->put($filename, json_encode($settings, JSON_PRETTY_PRINT));
+        
+        return response()->download(Storage::disk('local')->path($filename), $filename)
+            ->deleteFileAfterSend(true);
+    }
+}
