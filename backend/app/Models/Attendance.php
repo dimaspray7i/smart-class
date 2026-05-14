@@ -12,7 +12,16 @@ class Attendance extends Model
     use HasFactory;
 
     /**
-     * Attributes yang dapat di-mass-assign
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'attendances';
+
+    /**
+     * Attributes that are mass assignable.
+     *
+     * @var array<int, string>
      */
     protected $fillable = [
         'user_id',
@@ -25,10 +34,15 @@ class Attendance extends Model
         'device_info',
         'verification_method',
         'notes',
+        // PKL Fields
+        'pkl_location_id',
+        'location_name',
     ];
 
     /**
-     * Attributes yang harus di-cast
+     * Attributes that should be cast.
+     *
+     * @return array<string, string>
      */
     protected function casts(): array
     {
@@ -49,6 +63,14 @@ class Attendance extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Attendance belongs to a PKL location (if applicable)
+     */
+    public function pklLocation(): BelongsTo
+    {
+        return $this->belongsTo(PklLocation::class);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -107,6 +129,22 @@ class Attendance extends Model
         return $query->where('user_id', $userId);
     }
 
+    /**
+     * Scope: PKL attendance only
+     */
+    public function scopePkl($query)
+    {
+        return $query->whereNotNull('pkl_location_id');
+    }
+
+    /**
+     * Scope: School attendance only
+     */
+    public function scopeSchool($query)
+    {
+        return $query->whereNull('pkl_location_id');
+    }
+
     // ═══════════════════════════════════════════════════════════
     // ACCESSORS
     // ═══════════════════════════════════════════════════════════
@@ -117,7 +155,7 @@ class Attendance extends Model
     public function getLocationStringAttribute(): ?string
     {
         if (!$this->lat || !$this->lng) {
-            return null;
+            return $this->location_name ?? null;
         }
 
         return sprintf('%.6f, %.6f', $this->lat, $this->lng);
@@ -155,19 +193,54 @@ class Attendance extends Model
         return $this->created_at?->format('H:i:s');
     }
 
+    /**
+     * Accessor: Check if this is a PKL attendance
+     */
+    public function getIsPklAttendanceAttribute(): bool
+    {
+        return $this->pkl_location_id !== null;
+    }
+
+    /**
+     * Accessor: Get location type (school or pkl)
+     */
+    public function getLocationTypeAttribute(): string
+    {
+        return $this->pkl_location_id ? 'pkl' : 'school';
+    }
+
+    /**
+     * Accessor: Get location name (company or "Sekolah")
+     */
+    public function getDisplayLocationNameAttribute(): string
+    {
+        return $this->location_name ?? 'Sekolah';
+    }
+
     // ═══════════════════════════════════════════════════════════
     // BUSINESS LOGIC METHODS
     // ═══════════════════════════════════════════════════════════
 
     /**
-     * Calculate distance from school
+     * Calculate distance from the attendance center (school or PKL location)
      */
-    public function calculateDistanceFromSchool(): ?float
+    public function calculateDistanceFromCenter(): ?float
     {
         if (!$this->lat || !$this->lng) {
             return null;
         }
 
+        // If PKL attendance, calculate from PKL location
+        if ($this->pkl_location_id && $this->pklLocation) {
+            return GeoHelper::calculateDistance(
+                $this->lat,
+                $this->lng,
+                $this->pklLocation->latitude,
+                $this->pklLocation->longitude
+            );
+        }
+
+        // Otherwise, calculate from school
         $schoolLat = config('app.school_latitude', -6.200000);
         $schoolLng = config('app.school_longitude', 106.816666);
 
@@ -180,17 +253,24 @@ class Attendance extends Model
     }
 
     /**
-     * Check if within radius from school
+     * Check if within radius from center (school or PKL location)
      */
     public function isWithinRadius(?float $radius = null): bool
     {
-        $distance = $this->calculateDistanceFromSchool();
+        $distance = $this->calculateDistanceFromCenter();
 
         if ($distance === null) {
             return false;
         }
 
-        return $distance <= ($radius ?? config('app.attendance_radius_meters', 100));
+        // Use PKL location radius if applicable
+        if ($this->pkl_location_id && $this->pklLocation) {
+            $maxRadius = $radius ?? $this->pklLocation->radius_meters;
+        } else {
+            $maxRadius = $radius ?? config('app.attendance_radius_meters', 100);
+        }
+
+        return $distance <= $maxRadius;
     }
 
     /**
@@ -220,7 +300,7 @@ class Attendance extends Model
     }
 
     /**
-     * Get Google Maps URL for location
+     * Get Google Maps URL for attendance location
      */
     public function getGoogleMapsUrlAttribute(): ?string
     {
@@ -229,5 +309,21 @@ class Attendance extends Model
         }
 
         return "https://www.google.com/maps?q={$this->lat},{$this->lng}";
+    }
+
+    /**
+     * Get distance formatted for display
+     */
+    public function getDistanceFormattedAttribute(): ?string
+    {
+        $distance = $this->calculateDistanceFromCenter();
+        
+        if ($distance === null) {
+            return null;
+        }
+
+        return $distance >= 1000 
+            ? round($distance / 1000, 2) . ' km' 
+            : round($distance) . ' m';
     }
 }

@@ -17,20 +17,35 @@ use App\Http\Controllers\Admin\UserController as AdminUser;
 use App\Http\Controllers\Admin\ClassController as AdminClass;
 use App\Http\Controllers\Admin\SubjectController as AdminSubject;
 use App\Http\Controllers\Admin\ScheduleController as AdminSchedule;
+use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\PklLocationController;
 
 // ═══════════════════════════════════════════════════════════
-// WRAPPER: APPLY 'API' MIDDLEWARE GROUP TO ALL ROUTES
+// GLOBAL API MIDDLEWARE
 // ═══════════════════════════════════════════════════════════
 Route::middleware('api')->group(function () {
 
-    // Health Check Endpoint
+    // ═══════════════════════════════════════════════════════════
+    // HEALTH CHECK & STATUS
+    // ═══════════════════════════════════════════════════════════
     Route::get('/health', function () {
         return response()->json([
             'status' => 'success',
-            'message' => 'RPL Smart is running!',
+            'message' => 'RPL Smart Ecosystem API is running!',
             'version' => '1.0.0',
             'timestamp' => now()->toDateTimeString(),
             'environment' => config('app.env'),
+            'php_version' => PHP_VERSION,
+            'laravel_version' => app()->version(),
+        ]);
+    });
+
+    Route::get('/status', function () {
+        return response()->json([
+            'database' => DB::connection()->getPdo() ? 'connected' : 'disconnected',
+            'cache' => Cache::driver() ? 'active' : 'inactive',
+            'queue' => config('queue.default'),
+            'storage' => Storage::disk('public')->exists('.') ? 'available' : 'unavailable',
         ]);
     });
 
@@ -39,15 +54,15 @@ Route::middleware('api')->group(function () {
     // ═══════════════════════════════════════════════════════════
     Route::prefix('v1/public')->group(function () {
         
-        // Landing Page Routes
+        // Landing Page
         Route::get('/landing', [LandingController::class, 'index']);
         Route::get('/stats', [LandingController::class, 'stats']);
         
-        // Student Gallery Routes
+        // Student Gallery (Public)
         Route::get('/gallery', [StudentGalleryController::class, 'index']);
         Route::get('/gallery/{slug}', [StudentGalleryController::class, 'show']);
         
-        // Career Path Simulator Routes
+        // Career Path Simulator (Public)
         Route::prefix('simulator')->group(function () {
             Route::get('/paths', [SimulatorController::class, 'index']);
             Route::get('/paths/{slug}', [SimulatorController::class, 'show']);
@@ -62,10 +77,10 @@ Route::middleware('api')->group(function () {
     // ═══════════════════════════════════════════════════════════
     Route::prefix('v1/auth')->group(function () {
         
-        // Public login route
+        // Public: Login
         Route::post('/login', [AuthController::class, 'login']);
         
-        // Protected auth routes (require authentication)
+        // Protected: Auth operations
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::get('/me', [AuthController::class, 'me']);
@@ -81,23 +96,26 @@ Route::middleware('api')->group(function () {
         ->middleware(['auth:sanctum', 'role:siswa'])
         ->group(function () {
             
-            // Student Dashboard
+            // Dashboard
             Route::get('/dashboard', [StudentDashboard::class, 'index']);
             
-            // Student Attendance Routes
+            // Attendance
             Route::prefix('attendance')->group(function () {
                 Route::post('/', [StudentAttendance::class, 'store']);
                 Route::get('/history', [StudentAttendance::class, 'history']);
                 Route::get('/stats', [StudentAttendance::class, 'stats']);
                 Route::get('/today', [StudentAttendance::class, 'todayStatus']);
+                
+                // PKL: Get approved locations for class 12 students
+                Route::get('/pkl-locations', [StudentAttendance::class, 'getPklLocations']);
             });
             
-            // Student Project Routes (CRUD)
+            // Projects (CRUD)
             Route::apiResource('projects', StudentProject::class);
             Route::get('/projects/{project}/logs', [StudentProject::class, 'logs']);
             Route::post('/projects/{project}/logs', [StudentProject::class, 'storeLog']);
             
-            // Student Skill Routes
+            // Skills
             Route::prefix('skills')->group(function () {
                 Route::get('/', [StudentSkill::class, 'index']);
                 Route::get('/progress', [StudentSkill::class, 'progress']);
@@ -112,10 +130,10 @@ Route::middleware('api')->group(function () {
         ->middleware(['auth:sanctum', 'role:guru'])
         ->group(function () {
             
-            // Teacher Dashboard
+            // Dashboard
             Route::get('/dashboard', [TeacherDashboard::class, 'index']);
             
-            // Teacher Attendance Control Routes
+            // Attendance Control
             Route::prefix('attendance')->group(function () {
                 Route::post('/session/create', [TeacherAttendance::class, 'createSession']);
                 Route::post('/session/{id}/generate-code', [TeacherAttendance::class, 'generateCode']);
@@ -125,11 +143,11 @@ Route::middleware('api')->group(function () {
                 Route::patch('/{id}/verify', [TeacherAttendance::class, 'manualVerify']);
             });
             
-            // Teacher Student Management Routes
+            // Student Management
             Route::get('/students', [TeacherAttendance::class, 'students']);
             Route::get('/students/{id}/attendance', [TeacherAttendance::class, 'studentAttendance']);
             
-            // Teacher Permission Routes
+            // Permissions
             Route::prefix('permissions')->group(function () {
                 Route::get('/', [TeacherPermission::class, 'index']);
                 Route::post('/', [TeacherPermission::class, 'store']);
@@ -140,41 +158,77 @@ Route::middleware('api')->group(function () {
         });
 
     // ═══════════════════════════════════════════════════════════
-    // ADMIN ROUTES (Role: admin)
+    // ADMIN ROUTES (Role: admin) - FULL ACCESS
     // ═══════════════════════════════════════════════════════════
     Route::prefix('v1/admin')
         ->middleware(['auth:sanctum', 'role:admin'])
         ->group(function () {
             
-            // Admin Dashboard & Analytics
+            // Dashboard & Analytics
             Route::get('/dashboard', [AdminDashboard::class, 'index']);
             Route::get('/analytics/attendance', [AdminDashboard::class, 'attendanceAnalytics']);
             Route::get('/analytics/students', [AdminDashboard::class, 'studentAnalytics']);
             
-            // Admin User Management Routes
+            // ═══════════════════════════════════════════════════
+            // USER MANAGEMENT
+            // ═══════════════════════════════════════════════════
             Route::apiResource('users', AdminUser::class);
             Route::get('/users/export', [AdminUser::class, 'export']);
             Route::post('/users/{user}/reset-password', [AdminUser::class, 'resetPassword']);
             Route::patch('/users/{user}/role', [AdminUser::class, 'updateRole']);
             
-            // Admin Class Management Routes
+            // ═══════════════════════════════════════════════════
+            // CLASS MANAGEMENT
+            // ═══════════════════════════════════════════════════
             Route::apiResource('classes', AdminClass::class);
             Route::get('/classes/export', [AdminClass::class, 'export']);
             
-            // Admin Subject Management Routes
+            // ═══════════════════════════════════════════════════
+            // SUBJECT MANAGEMENT
+            // ═══════════════════════════════════════════════════
             Route::apiResource('subjects', AdminSubject::class);
             Route::get('/subjects/export', [AdminSubject::class, 'export']);
             
-            // Admin Schedule Management Routes
+            // ═══════════════════════════════════════════════════
+            // SCHEDULE MANAGEMENT
+            // ═══════════════════════════════════════════════════
             Route::apiResource('schedules', AdminSchedule::class);
             Route::get('/schedules/export', [AdminSchedule::class, 'export']);
             Route::get('/schedules/check-conflict', [AdminSchedule::class, 'checkConflict']);
             Route::get('/schedules/by-teacher/{teacherId}', [AdminSchedule::class, 'byTeacher']);
             
-            // Admin Settings Routes
+            // ═══════════════════════════════════════════════════
+            // SYSTEM SETTINGS
+            // ═══════════════════════════════════════════════════
             Route::prefix('settings')->group(function () {
-                Route::get('/general', [AdminDashboard::class, 'settings']);
-                Route::put('/general', [AdminDashboard::class, 'updateSettings']);
+                Route::get('/', [SettingController::class, 'index']);
+                Route::put('/', [SettingController::class, 'update']);
+                Route::post('/reset', [SettingController::class, 'reset']);
+                Route::get('/export', [SettingController::class, 'export']);
+            });
+            
+            // ═══════════════════════════════════════════════════
+            // PKL LOCATION MANAGEMENT
+            // ═══════════════════════════════════════════════════
+            Route::apiResource('pkl-locations', PklLocationController::class);
+            Route::patch('/pkl-locations/{pklLocation}/approve', [PklLocationController::class, 'approve']);
+            Route::get('/pkl-locations/approved', [PklLocationController::class, 'getApproved']);
+            
+            // PKL Student Assignment
+            Route::get('/pkl/students', [PklLocationController::class, 'getStudents']);
+            Route::post('/pkl/assign', [PklLocationController::class, 'assignStudents']);
+            
+            // ═══════════════════════════════════════════════════
+            // SYSTEM UTILITIES
+            // ═══════════════════════════════════════════════════
+            Route::post('/cache/clear', function () {
+                Cache::flush();
+                return response()->json(['status' => 'success', 'message' => 'Cache cleared']);
+            });
+            
+            Route::post('/logs/clear', function () {
+                Storage::disk('logs')->delete(Storage::disk('logs')->files());
+                return response()->json(['status' => 'success', 'message' => 'Logs cleared']);
             });
         });
 

@@ -415,8 +415,11 @@ export default function ScheduleManagement() {
       {/* HEADER */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Manajemen Jadwal</h1>
-          <p className="text-gray-600 dark:text-dark-muted mt-1">Atur jadwal pelajaran untuk setiap kelas dan guru.</p>
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2.5">
+            <Calendar className="w-6 h-6 text-primary-400" />
+            <span className="text-gradient">Manajemen Jadwal</span>
+          </h1>
+          <p className="text-gray-600 dark:text-dark-muted mt-1.5 ml-9">Atur jadwal pelajaran untuk setiap kelas dan guru.</p>
         </div>
         <div className="flex items-center gap-2">
           {selectedIds.length > 0 && (

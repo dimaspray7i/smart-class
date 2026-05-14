@@ -31,7 +31,9 @@ import AdminDashboard from './pages/dashboard/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import ClassManagement from './pages/admin/ClassManagement';
 import SubjectManagement from './pages/admin/SubjectManagement';
-import ScheduleManagement from './pages/admin/ScheduleManagement'; 
+import ScheduleManagement from './pages/admin/ScheduleManagement';
+import SettingsPage from './pages/admin/SettingsPage'; 
+
 // ═══════════════════════════════════════════════════════════
 // PROTECTED ROUTE COMPONENT
 // ═══════════════════════════════════════════════════════════
@@ -192,8 +194,10 @@ export const router = [
           // Schedule Management
           { path: 'schedules', element: <ScheduleManagement /> },
           
+          // Settings Page
+          { path: 'settings', element: <SettingsPage /> },
+          
           // 🚧 Coming Soon: Other admin features
-          { path: 'settings', element: <ComingSoon title="System Settings" icon="⚙️" /> },
           { path: 'analytics', element: <ComingSoon title="Analytics & Reports" icon="📈" /> },
         ],
       },

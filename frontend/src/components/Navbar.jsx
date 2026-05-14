@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, LogOut } from 'lucide-react';
+import { Menu, X, LogOut, LayoutDashboard, Users, GraduationCap, BookOpen, Calendar, Settings, Home, Image, Gamepad2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
@@ -25,27 +25,28 @@ export default function Navbar() {
   // Navigation links based on auth state and user role
   const navLinks = user ? (
     user.role === 'siswa' ? [
-      { label: 'Dashboard', href: `/dashboard/${user.role}` },
-      { label: 'Absensi', href: `/dashboard/${user.role}/attendance` },
-      { label: 'Project', href: `/dashboard/${user.role}/projects` },
+      { label: 'Dashboard', href: `/dashboard/${user.role}`, icon: LayoutDashboard },
+      { label: 'Absensi', href: `/dashboard/${user.role}/attendance`, icon: Calendar },
+      { label: 'Project', href: `/dashboard/${user.role}/projects`, icon: GraduationCap },
     ] : user.role === 'guru' ? [
-      { label: 'Dashboard', href: `/dashboard/${user.role}` },
-      { label: 'Absensi', href: `/dashboard/${user.role}/attendance` },
-      { label: 'Siswa', href: `/dashboard/${user.role}/students` },
-      { label: 'Izin', href: `/dashboard/${user.role}/permissions` },
+      { label: 'Dashboard', href: `/dashboard/${user.role}`, icon: LayoutDashboard },
+      { label: 'Absensi', href: `/dashboard/${user.role}/attendance`, icon: Calendar },
+      { label: 'Siswa', href: `/dashboard/${user.role}/students`, icon: Users },
+      { label: 'Izin', href: `/dashboard/${user.role}/permissions`, icon: BookOpen },
     ] : user.role === 'admin' ? [
-      { label: 'Dashboard', href: `/dashboard/${user.role}` },
-      { label: 'Users', href: `/dashboard/${user.role}/users` },
-      { label: 'Kelas', href: `/dashboard/${user.role}/classes` },
-      { label: 'Mapel', href: `/dashboard/${user.role}/subjects` },
-      { label: 'Jadwal', href: `/dashboard/${user.role}/schedules` },
+      { label: 'Dashboard', href: `/dashboard/${user.role}`, icon: LayoutDashboard },
+      { label: 'Users', href: `/dashboard/${user.role}/users`, icon: Users },
+      { label: 'Kelas', href: `/dashboard/${user.role}/classes`, icon: GraduationCap },
+      { label: 'Mapel', href: `/dashboard/${user.role}/subjects`, icon: BookOpen },
+      { label: 'Jadwal', href: `/dashboard/${user.role}/schedules`, icon: Calendar },
+      { label: 'Settings', href: `/dashboard/${user.role}/settings`, icon: Settings },
     ] : [
-      { label: 'Dashboard', href: `/dashboard/${user.role}` },
+      { label: 'Dashboard', href: `/dashboard/${user.role}`, icon: LayoutDashboard },
     ]
   ) : [
-    { label: 'Beranda', href: '/' },
-    { label: 'Galeri', href: '/gallery' },
-    { label: 'Simulator', href: '/simulator' },
+    { label: 'Beranda', href: '/', icon: Home },
+    { label: 'Galeri', href: '/gallery', icon: Image },
+    { label: 'Simulator', href: '/simulator', icon: Gamepad2 },
   ];
 
   return (
@@ -68,18 +69,19 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-2">
+          <div className="hidden lg:flex items-center space-x-1">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 to={link.href}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
                   location.pathname === link.href
                     ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400'
                     : 'text-gray-600 dark:text-dark-muted hover:bg-gray-100 dark:hover:bg-dark-card hover:text-primary-600'
                 }`}
               >
-                {link.label}
+                {link.icon && <link.icon className="w-4 h-4" />}
+                <span>{link.label}</span>
               </Link>
             ))}
           </div>
@@ -124,10 +126,9 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card"
+              className="lg:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card"
               aria-label="Toggle menu"
             >
               {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -138,20 +139,21 @@ export default function Navbar() {
 
       {/* Mobile Menu Dropdown */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-gray-200 dark:border-dark-border bg-white dark:bg-dark-card animate-fade-in">
+        <div className="lg:hidden border-t border-gray-200 dark:border-dark-border bg-white dark:bg-dark-card animate-fade-in">
           <div className="px-4 py-4 space-y-2">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 to={link.href}
                 onClick={() => setMobileOpen(false)}
-                className={`block px-4 py-3 rounded-xl text-base font-medium transition-colors ${
+                className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium transition-colors ${
                   location.pathname === link.href
                     ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400'
                     : 'text-gray-600 dark:text-dark-muted hover:bg-gray-100 dark:hover:bg-dark-card'
                 }`}
               >
-                {link.label}
+                {link.icon && <link.icon className="w-5 h-5" />}
+                <span>{link.label}</span>
               </Link>
             ))}
             

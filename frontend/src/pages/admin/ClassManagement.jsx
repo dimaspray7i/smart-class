@@ -460,11 +460,11 @@ export default function ClassManagement() {
       {/* HEADER */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
-            <School className="w-7 h-7 text-primary-400" />
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2.5">
+            <School className="w-6 h-6 text-primary-400" />
             <span className="text-gradient">Manajemen Kelas</span>
           </h1>
-          <p className="text-gray-600 dark:text-dark-muted mt-1.5 ml-10">Kelola kelas, penjadwalan, dan penugasan guru.</p>
+          <p className="text-gray-600 dark:text-dark-muted mt-1.5 ml-9">Kelola kelas, penjadwalan, dan penugasan guru.</p>
         </div>
         <div className="flex items-center gap-2">
           {selectedIds.length > 0 && (

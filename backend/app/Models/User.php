@@ -15,7 +15,16 @@ class User extends Authenticatable
     use HasFactory, Notifiable, HasApiTokens;
 
     /**
-     * Attributes yang dapat di-mass-assign
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'users';
+
+    /**
+     * Attributes that are mass assignable.
+     *
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
@@ -27,10 +36,13 @@ class User extends Authenticatable
         'avatar_url',
         'is_active',
         'last_login_at',
+        'pkl_location_id',
     ];
 
     /**
-     * Attributes yang harus di-hide saat serialization
+     * Attributes that should be hidden from serialization.
+     *
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
@@ -38,7 +50,9 @@ class User extends Authenticatable
     ];
 
     /**
-     * Attributes yang harus di-cast 
+     * Attributes that should be cast.
+     *
+     * @return array<string, string>
      */
     protected function casts(): array
     {
@@ -96,6 +110,14 @@ class User extends Authenticatable
     public function profile(): HasOne
     {
         return $this->hasOne(Profile::class);
+    }
+
+    /**
+     * User belongs to a PKL location
+     */
+    public function pklLocation(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(PklLocation::class, 'pkl_location_id');
     }
 
     /**
@@ -238,6 +260,16 @@ class User extends Authenticatable
         });
     }
 
+    /**
+     * Scope: Class 12 students only (PKL eligible)
+     */
+    public function scopeClass12($query)
+    {
+        return $query->whereHas('profile', function ($q) {
+            $q->where('class_level', 'XII');
+        });
+    }
+
     // ═══════════════════════════════════════════════════════════
     // ACCESSORS & MUTATORS
     // ═══════════════════════════════════════════════════════════
@@ -313,6 +345,100 @@ class User extends Authenticatable
             // Revoke semua token saat user di-deactivate
             $this->tokens()->delete();
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // PKL HELPER METHODS (NEW)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Check if user is a class 12 student eligible for PKL attendance.
+     */
+    public function isPklEligible(): bool
+    {
+        return $this->role === 'siswa' 
+            && $this->profile 
+            && $this->profile->class_level === 'XII'
+            && config('app.pkl_enable_pkl_attendance', true);
+    }
+
+    /**
+     * Get approved PKL locations for this user.
+     * 
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getApprovedPklLocations()
+    {
+        if (!$this->isPklEligible()) {
+            return collect();
+        }
+        
+        return PklLocation::approved()
+            ->select('id', 'company_name', 'address', 'latitude', 'longitude', 'radius_meters', 'supervisor_name', 'supervisor_phone')
+            ->orderBy('company_name')
+            ->get();
+    }
+
+    /**
+     * Check if user can attend at given coordinates (school or approved PKL location).
+     */
+    public function canAttendAtLocation(float $lat, float $lng): array
+    {
+        $result = [
+            'can_attend' => false,
+            'location_type' => null, // 'school' or 'pkl'
+            'location_name' => null,
+            'distance' => null,
+            'max_radius' => null,
+            'message' => '',
+        ];
+
+        // Check school location first
+        $schoolLat = config('app.school_latitude', -6.200000);
+        $schoolLng = config('app.school_longitude', 106.816666);
+        $schoolRadius = config('app.attendance_radius_meters', 100);
+        
+        $distanceToSchool = \App\Helpers\GeoHelper::calculateDistance(
+            $lat, $lng, $schoolLat, $schoolLng
+        );
+
+        if ($distanceToSchool <= $schoolRadius) {
+            $result['can_attend'] = true;
+            $result['location_type'] = 'school';
+            $result['location_name'] = config('app.school_name', 'Sekolah');
+            $result['distance'] = round($distanceToSchool);
+            $result['max_radius'] = $schoolRadius;
+            $result['message'] = 'Lokasi valid (dalam radius sekolah).';
+            return $result;
+        }
+
+        // If class 12, check approved PKL locations
+        if ($this->isPklEligible()) {
+            $approvedPklLocations = PklLocation::approved()->get();
+            
+            foreach ($approvedPklLocations as $pklLoc) {
+                $distanceToPkl = \App\Helpers\GeoHelper::calculateDistance(
+                    $lat, $lng, $pklLoc->latitude, $pklLoc->longitude
+                );
+                
+                if ($distanceToPkl <= $pklLoc->radius_meters) {
+                    $result['can_attend'] = true;
+                    $result['location_type'] = 'pkl';
+                    $result['location_name'] = $pklLoc->company_name;
+                    $result['distance'] = round($distanceToPkl);
+                    $result['max_radius'] = $pklLoc->radius_meters;
+                    $result['message'] = "Lokasi valid (dalam radius {$pklLoc->company_name}).";
+                    return $result;
+                }
+            }
+        }
+
+        // If we reach here, location is not valid
+        $result['message'] = 'Lokasi tidak valid. Pastikan Anda berada di sekolah atau lokasi PKL yang disetujui.';
+        $result['distance'] = round($distanceToSchool);
+        $result['max_radius'] = $schoolRadius;
+        
+        return $result;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -399,6 +525,7 @@ class User extends Authenticatable
             'izin' => $this->attendances()->where('date', '>=', $since)->where('status', 'Izin')->count(),
             'sakit' => $this->attendances()->where('date', '>=', $since)->where('status', 'Sakit')->count(),
             'alpha' => $this->attendances()->where('date', '>=', $since)->where('status', 'Alpha')->count(),
+            'pkl_count' => $this->attendances()->where('date', '>=', $since)->whereNotNull('pkl_location_id')->count(),
         ];
     }
 
@@ -416,5 +543,27 @@ class User extends Authenticatable
         $userPermissions = $permissions[$this->role] ?? [];
 
         return in_array('all', $userPermissions) || in_array($feature, $userPermissions);
+    }
+
+    /**
+     * Get PKL attendance history
+     */
+    public function getPklAttendanceHistory(int $days = 90): array
+    {
+        return $this->attendances()
+            ->whereNotNull('pkl_location_id')
+            ->where('date', '>=', now()->subDays($days))
+            ->with('pklLocation:id,company_name,address')
+            ->orderBy('date', 'desc')
+            ->get()
+            ->map(function ($attendance) {
+                return [
+                    'date' => $attendance->date->toDateString(),
+                    'status' => $attendance->status,
+                    'location' => $attendance->pklLocation?->company_name,
+                    'address' => $attendance->pklLocation?->address,
+                    'check_in_time' => $attendance->created_at?->format('H:i:s'),
+                ];
+            });
     }
 }

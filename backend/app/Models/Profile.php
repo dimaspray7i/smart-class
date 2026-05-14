@@ -27,6 +27,7 @@ class Profile extends Model
         'nis',
         'nip',
         'class_level',
+        'major',
         'bio',
         'github_url',
         'linkedin_url',

@@ -15,19 +15,25 @@ export default function DashboardLayout() {
       </div>
 
       {/* Mobile Header - ONLY visible on mobile/tablet */}
-      <header className="lg:hidden h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-dark-border bg-white dark:bg-dark-card sticky top-0 z-30">
+      <header className="lg:hidden h-20 flex items-center justify-between px-4 border-b border-gray-200 dark:border-dark-border bg-white/80 dark:bg-dark-card/80 backdrop-blur-md sticky top-0 z-40">
         <div className="flex items-center gap-3">
           {/* Hamburger Menu Button */}
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-card transition-colors"
+            className="p-2.5 rounded-xl bg-gray-100 dark:bg-dark-card hover:bg-gray-200 dark:hover:bg-dark-border transition-all"
             aria-label="Open menu"
           >
             <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
           </button>
-          <span className="font-semibold text-gray-900 dark:text-white">
-            RPL Smart Dashboard
-          </span>
+          
+          <div className="flex items-center space-x-2">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-600 to-primary-400 flex items-center justify-center text-white font-bold text-lg">
+              R
+            </div>
+            <span className="font-bold text-xl bg-gradient-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent">
+              RPL Smart
+            </span>
+          </div>
         </div>
       </header>
 
