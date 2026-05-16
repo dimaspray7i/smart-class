@@ -430,6 +430,7 @@ Route::middleware('api')->group(function () {
             });
             
             // PKL Student Assignment - Retro UI
+            // 💼 PKL / INTERNSHIP MANAGEMENT
             Route::prefix('pkl')->group(function () {
                 Route::get('/students', [PklLocationController::class, 'getStudents']);
                 Route::get('/students/search', [PklLocationController::class, 'searchStudents']);
@@ -438,7 +439,12 @@ Route::middleware('api')->group(function () {
                 Route::post('/unassign/{studentId}', [PklLocationController::class, 'unassignStudent']);
                 Route::get('/assignments/export', [PklLocationController::class, 'exportAssignments']);
                 Route::get('/analytics', [PklLocationController::class, 'analytics']);
-                Route::get('/analytics/retro', [PklLocationController::class, 'retroAnalytics']);
+            });
+
+            // ⏱️ ATTENDANCE MANAGEMENT
+            Route::prefix('attendance')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Admin\AttendanceController::class, 'index']);
+                Route::patch('/{id}/status', [\App\Http\Controllers\Admin\AttendanceController::class, 'updateStatus']);
             });
             
             // ═══════════════════════════════════════════════════

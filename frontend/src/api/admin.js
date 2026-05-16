@@ -21,6 +21,18 @@ export const adminAPI = {
    */
   getAttendanceAnalytics: (params) => 
     api.get('/admin/analytics/attendance', { params }),
+
+  /**
+   * ⏱️ Get raw attendance list for management
+   */
+  getAttendance: (params) => 
+    api.get('/admin/attendance', { params }),
+
+  /**
+   * ⏱️ Update attendance status manually
+   */
+  updateAttendanceStatus: (id, status, notes) => 
+    api.patch(`/admin/attendance/${id}/status`, { status, notes }),
   
   /**
    * 👥 Get student analytics with filters
@@ -70,8 +82,12 @@ export const adminAPI = {
    * @param {number|string} id - User ID
    * @param {Object} data - Fields to update
    */
-  updateUser: (id, data) => 
-    api.put(`/admin/users/${id}`, data),
+  updateUser: (id, data) => {
+    if (data instanceof FormData) {
+      return api.post(`/admin/users/${id}`, data);
+    }
+    return api.put(`/admin/users/${id}`, data);
+  },
   
   /**
    * 🗑️ Delete user (soft delete)
@@ -145,8 +161,12 @@ export const adminAPI = {
    * @param {number|string} id - Class ID
    * @param {Object} data - Fields to update
    */
-  updateClass: (id, data) => 
-    api.put(`/admin/classes/${id}`, data),
+  updateClass: (id, data) => {
+    if (data instanceof FormData) {
+      return api.post(`/admin/classes/${id}`, data);
+    }
+    return api.put(`/admin/classes/${id}`, data);
+  },
   
   /**
    * 🗑️ Delete class
@@ -196,8 +216,12 @@ export const adminAPI = {
    * @param {number|string} id - Subject ID
    * @param {Object} data - Fields to update
    */
-  updateSubject: (id, data) => 
-    api.put(`/admin/subjects/${id}`, data),
+  updateSubject: (id, data) => {
+    if (data instanceof FormData) {
+      return api.post(`/admin/subjects/${id}`, data);
+    }
+    return api.put(`/admin/subjects/${id}`, data);
+  },
   
   /**
    * 🗑️ Delete subject
@@ -205,6 +229,13 @@ export const adminAPI = {
    */
   deleteSubject: (id) => 
     api.delete(`/admin/subjects/${id}`),
+  
+  /**
+   * 🧹 Bulk delete subjects
+   * @param {number[]} ids - Array of subject IDs
+   */
+  bulkDeleteSubjects: (ids) => 
+    api.post('/admin/subjects/bulk/delete', { ids }),
   
   /**
    * 🏷️ Get subject categories
@@ -253,8 +284,12 @@ export const adminAPI = {
    * @param {number|string} id - Schedule ID
    * @param {Object} data - Fields to update
    */
-  updateSchedule: (id, data) => 
-    api.put(`/admin/schedules/${id}`, data),
+  updateSchedule: (id, data) => {
+    if (data instanceof FormData) {
+      return api.post(`/admin/schedules/${id}`, data);
+    }
+    return api.put(`/admin/schedules/${id}`, data);
+  },
   
   /**
    * 🗑️ Delete schedule
@@ -262,6 +297,13 @@ export const adminAPI = {
    */
   deleteSchedule: (id) => 
     api.delete(`/admin/schedules/${id}`),
+  
+  /**
+   * 🧹 Bulk delete schedules
+   * @param {number[]} ids - Array of schedule IDs
+   */
+  bulkDeleteSchedules: (ids) => 
+    api.post('/admin/schedules/bulk/delete', { ids }),
   
   /**
    * ⚠️ Check for schedule conflicts before creating/updating
@@ -331,8 +373,12 @@ export const adminAPI = {
    * ✏️ Update system settings
    * @param {Object} data - Settings to update (can be partial)
    */
-  updateSettings: (data) => 
-    api.put('/admin/settings', data),
+  updateSettings: (data) => {
+    if (data instanceof FormData) {
+      return api.post('/admin/settings', data);
+    }
+    return api.put('/admin/settings', data);
+  },
   
   /**
    * 🔄 Reset settings to defaults
@@ -381,8 +427,12 @@ export const adminAPI = {
    * @param {number|string} id - Location ID
    * @param {Object} data - Fields to update
    */
-  updatePklLocation: (id, data) => 
-    api.put(`/admin/pkl-locations/${id}`, data),
+  updatePklLocation: (id, data) => {
+    if (data instanceof FormData) {
+      return api.post(`/admin/pkl-locations/${id}?_method=PUT`, data);
+    }
+    return api.put(`/admin/pkl-locations/${id}`, data);
+  },
   
   /**
    * 🗑️ Delete PKL location

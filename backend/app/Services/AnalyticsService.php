@@ -51,7 +51,7 @@ class AnalyticsService
             ->whereBetween('date', [$startDate, $endDate]);
 
         if ($classId) {
-            $query->whereHas('user.profile', fn($q) => $q->where('class_id', $classId));
+            $query->whereHas('user.classes', fn($q) => $q->where('classes.id', $classId));
         }
 
         if ($teacherId) {
@@ -298,7 +298,7 @@ class AnalyticsService
             ->whereBetween('date', [$start, $end]);
 
         if ($classId) {
-            $query->whereHas('user.profile', fn($q) => $q->where('class_id', $classId));
+            $query->whereHas('user.classes', fn($q) => $q->where('classes.id', $classId));
         }
 
         return $query->groupBy('date', 'status')
@@ -321,12 +321,13 @@ class AnalyticsService
     {
         return DB::table('attendances')
             ->join('users', 'attendances.user_id', '=', 'users.id')
-            ->join('profiles', 'users.id', '=', 'profiles.user_id')
-            ->join('classes', 'profiles.class_id', '=', 'classes.id')
+            ->join('class_user', 'users.id', '=', 'class_user.user_id')
+            ->join('classes', 'class_user.class_id', '=', 'classes.id')
             ->selectRaw('classes.name as class_name, 
                        COUNT(*) as total,
                        SUM(CASE WHEN attendances.status = "Hadir" THEN 1 ELSE 0 END) as hadir')
             ->whereBetween('attendances.date', [$start, $end])
+            ->where('class_user.is_active', true)
             ->groupBy('classes.id', 'classes.name')
             ->orderByDesc('total')
             ->limit(10)
@@ -392,13 +393,14 @@ class AnalyticsService
     {
         $query = DB::table('attendances')
             ->join('users', 'attendances.user_id', '=', 'users.id')
-            ->join('profiles', 'users.id', '=', 'profiles.user_id')
-            ->join('classes', 'profiles.class_id', '=', 'classes.id')
+            ->join('class_user', 'users.id', '=', 'class_user.user_id')
+            ->join('classes', 'class_user.class_id', '=', 'classes.id')
             ->selectRaw('classes.name, 
                        COUNT(*) as total,
                        SUM(CASE WHEN attendances.status = "Hadir" THEN 1 ELSE 0 END) as hadir,
-                       ROUND(SUM(CASE WHEN attendances.status = "Hadir" THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as rate')
-            ->whereBetween('attendances.date', [$start, $end]);
+                       ROUND(SUM(CASE WHEN attendances.status = "Hadir" THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 2) as rate')
+            ->whereBetween('attendances.date', [$start, $end])
+            ->where('class_user.is_active', true);
 
         if ($classId) {
             $query->where('classes.id', $classId);

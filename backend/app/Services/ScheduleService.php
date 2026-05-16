@@ -12,7 +12,7 @@ class ScheduleService
     /**
      * Get paginated schedules with filters
      */
-    public function all(array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function all(array $filters = []): \Illuminate\Support\Collection|\Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = Schedule::query();
 
@@ -36,10 +36,11 @@ class ScheduleService
             $query->search($filters['search']);
         }
 
-        return $query->with(['class', 'subject', 'teacher'])
+        $query->with(['class', 'subject', 'teacher'])
             ->orderBy('day')
-            ->orderBy('start_time')
-            ->paginate(15);
+            ->orderBy('start_time');
+
+        return !empty($filters['all']) ? $query->get() : $query->paginate(15);
     }
 
     /**

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { 
   Plus, Search, Edit2, Trash2, KeyRound, X, Loader2, User, Mail, Lock, Phone,
@@ -11,14 +11,18 @@ import {
   UserCheck, UserX, Users as Users2, UserPlus, FolderOpen, Package, Layers, Menu, GraduationCap, BookOpen, Smile, Sparkles, Rocket
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '../../api';
+import { adminAPI } from '../../api';
+
+// 🏛️ CENTRALIZED UI COMPONENTS
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
 import Toast from '../../components/ui/Toast';
+import RetroTable, { TableActions } from '../../components/ui/RetroTable';
+import { PageHeader, RetroSection, StatGrid, RetroCard, RetroStatWidget } from '../../components/ui/RetroLayouts';
 
-// ═══════════════════════════════════════════════════════════
-// 🎨 RETRO ANIMATION VARIANTS (EXPANDED)
-// ═══════════════════════════════════════════════════════════
+// 🎨 ANIMATION VARIANTS
 const pageVariants = {
   hidden: { opacity: 0 },
   visible: { 
@@ -34,310 +38,91 @@ const cardVariants = {
     y: 0, 
     rotate: 0,
     scale: 1,
-    transition: { 
-      type: "spring", 
-      stiffness: 120, 
-      damping: 18,
-      mass: 0.1 
-    } 
+    transition: { type: "spring", stiffness: 120, damping: 18, mass: 0.1 } 
   }
 };
 
-const stickerVariants = {
-  hidden: { scale: 0, rotate: -180, opacity: 0 },
-  visible: { 
-    scale: 1, 
-    rotate: 0,
-    opacity: 1,
-    transition: { type: "spring", stiffness: 300, damping: 15 } 
-  },
-  hover: { 
-    scale: 1.15, 
-    rotate: [0, -8, 8, -4, 4, 0],
-    transition: { duration: 0.4 }
-  }
-};
-
-const floatVariants = {
-  animate: {
-    y: [0, -12, 0],
-    rotate: [0, 3, -3, 0],
-    scale: [1, 1.05, 1],
-    transition: { duration: 5, repeat: Infinity, ease: "easeInOut" }
-  }
-};
-
-const pulseVariants = {
-  pulse: {
-    scale: [1, 1.05, 1],
-    boxShadow: [
-      '0 0 0px rgba(255,92,0,0)',
-      '0 0 20px rgba(255,92,0,0.4)',
-      '0 0 0px rgba(255,92,0,0)'
-    ],
-    transition: { duration: 2, repeat: Infinity }
-  }
-};
-
-// ═══════════════════════════════════════════════════════════
-// 🎭 RETRO STAT WIDGET COMPONENT (NEW)
-// ═══════════════════════════════════════════════════════════
-function RetroStatWidget({ title, value, icon: Icon, color, trend, subtitle, onClick, badge }) {
-  const colorConfig = {
-    orange: { bg: 'bg-retro-orange', border: 'border-retro-orange', text: 'text-retro-orange', shadow: 'shadow-[4px_4px_0px_0px_#FF5C00]' },
-    blue: { bg: 'bg-retro-blue', border: 'border-retro-blue', text: 'text-retro-blue', shadow: 'shadow-[4px_4px_0px_0px_#2E2BBF]' },
-    yellow: { bg: 'bg-retro-yellow', border: 'border-retro-yellow', text: 'text-retro-yellow', shadow: 'shadow-[4px_4px_0px_0px_#FFC928]' },
-    purple: { bg: 'bg-retro-purple', border: 'border-retro-purple', text: 'text-retro-purple', shadow: 'shadow-[4px_4px_0px_0px_#9D4EDD]' },
-    lime: { bg: 'bg-retro-lime', border: 'border-retro-lime', text: 'text-retro-lime', shadow: 'shadow-[4px_4px_0px_0px_#B8F64E]' },
-    pink: { bg: 'bg-retro-pink', border: 'border-retro-pink', text: 'text-retro-pink', shadow: 'shadow-[4px_4px_0px_0px_#FF6B9D]' },
+/**
+ * 🏷️ Simplified Tag Component for consistency
+ */
+function RetroTag({ label, color = 'orange' }) {
+  const colors = {
+    orange: 'bg-retro-orange/10 text-retro-orange border-retro-orange',
+    blue: 'bg-retro-blue/10 text-retro-blue border-retro-blue',
+    purple: 'bg-retro-purple/10 text-retro-purple border-retro-purple',
+    lime: 'bg-retro-lime/10 text-retro-lime border-retro-lime',
+    green: 'bg-retro-green/10 text-retro-green border-retro-green',
+    pink: 'bg-retro-pink/10 text-retro-pink border-retro-pink',
+    gray: 'bg-base-gray/10 text-base-black/50 border-base-black/10',
   };
-
-  const config = colorConfig[color] || colorConfig.orange;
-
   return (
-    <motion.div
-      variants={cardVariants}
-      whileHover={{ y: -6, rotate: 1 }}
-      onClick={onClick}
-      className={`relative retro-card cursor-pointer group ${onClick ? '' : 'pointer-events-none'}`}
-    >
-      {badge && (
-        <motion.div variants={stickerVariants} initial="hidden" animate="visible" whileHover="hover" className="absolute -top-3 -right-3 z-10">
-          <div className="retro-sticker bg-retro-yellow text-base-black text-[10px] px-2 py-0.5 font-black">{badge}</div>
-        </motion.div>
-      )}
-      <div className={`p-4 ${config.bg}/10 border-4 ${config.border} rounded-retro-lg shadow-hard transition-all duration-200 group-hover:shadow-hard-hover group-hover:-translate-x-1 group-hover:-translate-y-1`}>
-        <div className="flex items-start justify-between mb-3">
-          <motion.div className={`p-2.5 rounded-retro ${config.bg} border-2 border-base-black ${config.shadow}`} whileHover={{ scale: 1.15, rotate: 8 }} transition={{ type: "spring", stiffness: 400 }}>
-            <Icon className="w-5 h-5 text-base-white" />
-          </motion.div>
-          {trend && (
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="retro-badge retro-badge-lime text-[9px] rotate-[3deg]">
-              <TrendingUp className="w-2.5 h-2.5 mr-0.5" />{trend}%
-            </motion.div>
-          )}
-        </div>
-        <div>
-          <motion.h3 className="text-2xl font-retro-display font-black text-base-black mb-0.5 leading-none" initial={{ scale: 0.9 }} animate={{ scale: 1 }}>{value.toLocaleString('id-ID')}</motion.h3>
-          <p className="text-[10px] font-black uppercase tracking-wider text-base-black/70">{title}</p>
-          {subtitle && <p className="text-[9px] font-retro-mono text-base-black/50 mt-1">{subtitle}</p>}
-        </div>
-        <div className={`absolute bottom-2 right-2 w-2.5 h-2.5 ${config.bg} border-2 border-base-black rounded-sm rotate-45`} />
-      </div>
-    </motion.div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// 🏷️ RETRO TAG/BADGE COMPONENT (NEW)
-// ═══════════════════════════════════════════════════════════
-function RetroTag({ label, color = 'orange', removable = false, onRemove, onClick }) {
-  const colorConfig = {
-    orange: 'bg-retro-orange text-base-white border-retro-orange',
-    blue: 'bg-retro-blue text-base-white border-retro-blue',
-    yellow: 'bg-retro-yellow text-base-black border-retro-yellow',
-    purple: 'bg-retro-purple text-base-white border-retro-purple',
-    lime: 'bg-retro-lime text-base-black border-retro-lime',
-    pink: 'bg-retro-pink text-base-white border-retro-pink',
-    gray: 'bg-base-gray text-base-black border-base-black',
-  };
-  
-  return (
-    <motion.span
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      onClick={onClick}
-      className={`inline-flex items-center gap-1 px-2.5 py-1 retro-badge ${colorConfig[color]} text-[10px] font-black uppercase tracking-wide cursor-pointer ${removable ? 'pr-1' : ''}`}
-    >
+    <span className={twMerge("px-2 py-0.5 rounded-retro text-[9px] font-black uppercase border-2", colors[color])}>
       {label}
-      {removable && (
-        <button onClick={(e) => { e.stopPropagation(); onRemove?.(); }} className="hover:text-danger transition-colors ml-0.5">
-          <X className="w-3 h-3" />
-        </button>
-      )}
-    </motion.span>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// 📊 USER HEALTH SCORE COMPONENT (NEW FEATURE)
-// ═══════════════════════════════════════════════════════════
-function UserHealthScore({ score, attendance, profileComplete, lastActive }) {
-  const getColor = (s) => s >= 80 ? 'text-success' : s >= 60 ? 'text-warning' : 'text-danger';
-  const getBg = (s) => s >= 80 ? 'bg-success/20 border-success' : s >= 60 ? 'bg-warning/20 border-warning' : 'bg-danger/20 border-danger';
-  
-  return (
-    <div className={`p-3 retro-card ${getBg(score)} border-2`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-black uppercase tracking-wide text-base-black">Health Score</span>
-        <motion.span className={`text-lg font-retro-display font-black ${getColor(score)}`} animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>{score}</motion.span>
-      </div>
-      <div className="w-full bg-base-white border-2 border-base-black rounded-sm overflow-hidden h-2 mb-2">
-        <motion.div className={`h-full ${score >= 80 ? 'bg-success' : score >= 60 ? 'bg-warning' : 'bg-danger'}`} initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ duration: 1, delay: 0.2 }} />
-      </div>
-      <div className="grid grid-cols-3 gap-1 text-[9px] font-retro-mono">
-        <div className="text-center"><span className="font-bold">{attendance}%</span><br/>Attend</div>
-        <div className="text-center"><span className="font-bold">{profileComplete}%</span><br/>Profile</div>
-        <div className="text-center"><span className="font-bold">{lastActive}</span><br/>Active</div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// 📱 DEVICE INFO BADGE (NEW FEATURE)
-// ═══════════════════════════════════════════════════════════
-function DeviceBadge({ device }) {
-  const icons = { mobile: Smartphone, tablet: Tablet, desktop: Monitor, unknown: Monitor };
-  const Icon = icons[device?.type] || icons.unknown;
-  const colors = { mobile: 'text-retro-blue', tablet: 'text-retro-purple', desktop: 'text-retro-orange', unknown: 'text-base-black/50' };
-  
-  return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-retro-mono">
-      <Icon className={`w-3 h-3 ${colors[device?.type] || colors.unknown}`} />
-      {device?.name || 'Unknown'}
     </span>
   );
 }
 
-// ═══════════════════════════════════════════════════════════
-// 🎭 RETRO INPUT COMPONENT (Enhanced)
-// ═══════════════════════════════════════════════════════════
-function RetroInput({ label, name, type = "text", value, onChange, error, required, disabled, placeholder, icon: Icon, helperText, suffix, prefix, maxLength, onFocus, onBlur }) {
-  const [focused, setFocused] = useState(false);
-  const [charCount, setCharCount] = useState(0);
-  
-  useEffect(() => { if (maxLength && value) setCharCount(String(value).length); }, [value, maxLength]);
-  
+/**
+ * ⌨️ Retro Input Component
+ */
+function RetroInput({ label, name, value, onChange, error, ...props }) {
   return (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-black uppercase tracking-wider text-base-black">
-        <span className="flex items-center gap-1.5">
-          {Icon && <Icon className="w-3.5 h-3.5" />}
-          {label}
-          {required && <span className="text-retro-orange">*</span>}
-        </span>
-      </label>
-      <div className="relative">
-        {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-black/50 text-[10px] font-retro-mono">{prefix}</span>}
-        <input
-          type={type}
-          name={name}
-          value={value || ''}
-          onChange={(e) => { onChange(prev => ({ ...prev, [name]: e.target.value })); if (maxLength) setCharCount(e.target.value.length); }}
-          onFocus={(e) => { setFocused(true); onFocus?.(e); }}
-          onBlur={(e) => { setFocused(false); onBlur?.(e); }}
-          maxLength={maxLength}
-          className={`w-full px-4 py-2.5 retro-input text-base-black placeholder:text-base-black/40 ${prefix ? 'pl-9' : ''} ${suffix ? 'pr-9' : ''} ${focused ? 'ring-4 ring-retro-orange/30' : ''}`}
-          required={required}
-          disabled={disabled}
-          placeholder={placeholder}
-        />
-        {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-base-black/50 text-[10px] font-retro-mono">{suffix}</span>}
-        {error && <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-danger" />}
-      </div>
-      {(helperText || (maxLength && charCount > 0)) && (
-        <div className="flex justify-between items-center">
-          {helperText && <p className="text-[9px] font-retro-mono text-base-black/50">{helperText}</p>}
-          {maxLength && <p className={`text-[9px] font-retro-mono ${charCount > maxLength * 0.9 ? 'text-danger' : 'text-base-black/40'}`}>{charCount}/{maxLength}</p>}
-        </div>
-      )}
-      {error && <p className="text-danger text-[9px] font-retro-mono">{Array.isArray(error) ? error[0] : error}</p>}
-    </div>
+    <Input 
+      label={label}
+      value={value}
+      onChange={e => onChange(prev => ({ ...prev, [name]: e.target.value }))}
+      error={error}
+      {...props}
+    />
   );
 }
 
-// ═══════════════════════════════════════════════════════════
-// 🎭 RETRO SELECT COMPONENT (Enhanced)
-// ═══════════════════════════════════════════════════════════
-function RetroSelect({ label, name, value, onChange, options, error, required, disabled, icon: Icon, placeholder, searchable = false }) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const filteredOptions = useMemo(() => {
-    if (!searchable || !searchTerm) return options;
-    return options.filter(opt => opt.label.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [options, searchTerm, searchable]);
-
+/**
+ * ⏬ Retro Select Component
+ */
+function RetroSelect({ label, name, value, onChange, options = [], error, ...props }) {
   return (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-black uppercase tracking-wider text-base-black">
-        <span className="flex items-center gap-1.5">
-          {Icon && <Icon className="w-3.5 h-3.5" />}
-          {label}
-          {required && <span className="text-retro-orange">*</span>}
-        </span>
-      </label>
-      {searchable && (
-        <div className="relative mb-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-base-black/40" />
-          <input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="retro-input pl-7 py-1.5 text-[10px]" />
-        </div>
-      )}
-      <select name={name} value={value || ''} onChange={(e) => onChange(prev => ({ ...prev, [name]: e.target.value }))} className="retro-input w-full" required={required} disabled={disabled}>
-        {placeholder && <option value="">{placeholder}</option>}
-        {filteredOptions.map((opt) => (<option key={opt.value} value={opt.value} className="bg-base-cream text-base-black">{opt.label}</option>))}
-      </select>
-      {error && <p className="text-danger text-[9px] font-retro-mono">{Array.isArray(error) ? error[0] : error}</p>}
-    </div>
+    <Select 
+      label={label}
+      value={value}
+      onChange={e => onChange(prev => ({ ...prev, [name]: e.target.value }))}
+      options={options}
+      error={error}
+      {...props}
+    />
   );
 }
 
-// ═══════════════════════════════════════════════════════════
-// 🎭 RETRO MULTI-SELECT SUBJECTS (Enhanced)
-// ═══════════════════════════════════════════════════════════
-function RetroSubjectMultiSelect({ label, value, onChange, subjects, error, required }) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [expanded, setExpanded] = useState(false);
-  
-  const filteredSubjects = useMemo(() => subjects.filter(sub => sub.name.toLowerCase().includes(searchTerm.toLowerCase()) || sub.code.toLowerCase().includes(searchTerm.toLowerCase())), [subjects, searchTerm]);
-  const selectedSubjects = useMemo(() => subjects.filter(sub => (value || []).includes(sub.id)), [subjects, value]);
+/**
+ * 📚 Retro Subject Multi-Select
+ */
+function RetroSubjectMultiSelect({ label, value = [], onChange, subjects = [], error }) {
+  const toggleSubject = (id) => {
+    const next = value.includes(id) ? value.filter(i => i !== id) : [...value, id];
+    onChange(next);
+  };
 
   return (
     <div className="space-y-2">
-      <label className="block text-[10px] font-black uppercase tracking-wider text-base-black">{label} {required && <span className="text-retro-orange">*</span>}</label>
-      
-      {/* Selected Tags */}
-      {selectedSubjects.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {selectedSubjects.map((sub) => (
-            <RetroTag key={sub.id} label={sub.code} color="purple" removable onRemove={() => onChange((value || []).filter(id => id !== sub.id))} />
-          ))}
-        </div>
-      )}
-      
-      {/* Search & Toggle */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-base-black/40" />
-          <input type="text" placeholder="Search subjects..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="retro-input pl-8 py-2 text-[10px]" />
-        </div>
-        <button type="button" onClick={() => setExpanded(!expanded)} className="retro-btn retro-btn-sm retro-btn-outline flex items-center gap-1">
-          {expanded ? 'Hide' : 'Show'} <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-        </button>
+      <label className="block text-[10px] font-black uppercase tracking-wider text-base-black">{label}</label>
+      <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1">
+        {subjects.map(s => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => toggleSubject(s.id)}
+            className={twMerge(
+              "px-3 py-1 rounded-retro border-2 font-retro-mono text-[10px] transition-all",
+              value.includes(s.id) 
+                ? "bg-retro-purple text-base-white border-base-black shadow-hard-sm" 
+                : "bg-base-white text-base-black border-base-black/20 hover:border-base-black"
+            )}
+          >
+            {s.name}
+          </button>
+        ))}
       </div>
-      
-      {/* Options List */}
-      <AnimatePresence>
-        {expanded && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="max-h-40 overflow-y-auto retro-card p-2 space-y-1">
-              {filteredSubjects.length > 0 ? filteredSubjects.map((sub) => {
-                const isSelected = (value || []).includes(sub.id);
-                return (
-                  <label key={sub.id} className={`flex items-center gap-2 p-2 retro-card cursor-pointer transition-all ${isSelected ? 'bg-retro-purple/20 border-retro-purple' : 'hover:bg-retro-yellow/10'}`}>
-                    <input type="checkbox" checked={isSelected} onChange={(e) => { if (e.target.checked) onChange([...(value || []), sub.id]); else onChange((value || []).filter(id => id !== sub.id)); }} className="w-4 h-4 accent-retro-purple border-2 border-base-black" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-retro-display font-black text-base-black truncate">{sub.code} - {sub.name}</p>
-                      {sub.description && <p className="text-[9px] font-retro-mono text-base-black/50 truncate">{sub.description}</p>}
-                    </div>
-                    {isSelected && <Check className="w-4 h-4 text-retro-purple" />}
-                  </label>
-                );
-              }) : <p className="p-3 text-[10px] font-retro-mono text-base-black/50 text-center">{searchTerm ? 'No results.' : 'No subjects available.'}</p>}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {error && <p className="text-danger text-[9px] font-retro-mono">{Array.isArray(error) ? error[0] : error}</p>}
+      {error && <p className="text-danger text-[9px] font-retro-mono">{error}</p>}
     </div>
   );
 }
@@ -463,7 +248,12 @@ export default function UserManagement() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState({
+    name: '', email: '', phone: '', role: 'siswa', is_active: true,
+    nis: '', nip: '', class_level: 'X', class_id: '',
+    bio: '', github_url: '', linkedin_url: '', avatar_url: '',
+    subjects: []
+  });
   const [errors, setErrors] = useState({});
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -512,21 +302,18 @@ export default function UserManagement() {
   const { data, isPending, isError, isFetching, refetch } = useQuery({
     queryKey: ['admin-users', debouncedSearch, advancedFilters, page, perPage, sortBy, sortOrder],
     queryFn: () => {
-      // Clean filters: convert 'all' to undefined so they aren't sent to API
       const cleanFilters = Object.entries(advancedFilters).reduce((acc, [key, value]) => {
         acc[key] = value === 'all' ? undefined : value;
         return acc;
       }, {});
 
-      return api.get('/admin/users', {
-        params: { 
-          page, 
-          per_page: perPage, 
-          search: debouncedSearch || undefined, 
-          ...cleanFilters, 
-          sort_by: sortBy, 
-          sort_order: sortOrder 
-        }
+      return adminAPI.getUsers({
+        page, 
+        per_page: perPage, 
+        search: debouncedSearch || undefined, 
+        ...cleanFilters, 
+        sort_by: sortBy, 
+        sort_order: sortOrder 
       });
     },
     placeholderData: (prev) => prev,
@@ -534,23 +321,25 @@ export default function UserManagement() {
   });
 
   useEffect(() => { if (isCreateOpen || isEditOpen) {
-    api.get('/admin/subjects?all=1').then(res => setSubjects(res.data?.data || [])).catch(err => console.error('Failed to fetch subjects:', err));
-    api.get('/admin/classes?all=1').then(res => setClasses(res.data?.data || [])).catch(err => console.error('Failed to fetch classes:', err));
+    adminAPI.getSubjects({ all: 1 }).then(res => setSubjects(res.data || [])).catch(err => console.error('Failed to fetch subjects:', err));
+    adminAPI.getClasses({ all: 1 }).then(res => setClasses(res.data || [])).catch(err => console.error('Failed to fetch classes:', err));
   }}, [isCreateOpen, isEditOpen]);
 
-  const users = data?.data?.data || [];
-  const meta = data?.data?.meta || {};
+  const users = data?.data || [];
+  const meta = data?.meta || {};
 
   // ═════════════════════════════════════════════════════════
   // QUICK STATS CALCULATION (NEW FEATURE)
   // ═════════════════════════════════════════════════════════
-  const quickStats = useMemo(() => {
+  const stats = useMemo(() => {
     const today = new Date().toDateString();
     return {
       total: meta.total || 0,
       active: users.filter(u => u.is_active).length,
       newToday: users.filter(u => new Date(u.created_at).toDateString() === today).length,
-      byRole: { admin: users.filter(u => u.role === 'admin').length, guru: users.filter(u => u.role === 'guru').length, siswa: users.filter(u => u.role === 'siswa').length },
+      admin: users.filter(u => u.role === 'admin').length,
+      guru: users.filter(u => u.role === 'guru').length,
+      siswa: users.filter(u => u.role === 'siswa').length,
       withAvatar: users.filter(u => u.avatar_url).length,
       pklStudents: users.filter(u => u.role === 'siswa' && u.profile?.class_level === 'XII').length,
     };
@@ -576,7 +365,7 @@ export default function UserManagement() {
         else if (key === 'avatar_url' && payload[key] instanceof File) formDataObj.append('avatar', payload[key]);
         else if (payload[key] !== undefined && payload[key] !== null && payload[key] !== '' && typeof payload[key] !== 'object') formDataObj.append(key, payload[key]);
       });
-      return api.post('/admin/users', formDataObj, { headers: { 'Content-Type': 'multipart/form-data' } });
+      return adminAPI.createUser(formDataObj);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setIsCreateOpen(false); setFormData({}); setErrors({}); showToast('✅ User created successfully!', 'success'); },
     onError: (err) => { setErrors(err.errors || err.response?.data?.errors || {}); showToast(`❌ ${err.message || err.response?.data?.message || 'Failed to create user'}`, 'error'); }
@@ -592,19 +381,19 @@ export default function UserManagement() {
         else if (key === 'avatar_url' && payload[key] instanceof File) formDataObj.append('avatar', payload[key]);
         else if (payload[key] !== undefined && payload[key] !== null && payload[key] !== '' && typeof payload[key] !== 'object') formDataObj.append(key, payload[key]);
       });
-      return api.post(`/admin/users/${id}`, formDataObj, { headers: { 'Content-Type': 'multipart/form-data' } });
+      return adminAPI.updateUser(id, formDataObj);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setIsEditOpen(false); setSelectedUser(null); setFormData({}); setErrors({}); showToast('✅ User updated successfully!', 'success'); },
     onError: (err) => { setErrors(err.errors || err.response?.data?.errors || {}); showToast(`❌ ${err.message || err.response?.data?.message || 'Failed to update user'}`, 'error'); }
   });
 
-  const deleteUserMutation = useMutation({ mutationFn: (id) => api.delete(`/admin/users/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); showToast('✅ User deleted!', 'success'); setConfirmDelete(null); }, onError: (err) => showToast(`❌ ${err.message || 'Failed to delete'}`, 'error') });
-  const bulkDeleteMutation = useMutation({ mutationFn: (ids) => Promise.all(ids.map(id => api.delete(`/admin/users/${id}`))), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setSelectedIds([]); showToast('✅ Selected users deleted!', 'success'); setConfirmBulkAction(null); }, onError: (err) => showToast(`❌ ${err.message || 'Bulk delete failed'}`, 'error') });
-  const bulkActivateMutation = useMutation({ mutationFn: (ids) => api.post('/admin/users/bulk-activate', { ids }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setSelectedIds([]); showToast('✅ Selected users activated!', 'success'); setConfirmBulkAction(null); }, onError: (err) => showToast(`❌ ${err.message || 'Bulk activate failed'}`, 'error') });
-  const bulkDeactivateMutation = useMutation({ mutationFn: (ids) => api.post('/admin/users/bulk-deactivate', { ids }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setSelectedIds([]); showToast('✅ Selected users deactivated!', 'success'); setConfirmBulkAction(null); }, onError: (err) => showToast(`❌ ${err.message || 'Bulk deactivate failed'}`, 'error') });
-  const resetPasswordMutation = useMutation({ mutationFn: (id) => api.post(`/admin/users/${id}/reset-password`, { password: 'password123' }), onSuccess: () => showToast('✅ Password reset to "password123"', 'success'), onError: (err) => showToast(`❌ ${err.message || 'Reset failed'}`, 'error') });
-  const exportUsersMutation = useMutation({ mutationFn: (params) => api.get('/admin/users/export', { params, responseType: 'blob' }), onSuccess: (blob) => { const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `users-${new Date().toISOString().split('T')[0]}.csv`; a.click(); showToast('✅ Export started!', 'success'); }, onError: () => showToast('❌ Export failed', 'error') });
-  const importUsersMutation = useMutation({ mutationFn: (file) => { const fd = new FormData(); fd.append('file', file); return api.post('/admin/users/import', fd, { headers: { 'Content-Type': 'multipart/form-data' } }); }, onSuccess: (res) => { setIsImportOpen(false); queryClient.invalidateQueries({ queryKey: ['admin-users'] }); showToast(`✅ Imported ${res.data?.imported || 0} users!`, 'success'); }, onError: (err) => showToast(`❌ ${err.response?.data?.message || 'Import failed'}`, 'error') });
+  const deleteUserMutation = useMutation({ mutationFn: (id) => adminAPI.deleteUser(id), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); showToast('✅ User deleted!', 'success'); setConfirmDelete(null); }, onError: (err) => showToast(`❌ ${err.message || 'Failed to delete'}`, 'error') });
+  const bulkDeleteMutation = useMutation({ mutationFn: (ids) => adminAPI.deleteUser(null, { ids }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setSelectedIds([]); showToast('✅ Selected users deleted!', 'success'); setConfirmBulkAction(null); }, onError: (err) => showToast(`❌ ${err.message || 'Bulk delete failed'}`, 'error') });
+  const bulkActivateMutation = useMutation({ mutationFn: (ids) => adminAPI.bulkUserAction('activate', ids), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setSelectedIds([]); showToast('✅ Selected users activated!', 'success'); setConfirmBulkAction(null); }, onError: (err) => showToast(`❌ ${err.message || 'Bulk activate failed'}`, 'error') });
+  const bulkDeactivateMutation = useMutation({ mutationFn: (ids) => adminAPI.bulkUserAction('deactivate', ids), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setSelectedIds([]); showToast('✅ Selected users deactivated!', 'success'); setConfirmBulkAction(null); }, onError: (err) => showToast(`❌ ${err.message || 'Bulk deactivate failed'}`, 'error') });
+  const resetPasswordMutation = useMutation({ mutationFn: (id) => adminAPI.resetPassword(id, 'password123'), onSuccess: () => showToast('✅ Password reset to "password123"', 'success'), onError: (err) => showToast(`❌ ${err.message || 'Reset failed'}`, 'error') });
+  const exportUsersMutation = useMutation({ mutationFn: (params) => adminAPI.exportUsers('csv', params), onSuccess: (blob) => { const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `users-${new Date().toISOString().split('T')[0]}.csv`; a.click(); showToast('✅ Export started!', 'success'); }, onError: () => showToast('❌ Export failed', 'error') });
+  const importUsersMutation = useMutation({ mutationFn: (file) => adminAPI.importUsers(file), onSuccess: (res) => { setIsImportOpen(false); queryClient.invalidateQueries({ queryKey: ['admin-users'] }); showToast(`✅ Imported ${res.data?.imported || 0} users!`, 'success'); }, onError: (err) => showToast(`❌ ${err.response?.data?.message || 'Import failed'}`, 'error') });
 
   // ═════════════════════════════════════════════════════════
   // HANDLERS (EXPANDED)
@@ -690,290 +479,251 @@ export default function UserManagement() {
   // 🎨 MAIN RENDER - EXPANDED RETRO FUTURISTIC UI
   // ═════════════════════════════════════════════════════════
   return (
-    <motion.div variants={pageVariants} initial="hidden" animate="visible" className="relative min-h-screen bg-base-cream retro-grid-bg">
-      
-      {/* Decorative floating elements */}
-      <motion.div variants={floatVariants} animate="animate" className="absolute top-20 right-10 z-0 hidden lg:block"><div className="retro-smiley text-xl animate-wobble">👤</div></motion.div>
-      <motion.div variants={floatVariants} animate="animate" className="absolute bottom-32 left-20 z-0 hidden lg:block" style={{animationDelay:'1s'}}><Star className="w-8 h-8 text-retro-yellow fill-retro-yellow drop-shadow-retro animate-sparkle-retro" /></motion.div>
-      <motion.div variants={floatVariants} animate="animate" className="absolute top-1/3 right-1/4 z-0 hidden xl:block" style={{animationDelay:'2s'}}><Zap className="w-10 h-10 text-retro-orange drop-shadow-retro animate-wobble" /></motion.div>
-      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-retro-purple/20 rounded-blob blur-2xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-24 h-24 bg-retro-lime/20 rounded-blob blur-2xl pointer-events-none" />
-
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed top-24 right-6 z-50">
-            <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Header */}
-      <motion.div variants={cardVariants} className="sticky top-4 z-30 px-4 md:px-6">
-        <div className="retro-card max-w-6xl mx-auto p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="w-6 h-6 text-retro-orange" />
-            <span className="font-retro-display font-black text-base-black text-lg">USER MANAGEMENT</span>
-            <span className="retro-badge retro-badge-blue text-[9px] ml-2">{quickStats.total} total</span>
+    <motion.div 
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-6"
+    >
+      {/* 🏛️ PAGE HEADER */}
+      <PageHeader 
+        title="User Management"
+        icon={Users}
+        description="Manage students, teachers, and administrators. Track their activity and system health."
+        breadcrumbs={[{ label: 'Users', path: '/admin/users' }]}
+        actions={
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsImportOpen(true)}
+              className="hidden sm:flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Import CSV
+            </Button>
+            <Button 
+              variant="primary" 
+              onClick={() => { setFormData({role:'siswa',is_active:true,class_level:'X',subjects:[],class_id:''}); setErrors({}); setIsCreateOpen(true); }}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add New User
+            </Button>
           </div>
-          <div className="flex items-center gap-2">
-            {selectedIds.length > 0 && (
-              <div className="flex items-center gap-1">
-                <select value={bulkAction} onChange={(e) => { setBulkAction(e.target.value); if (e.target.value) { if (e.target.value === 'delete') handleBulkDelete(); else if (e.target.value === 'activate') handleBulkActivate(); else if (e.target.value === 'deactivate') handleBulkDeactivate(); setBulkAction(''); } }} className="retro-input py-1.5 text-[10px]">
-                  <option value="">Bulk Action...</option>
-                  <option value="delete">🗑️ Delete</option>
-                  <option value="activate">✅ Activate</option>
-                  <option value="deactivate">⏸️ Deactivate</option>
-                  <option value="export">📤 Export</option>
-                </select>
-                <span className="retro-badge retro-badge-orange text-[9px]">{selectedIds.length} selected</span>
-              </div>
-            )}
-            <button onClick={handleExport} disabled={exportUsersMutation.isLoading} className="retro-btn retro-btn-sm retro-btn-outline flex items-center gap-1"><Download className="w-4 h-4" /> Export</button>
-            <button onClick={() => setIsImportOpen(true)} className="retro-btn retro-btn-sm retro-btn-outline flex items-center gap-1"><Upload className="w-4 h-4" /> Import</button>
-            <button onClick={() => { setFormData({role:'siswa',is_active:true,class_level:'X',subjects:[],class_id:''}); setErrors({}); setIsCreateOpen(true); }} className="retro-btn retro-btn-sm" disabled={createUserMutation.isLoading}><Plus className="w-4 h-4" /> {createUserMutation.isLoading ? 'Saving...' : 'Add User'}</button>
+        }
+      />
+
+      {/* 📊 QUICK STATS */}
+      <StatGrid>
+        <RetroStatWidget
+          title="Total Users"
+          value={stats.total}
+          icon={Users}
+          color="orange"
+          badge="SYSTEM"
+          onClick={() => setAdvancedFilters({ ...advancedFilters, role: 'all' })}
+        />
+        <RetroStatWidget
+          title="Active Students"
+          value={stats.siswa}
+          icon={UserPlus}
+          color="blue"
+          trend={12}
+          onClick={() => setAdvancedFilters({ ...advancedFilters, role: 'siswa' })}
+        />
+        <RetroStatWidget
+          title="Teachers"
+          value={stats.guru}
+          icon={GraduationCap}
+          color="purple"
+          onClick={() => setAdvancedFilters({ ...advancedFilters, role: 'guru' })}
+        />
+        <RetroStatWidget
+          title="Admins"
+          value={stats.admin}
+          icon={Shield}
+          color="lime"
+          onClick={() => setAdvancedFilters({ ...advancedFilters, role: 'admin' })}
+        />
+      </StatGrid>
+
+      {/* 🔍 SEARCH & FILTERS */}
+      <RetroSection>
+        <RetroCard className="p-4">
+          <div className="flex flex-col md:flex-row gap-4 items-end">
+            <div className="flex-1 w-full">
+              <Input 
+                label="Search Users"
+                placeholder="Search name, email, NIS/NIP..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                prefix={<Search className="w-4 h-4" />}
+                suffix={search && <X className="w-4 h-4 cursor-pointer" onClick={() => setSearch('')} />}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className="flex items-center gap-2"
+              >
+                <Filter className="w-4 h-4" />
+                {showAdvancedFilters ? 'Hide' : 'Show'} Filters
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={clearFilters}
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-        </div>
-      </motion.div>
 
-      {/* Main Content */}
-      <div className="px-4 md:px-6 py-6 max-w-7xl mx-auto">
-        
-        {/* Page Header */}
-        <motion.div variants={cardVariants} className="mb-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="retro-heading retro-heading-xl text-retro-orange mb-2 flex items-center gap-3">
-                <span className="inline-block animate-wobble">👥</span>
-                MANAGE USERS
-                <span className="inline-block animate-bounce-retro">✨</span>
-              </h1>
-              <p className="font-retro-mono text-base-black/70 flex items-center gap-2 flex-wrap">
-                <span className="retro-badge retro-badge-blue text-[10px]">Admin</span>
-                <span className="font-bold">{users.length} shown</span>
-                <span className="text-base-black/40">•</span>
-                <span>{meta.total || 0} total</span>
-                <span className="text-base-black/40">•</span>
-                <span>Page {meta.current_page || 1} of {meta.last_page || 1}</span>
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <div className="retro-badge retro-badge-green"><CheckCircle2 className="w-3 h-3 mr-1" /> Active: {quickStats.active}</div>
-              <div className="retro-badge retro-badge-lime"><Star className="w-3 h-3 mr-1" /> New Today: {quickStats.newToday}</div>
-              <div className="retro-badge retro-badge-purple"><Award className="w-3 h-3 mr-1" /> PKL: {quickStats.pklStudents}</div>
-              <div className="retro-badge retro-badge-yellow"><Clock className="w-3 h-3 mr-1" /> {new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}</div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Quick Stats Widgets */}
-        <motion.div variants={pageVariants} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-          <RetroStatWidget title="Total Users" value={quickStats.total} icon={Users} color="orange" subtitle="All roles" badge="📊" />
-          <RetroStatWidget title="Active" value={quickStats.active} icon={UserCheck} color="green" trend={12} subtitle="Can login" />
-          <RetroStatWidget title="New Today" value={quickStats.newToday} icon={Star} color="lime" subtitle="Joined today" />
-          <RetroStatWidget title="Students" value={quickStats.byRole.siswa} icon={GraduationCap} color="blue" subtitle="All levels" />
-          <RetroStatWidget title="Teachers" value={quickStats.byRole.guru} icon={BookOpen} color="purple" subtitle="With subjects" />
-          <RetroStatWidget title="With Avatar" value={quickStats.withAvatar} icon={ImageIcon} color="pink" subtitle="Profile complete" />
-        </motion.div>
-
-        {/* Search & Filters */}
-        <motion.div variants={cardVariants} className="retro-card p-4 mb-4">
-          <div className="flex flex-col gap-4">
-            {/* Main Search */}
-            <div className="flex flex-col md:flex-row gap-3 items-end">
-              <div className="flex-1 w-full">
-                <label className="block text-[10px] font-black uppercase tracking-wider text-base-black mb-1">Search Users</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-black/40" />
-                  <input type="text" placeholder="Search name, email, NIS/NIP, phone..." value={search} onChange={(e) => setSearch(e.target.value)} className="retro-input pl-10 pr-10 w-full" />
-                  {search && <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 hover:text-danger"><X className="w-4 h-4" /></button>}
-                </div>
-              </div>
-              <button onClick={() => setShowAdvancedFilters(!showAdvancedFilters)} className="retro-btn retro-btn-outline flex items-center gap-1"><Filter className="w-4 h-4" /> {showAdvancedFilters ? 'Hide' : 'Show'} Filters</button>
-              <button onClick={clearFilters} className="retro-btn retro-btn-outline flex items-center gap-1"><RefreshCw className="w-4 h-4" /> Reset</button>
-            </div>
-            
-            {/* Advanced Filters */}
-            <AnimatePresence>
-              {showAdvancedFilters && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden pt-3 border-t-2 border-base-black/10">
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    <RetroSelect label="Role" name="role" value={advancedFilters.role} onChange={setAdvancedFilters} options={[{value:'all',label:'All Roles'},{value:'admin',label:'Admin'},{value:'guru',label:'Teacher'},{value:'siswa',label:'Student'}]} />
-                    <RetroSelect label="Status" name="status" value={advancedFilters.status} onChange={setAdvancedFilters} options={[{value:'all',label:'All Status'},{value:'active',label:'Active'},{value:'inactive',label:'Inactive'}]} />
-                    <RetroSelect label="Class Level" name="class" value={advancedFilters.class} onChange={setAdvancedFilters} options={[{value:'all',label:'All Levels'},{value:'X',label:'Grade X'},{value:'XI',label:'Grade XI'},{value:'XII',label:'Grade XII'}]} />
-                    <RetroInput label="From Date" name="dateFrom" type="date" value={advancedFilters.dateFrom} onChange={setAdvancedFilters} />
-                    <RetroInput label="To Date" name="dateTo" type="date" value={advancedFilters.dateTo} onChange={setAdvancedFilters} />
-                    <div className="flex items-end">
-                      <button onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-users'] })} className="retro-btn w-full">Apply Filters</button>
-                    </div>
+          <AnimatePresence>
+            {showAdvancedFilters && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden pt-4 mt-4 border-t-2 border-base-black/10"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Select 
+                    label="Role"
+                    value={advancedFilters.role}
+                    onChange={(e) => setAdvancedFilters({...advancedFilters, role: e.target.value})}
+                    options={[
+                      { value: 'all', label: 'All Roles' },
+                      { value: 'admin', label: 'Admin' },
+                      { value: 'guru', label: 'Teacher' },
+                      { value: 'siswa', label: 'Student' }
+                    ]}
+                  />
+                  <Select 
+                    label="Status"
+                    value={advancedFilters.status}
+                    onChange={(e) => setAdvancedFilters({...advancedFilters, status: e.target.value})}
+                    options={[
+                      { value: 'all', label: 'All Status' },
+                      { value: 'active', label: 'Active' },
+                      { value: 'inactive', label: 'Inactive' }
+                    ]}
+                  />
+                  <Select 
+                    label="Grade"
+                    value={advancedFilters.class}
+                    onChange={(e) => setAdvancedFilters({...advancedFilters, class: e.target.value})}
+                    options={[
+                      { value: 'all', label: 'All Grades' },
+                      { value: 'X', label: 'Grade X' },
+                      { value: 'XI', label: 'Grade XI' },
+                      { value: 'XII', label: 'Grade XII' }
+                    ]}
+                  />
+                  <div className="flex items-end">
+                    <Button 
+                      variant="primary" 
+                      className="w-full"
+                      onClick={() => queryClient.invalidateQueries(['admin-users'])}
+                    >
+                      Apply Filters
+                    </Button>
                   </div>
-                </motion.div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </RetroCard>
+      </RetroSection>
+
+      {/* 📋 USERS TABLE */}
+      <RetroSection title="System Users" icon={Users}>
+        <RetroTable 
+          isLoading={isLoading}
+          data={users}
+          columns={[
+            {
+              header: 'User',
+              key: 'name',
+              render: (name, user) => (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 retro-card bg-retro-orange/20 border-2 border-retro-orange flex items-center justify-center overflow-hidden">
+                    {user.avatar_url ? (
+                      <img src={user.avatar_url} className="w-full h-full object-cover" alt="" />
+                    ) : (
+                      <span className="font-black text-retro-orange text-lg">{name?.charAt(0)}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-retro-display font-black text-base-black text-sm leading-tight truncate">{name}</p>
+                    <p className="font-retro-mono text-[10px] text-base-black/50 truncate">{user.email}</p>
+                  </div>
+                </div>
+              )
+            },
+            {
+              header: 'Role',
+              key: 'role',
+              render: (role) => (
+                <div className="flex flex-col gap-1">
+                  <RetroTag 
+                    label={role} 
+                    color={role === 'admin' ? 'blue' : role === 'guru' ? 'purple' : 'orange'} 
+                  />
+                </div>
+              )
+            },
+            {
+              header: 'Identity',
+              key: 'profile',
+              className: 'hidden lg:table-cell',
+              render: (profile, user) => (
+                <div className="space-y-1">
+                  <p className="font-bold text-[10px]">
+                    {user.role === 'siswa' ? `NIS: ${profile?.nis || '-'}` : `NIP: ${profile?.nip || '-'}`}
+                  </p>
+                  {user.role === 'siswa' && user.classes?.[0] && (
+                    <p className="text-[9px] text-retro-blue font-black uppercase">
+                      {user.classes[0].name}
+                    </p>
+                  )}
+                </div>
+              )
+            },
+            {
+              header: 'Status',
+              key: 'is_active',
+              render: (active) => (
+                <span className={twMerge(
+                  "px-2 py-0.5 rounded-full text-[8px] font-black uppercase border-2",
+                  active ? "bg-success/10 text-success border-success" : "bg-danger/10 text-danger border-danger"
+                )}>
+                  {active ? 'Active' : 'Inactive'}
+                </span>
+              )
+            }
+          ]}
+          actions={(user) => (
+            <TableActions 
+              onView={() => openViewModal(user)}
+              onReset={() => handleResetPassword(user.id)}
+              onEdit={() => openEditModal(user)}
+              onDelete={() => handleDelete(user.id)}
+              onMore={() => (
+                <>
+                  <button className="w-full text-left px-3 py-2 text-[10px] font-retro-mono hover:bg-retro-yellow/20 rounded flex items-center gap-2 transition-colors"><UserPlus className="w-3.5 h-3.5" /> Assign Class</button>
+                  <button className="w-full text-left px-3 py-2 text-[10px] font-retro-mono hover:bg-retro-yellow/20 rounded flex items-center gap-2 transition-colors"><MessageSquare className="w-3.5 h-3.5" /> Send Message</button>
+                  <button className="w-full text-left px-3 py-2 text-[10px] font-retro-mono hover:bg-retro-yellow/20 rounded flex items-center gap-2 transition-colors"><History className="w-3.5 h-3.5" /> View Logs</button>
+                </>
               )}
-            </AnimatePresence>
-          </div>
-        </motion.div>
-
-        {/* Bulk Actions Bar */}
-        {selectedIds.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="retro-card p-3 mb-4 bg-retro-orange/10 border-retro-orange flex items-center justify-between">
-            <span className="text-xs font-black uppercase tracking-wide text-base-black">{selectedIds.length} user(s) selected</span>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setSelectedIds([])} className="retro-btn retro-btn-sm retro-btn-outline">Cancel</button>
-              <button onClick={handleBulkDelete} className="retro-btn retro-btn-sm bg-danger hover:bg-danger/90 text-base-white">Delete</button>
-              <button onClick={handleExport} className="retro-btn retro-btn-sm bg-retro-blue hover:bg-retro-blue/90 text-base-white">Export</button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Users Table */}
-        <motion.div variants={cardVariants} className="retro-card overflow-hidden p-0">
-          {/* Table Header Controls */}
-          <div className="p-3 border-b-2 border-base-black/10 bg-retro-yellow/5 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-retro-mono text-base-black/50">Sort by:</span>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="retro-input py-1 text-[10px]">
-                <option value="created_at">Newest</option>
-                <option value="name">Name A-Z</option>
-                <option value="email">Email</option>
-                <option value="role">Role</option>
-              </select>
-              <button onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} className="retro-btn retro-btn-sm retro-btn-outline">{sortOrder === 'asc' ? '↑' : '↓'}</button>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-retro-mono text-base-black/50">Per page:</span>
-              <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }} className="retro-input py-1 text-[10px]">
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full font-retro-mono text-sm">
-              <thead>
-                <tr className="bg-retro-blue text-base-white border-b-4 border-base-black">
-                  <th className="text-left py-3 px-4 font-black uppercase tracking-wide text-xs"><input type="checkbox" checked={users.length > 0 && selectedIds.length === users.length} onChange={toggleSelectAll} className="w-4 h-4 accent-retro-orange border-2 border-base-black" /></th>
-                  <th className="text-left py-3 px-4 font-black uppercase tracking-wide text-xs">User</th>
-                  <th className="text-left py-3 px-4 font-black uppercase tracking-wide text-xs hidden md:table-cell">Role & Tags</th>
-                  <th className="text-left py-3 px-4 font-black uppercase tracking-wide text-xs hidden lg:table-cell">Identity</th>
-                  <th className="text-left py-3 px-4 font-black uppercase tracking-wide text-xs hidden xl:table-cell">Health</th>
-                  <th className="text-left py-3 px-4 font-black uppercase tracking-wide text-xs hidden 2xl:table-cell">Last Active</th>
-                  <th className="text-right py-3 px-4 font-black uppercase tracking-wide text-xs">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y-2 divide-base-black/10">
-                {users.map((user, index) => {
-                  const healthScore = Math.round((user.is_active ? 30 : 0) + (user.avatar_url ? 20 : 0) + (user.profile?.bio ? 15 : 0) + (user.phone ? 15 : 0) + (user.profile?.class_level || user.profile?.nip ? 20 : 0));
-                  const attendanceRate = user.attendance_summary?.rate || Math.floor(Math.random() * 30) + 70; // Mock data
-                  const lastActiveDays = Math.floor(Math.random() * 30);
-                  
-                  return (
-                    <motion.tr key={user.id} variants={cardVariants} initial="hidden" animate="visible" style={{transitionDelay:`${index*20}ms`}} whileHover={{ backgroundColor: 'rgba(255,201,40,0.15)' }} className={`transition-colors ${selectedIds.includes(user.id) ? 'bg-retro-yellow/20' : ''}`}>
-                      <td className="py-4 px-4"><input type="checkbox" checked={selectedIds.includes(user.id)} onChange={() => toggleSelect(user.id)} className="w-4 h-4 accent-retro-orange border-2 border-base-black" /></td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-3">
-                          <motion.div whileHover={{ scale: 1.1, rotate: 3 }} className="w-12 h-12 retro-card bg-retro-orange/20 border-retro-orange flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => openViewModal(user)}>
-                            {user.avatar_url ? <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" /> : <span className="font-retro-display font-black text-retro-orange text-lg">{user.name?.charAt(0) || '?'}</span>}
-                          </motion.div>
-                          <div className="min-w-0">
-                            {inlineEditId === user.id && inlineEditField === 'name' ? (
-                              <div className="flex items-center gap-1">
-                                <input type="text" value={inlineEditValue} onChange={(e) => setInlineEditValue(e.target.value)} className="retro-input py-1 text-xs" autoFocus />
-                                <button onClick={() => saveInlineEdit(user.id, 'name')} className="p-1 text-success hover:bg-success/10 rounded"><Check className="w-3.5 h-3.5" /></button>
-                                <button onClick={cancelInlineEdit} className="p-1 text-danger hover:bg-danger/10 rounded"><X className="w-3.5 h-3.5" /></button>
-                              </div>
-                            ) : (
-                              <p className="font-retro-display font-black text-base-black text-sm leading-none truncate cursor-pointer hover:text-retro-orange" onDoubleClick={() => startInlineEdit(user.id, 'name', user.name)} onClick={() => openViewModal(user)}>{user.name}</p>
-                            )}
-                            <p className="font-retro-mono text-[10px] text-base-black/50 truncate">{user.email}</p>
-                            {/* User Tags */}
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {(userTags[user.id] || []).map(tag => <RetroTag key={tag} label={tag} color="gray" removable onRemove={() => removeUserTag(user.id, tag)} />)}
-                              {(!userTags[user.id] || userTags[user.id].length < 3) && <button onClick={() => addUserTag(user.id, 'New')} className="text-[9px] text-base-black/40 hover:text-retro-orange">+ tag</button>}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 hidden md:table-cell">
-                        <div className="space-y-2">
-                          <span className={`retro-badge text-[9px] ${user.role === 'admin' ? 'retro-badge-blue' : user.role === 'guru' ? 'retro-badge-green' : 'retro-badge-purple'}`}>{user.role.toUpperCase()}</span>
-                          {/* Role-specific badges */}
-                          {user.role === 'siswa' && user.profile?.class_level && <span className="retro-badge retro-badge-lime text-[9px]">Grade {user.profile.class_level}</span>}
-                          {user.role === 'siswa' && user.profile?.class_level === 'XII' && <span className="retro-badge retro-badge-pink text-[9px] animate-pulse">PKL</span>}
-                          {user.role === 'guru' && user.profile?.subjects?.length > 0 && <span className="retro-badge retro-badge-purple text-[9px]">{user.profile.subjects.length} subjects</span>}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 hidden lg:table-cell">
-                        <div className="space-y-1.5">
-                          <div className="text-[10px] font-bold">
-                            {user.role === 'siswa' && user.profile?.nis ? <span>NIS: {user.profile.nis}</span> : user.role === 'guru' && user.profile?.nip ? <span>NIP: {user.profile.nip}</span> : <span className="text-base-black/30">-</span>}
-                          </div>
-                          {user.role === 'guru' && user.profile?.subjects?.slice(0,2).map(s => <span key={s.id} className="inline-block px-1.5 py-0.5 rounded bg-retro-purple/20 text-[9px] text-retro-purple border border-retro-purple/30 font-black uppercase mr-1">{s.code}</span>)}
-                          {user.role === 'siswa' && user.classes?.[0] && <div className="flex items-center gap-1 text-retro-blue font-black bg-retro-blue/10 px-1.5 py-0.5 rounded text-[9px] w-fit"><MapPin className="w-2.5 h-2.5" />{user.classes[0].name}</div>}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 hidden xl:table-cell">
-                        <UserHealthScore score={healthScore} attendance={attendanceRate} profileComplete={Math.round((user.avatar_url?25:0)+(user.phone?25:0)+(user.profile?.bio?25:0)+(user.profile?.github_url||user.profile?.linkedin_url?25:0))} lastActive={lastActiveDays <= 1 ? 'Today' : lastActiveDays <= 7 ? `${lastActiveDays}d` : `${Math.round(lastActiveDays/7)}w`} />
-                      </td>
-                      <td className="py-4 px-4 hidden 2xl:table-cell">
-                        <div className="space-y-2">
-                          <div className="text-[10px] font-retro-mono">{lastActiveDays === 0 ? '🟢 Online now' : lastActiveDays <= 1 ? '🟡 Today' : `🔴 ${lastActiveDays} days ago`}</div>
-                          <DeviceBadge device={{ type: ['mobile','desktop','tablet'][Math.floor(Math.random()*3)], name: ['iPhone','MacBook','iPad'][Math.floor(Math.random()*3)] }} />
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openViewModal(user)} title="View Profile" className="p-2 retro-btn retro-btn-sm retro-btn-outline hover:bg-retro-yellow"><Eye className="w-4 h-4" /></button>
-                          <button onClick={() => handleResetPassword(user.id)} title="Reset Password" className="p-2 retro-btn retro-btn-sm retro-btn-outline hover:bg-retro-yellow"><KeyRound className="w-4 h-4" /></button>
-                          <button onClick={() => openEditModal(user)} title="Edit User" className="p-2 retro-btn retro-btn-sm retro-btn-outline hover:bg-retro-yellow"><Edit2 className="w-4 h-4" /></button>
-                          <div className="relative group">
-                            <button className="p-2 retro-btn retro-btn-sm retro-btn-outline hover:bg-retro-yellow"><MoreVertical className="w-4 h-4" /></button>
-                            <div className="absolute right-0 top-full mt-1 w-40 retro-card p-2 space-y-1 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-10 bg-base-white border-4 border-base-black shadow-hard">
-                              <button className="w-full text-left px-3 py-2 text-[10px] font-retro-mono hover:bg-retro-yellow/20 rounded flex items-center gap-2"><UserPlus className="w-3.5 h-3.5" /> Assign Class</button>
-                              <button className="w-full text-left px-3 py-2 text-[10px] font-retro-mono hover:bg-retro-yellow/20 rounded flex items-center gap-2"><MessageSquare className="w-3.5 h-3.5" /> Send Message</button>
-                              <button className="w-full text-left px-3 py-2 text-[10px] font-retro-mono hover:bg-retro-yellow/20 rounded flex items-center gap-2"><History className="w-3.5 h-3.5" /> View Logs</button>
-                              <hr className="border-base-black/10 my-1" />
-                              <button onClick={() => handleDelete(user.id)} className="w-full text-left px-3 py-2 text-[10px] font-retro-mono text-danger hover:bg-danger/10 rounded flex items-center gap-2"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  );
-                })}
-                {users.length === 0 && (
-                  <tr><td colSpan="7" className="text-center py-12">
-                    <FileText className="w-12 h-12 text-base-black/20 mx-auto mb-3" />
-                    <p className="font-retro-mono text-sm text-base-black/50">{search || Object.values(advancedFilters).some(v => v !== 'all' && v !== '') ? 'No users match your filters.' : 'No users yet.'}</p>
-                    <div className="flex gap-2 justify-center mt-3">
-                      <button onClick={() => { setFormData({role:'siswa',is_active:true}); setIsCreateOpen(true); }} className="retro-btn retro-btn-sm">Add First User →</button>
-                      <button onClick={() => setIsImportOpen(true)} className="retro-btn retro-btn-sm retro-btn-outline">Import CSV</button>
-                    </div>
-                  </td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* Pagination */}
-          <div className="px-4 py-3 border-t-4 border-base-black bg-retro-yellow/5 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs font-retro-mono">
-            <span>Showing <strong>{meta.from || 0}</strong>-<strong>{meta.to || 0}</strong> of <strong>{meta.total || 0}</strong></span>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={!meta.prev_page_url} className="px-3 py-1.5 retro-btn retro-btn-sm retro-btn-outline disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
-              {[...Array(Math.min(5, (meta.last_page || 1)))].map((_, i) => {
-                const currentPage = meta.current_page || 1;
-                const lastPage = meta.last_page || 1;
-                const pageNum = currentPage <= 3 ? i+1 : currentPage >= lastPage-2 ? lastPage-4+i : currentPage-2+i;
-                if (pageNum < 1 || pageNum > lastPage) return null;
-                return <button key={pageNum} onClick={() => setPage(pageNum)} className={`px-3 py-1.5 retro-btn retro-btn-sm ${page === pageNum ? 'bg-retro-orange text-base-white border-retro-orange shadow-[2px_2px_0px_0px_#111111]' : 'retro-btn-outline'}`}>{pageNum}</button>;
-              })}
-              <button onClick={() => setPage(p => Math.min(meta.last_page || 1, p+1))} disabled={!meta.next_page_url} className="px-3 py-1.5 retro-btn retro-btn-sm retro-btn-outline disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
-            </div>
-          </div>
-        </motion.div>
-      </div>
+            />
+          )}
+          pagination={{
+            ...meta,
+            onPageChange: (p) => setPage(p)
+          }}
+        />
+      </RetroSection>
 
       {/* ═══════════════════════════════════════════════════════════
           🎭 MODAL: CREATE / EDIT USER (EXPANDED)

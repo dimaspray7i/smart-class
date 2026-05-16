@@ -24,10 +24,10 @@ export default {
         
         // Base Colors
         base: {
-          black: '#111111',     // Jet Black - Text/Borders
-          white: '#FFFFFF',     // Pure White - Backgrounds
-          cream: '#FFF9E6',     // Vintage paper tone
-          gray: '#F5F5F5',      // Light gray for cards
+          black: 'var(--base-black)',
+          white: 'var(--base-white)',
+          cream: 'var(--base-cream)',
+          gray: 'var(--base-gray)',
         },
         
         // Semantic Colors (Retro Style)
@@ -185,10 +185,10 @@ export default {
       // ═══════════════════════════════════════════════════════════
       boxShadow: {
         // Hard/Offset Shadows (Brutalist Style)
-        'hard': '4px 4px 0px 0px #111111',
-        'hard-lg': '6px 6px 0px 0px #111111',
-        'hard-xl': '8px 8px 0px 0px #111111',
-        'hard-hover': '2px 2px 0px 0px #111111',
+        'hard': '4px 4px 0px 0px var(--base-black)',
+        'hard-lg': '6px 6px 0px 0px var(--base-black)',
+        'hard-xl': '8px 8px 0px 0px var(--base-black)',
+        'hard-hover': '2px 2px 0px 0px var(--base-black)',
         
         // Neon Glow Shadows
         'neon-orange': '0 0 10px #FF5C00, 0 0 20px #FF5C0066, 0 0 40px #FF5C0033',
@@ -203,13 +203,13 @@ export default {
         'card-retro': '5px 5px 0px 0px #111111, 0 0 0 4px #FFFFFF, 0 0 0 8px #111111',
         
         // Interactive Shadows
-        'pressed': '2px 2px 0px 0px #111111',
-        'hover-lift': '6px 6px 0px 0px #111111, 0 0 20px rgba(255,92,0,0.3)',
+        'pressed': '2px 2px 0px 0px var(--base-black)',
+        'hover-lift': '6px 6px 0px 0px var(--base-black), 0 0 20px rgba(255,92,0,0.3)',
       },
       
       dropShadow: {
-        'retro': '2px 2px 0px #111111',
-        'retro-lg': '4px 4px 0px #111111',
+        'retro': '2px 2px 0px var(--base-black)',
+        'retro-lg': '4px 4px 0px var(--base-black)',
       },
 
       // ═══════════════════════════════════════════════════════════
@@ -223,8 +223,8 @@ export default {
       },
       
       borderColor: {
-        'black': '#111111',
-        'white': '#FFFFFF',
+        'black': 'var(--base-black)',
+        'white': 'var(--base-white)',
         'retro-orange': '#FF5C00',
         'retro-blue': '#2E2BBF',
         'retro-yellow': '#FFC928',
@@ -263,8 +263,8 @@ export default {
       },
       
       textShadow: {
-        'retro': '2px 2px 0px #111111',
-        'retro-lg': '4px 4px 0px #111111',
+        'retro': '2px 2px 0px var(--base-black)',
+        'retro-lg': '4px 4px 0px var(--base-black)',
         'neon-orange': '0 0 5px #FF5C00, 0 0 10px #FF5C00',
         'neon-blue': '0 0 5px #2E2BBF, 0 0 10px #2E2BBF',
         'neon-yellow': '0 0 5px #FFC928, 0 0 10px #FFC928',

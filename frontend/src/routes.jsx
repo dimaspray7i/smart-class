@@ -421,6 +421,8 @@ import ClassManagement from './pages/admin/ClassManagement';
 import SubjectManagement from './pages/admin/SubjectManagement';
 import ScheduleManagement from './pages/admin/ScheduleManagement';
 import SettingsPage from './pages/admin/SettingsPage';
+import PKLManagement from './pages/admin/PKLManagement';
+import AttendanceManagement from './pages/admin/AttendanceManagement';
 
 // ═══════════════════════════════════════════════════════════
 // 🗺️ ROUTE DEFINITIONS (Array format for createBrowserRouter)
@@ -518,6 +520,12 @@ export const router = createBrowserRouter([
           
           // Settings Page
           { path: 'settings', element: <SettingsPage /> },
+          
+          // PKL Management
+          { path: 'pkl', element: <PKLManagement /> },
+
+          // Attendance Management
+          { path: 'attendance', element: <AttendanceManagement /> },
           
           // 🚧 Coming Soon: Other admin features
           { path: 'analytics', element: <ComingSoon title="Analytics & Reports" icon="📈" /> },

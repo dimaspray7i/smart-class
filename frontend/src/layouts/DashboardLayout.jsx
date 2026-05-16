@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Sidebar from '../components/ui/sidebar';
 import ThemeToggle from '../components/ui/ThemeToggle';
+import RetroDesktopTopbar from '../components/ui/RetroDesktopTopbar';
 
 // ═══════════════════════════════════════════════════════════
 // 🎨 RETRO ANIMATION VARIANTS
@@ -259,6 +260,7 @@ function RetroPageLoader() {
 // ═══════════════════════════════════════════════════════════
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
   const [keyboardHint, setKeyboardHint] = useState(false);
   
@@ -267,36 +269,50 @@ export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Combine auth and theme events for feedback toast
+  const feedbackEvent = authEvent || themeEvent;
+
+  // Handle body scroll lock when mobile sidebar is open
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [sidebarOpen]);
+
   // Track page transitions for loading state
   useEffect(() => {
     setPageLoading(true);
     const timer = setTimeout(() => setPageLoading(false), 300);
+    if (window.innerWidth < 1024) setSidebarOpen(false); // Close sidebar on mobile route change
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
   // Keyboard shortcuts support
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Only if not in input field
-      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
-        return;
-      }
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
       
-      // Escape to close sidebar
       if (e.key === 'Escape') {
         setSidebarOpen(false);
         setKeyboardHint(false);
         return;
       }
       
-      // Show/hide keyboard hints
       if (e.key === '?') {
         e.preventDefault();
         setKeyboardHint(prev => !prev);
         return;
       }
+
+      if (e.ctrlKey && e.key === '[') {
+        e.preventDefault();
+        setSidebarCollapsed(prev => !prev);
+        return;
+      }
       
-      // Ctrl+D for dashboard home
       if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === 'd') {
         e.preventDefault();
         const dashboardPath = user?.role === 'admin' ? '/dashboard/admin' : 
@@ -305,59 +321,78 @@ export default function DashboardLayout() {
         navigate(dashboardPath);
         return;
       }
-      
-      // Ctrl+S for settings
-      if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        navigate('/dashboard/admin/settings');
-        return;
-      }
-      
-      // Ctrl+L for logout (with confirmation)
-      if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === 'l') {
-        e.preventDefault();
-        if (window.confirm('🎮 Quick Logout!\n\nAre you sure you want to sign out?')) {
-          logout();
-        }
-        return;
-      }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [user, navigate, logout]);
 
-  // Handle auth/theme events for feedback
-  const feedbackEvent = authEvent || themeEvent;
-
   // ═══════════════════════════════════════════════════════════
   // 🎨 MAIN RENDER - RETRO FUTURISTIC DASHBOARD LAYOUT
   // ═══════════════════════════════════════════════════════════
   return (
-    <motion.div 
-      variants={layoutVariants}
-      initial="hidden"
-      animate="visible"
-      className="relative min-h-screen bg-base-cream retro-grid-bg overflow-x-hidden"
-    >
+    <div className="relative min-h-screen bg-base-cream retro-grid-bg overflow-x-hidden selection:bg-retro-yellow selection:text-base-black">
       {/* Background Decorations */}
       <DashboardDecorations />
       
       {/* Skip Link for Accessibility */}
       <RetroSkipLink />
+
+      {/* Unified Responsive Sidebar - FIXED */}
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
       
-      {/* Mobile Sidebar */}
-      <div className="lg:hidden">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* Main Content Wrapper */}
+      <div 
+        className={`flex flex-col min-h-screen transition-all duration-300 ease-in-out ${
+          sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'
+        }`}
+      >
+        {/* Desktop Topbar - Retro Global Header */}
+        <RetroDesktopTopbar onMenuClick={() => setSidebarOpen(true)} />
+
+        {/* Mobile Header - Retro Style */}
+        <RetroMobileHeader onMenuClick={() => setSidebarOpen(true)} user={user} />
+        
+        {/* Main Content Area */}
+        <main 
+          id="main-content"
+          className="flex-1 p-4 md:p-6 lg:p-8 relative z-10"
+        >
+          <div className="max-w-7xl mx-auto">
+            {/* Page Content with Transition */}
+            <AnimatePresence mode="wait">
+              {pageLoading ? (
+                <motion.div 
+                  key="loader"
+                  variants={contentVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
+                  <RetroPageLoader />
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key={location.pathname}
+                  variants={contentVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="w-full"
+                >
+                  <Outlet />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </main>
       </div>
-      
-      {/* Desktop Sidebar - Static */}
-      <div className="hidden lg:block fixed inset-y-0 left-0 z-40">
-        <Sidebar isOpen={true} onClose={() => {}} />
-      </div>
-      
-      {/* Mobile Header - Retro Style */}
-      <RetroMobileHeader onMenuClick={() => setSidebarOpen(true)} user={user} />
+
       
       {/* Keyboard Shortcut Hint */}
       <AnimatePresence>
@@ -424,38 +459,7 @@ export default function DashboardLayout() {
         )}
       </AnimatePresence>
       
-      {/* Main Content Area */}
-      <main 
-        id="main-content"
-        className={`lg:ml-64 p-4 md:p-6 lg:p-8 ${sidebarOpen ? 'lg:ml-64' : ''}`}
-      >
-        <div className="max-w-7xl mx-auto">
-          {/* Page Content with Transition */}
-          <AnimatePresence mode="wait">
-            {pageLoading ? (
-              <motion.div 
-                key="loader"
-                variants={contentVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-              >
-                <RetroPageLoader />
-              </motion.div>
-            ) : (
-              <motion.div 
-                key={location.pathname}
-                variants={contentVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-              >
-                <Outlet />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </main>
+
       
       {/* Decorative Footer Stickers */}
       <div className="fixed bottom-4 left-4 z-0 hidden lg:block pointer-events-none">
@@ -480,6 +484,6 @@ export default function DashboardLayout() {
       {/* Corner Accents */}
       <div className="fixed top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-retro-orange pointer-events-none z-0" />
       <div className="fixed bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-retro-blue pointer-events-none z-0" />
-    </motion.div>
+    </div>
   );
 }
