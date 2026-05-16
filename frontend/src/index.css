@@ -1,319 +1,626 @@
+/* ═══════════════════════════════════════════════════════════
+   🎨 TAILWIND DIRECTIVES
+   ═══════════════════════════════════════════════════════════ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════
-   GLOBAL VARIABLES & BASE STYLES
+   🌈 RETRO FUTURISTIC DESIGN SYSTEM - CORE VARIABLES
    ═══════════════════════════════════════════════════════════ */
-
 @layer base {
+  :root {
+    /* Base colors */
+    --base-cream: #FFF9F0;
+    --base-white: #FFFFFF;
+    --base-gray: #F0F0F0;
+    --base-black: #111111;
+    
+    /* Retro primary palette */
+    --retro-orange: #FF5C00;
+    --retro-blue: #2E2BBF;
+    --retro-yellow: #FFC928;
+    --retro-purple: #9D4EDD;
+    --retro-lime: #B8F64E;
+    --retro-pink: #FF69B4;
+    
+    /* Semantic colors */
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #f43f5e;
+    --info: #3b82f6;
+    
+    /* Dark mode overrides */
+    --dark-bg: #0f0f1a;
+    --dark-card: #1a1a2e;
+    --dark-border: #2d2d44;
+    --dark-muted: #8888aa;
+    --dark-text: #f0f0f0;
+  }
+
+  /* HTML & Body */
   html {
-    scroll-behavior: smooth;
+    @apply scroll-smooth overflow-x-hidden;
   }
   
   body {
-    @apply bg-gray-50 text-gray-900 dark:bg-dark-bg dark:text-dark-text;
-    @apply transition-colors duration-300 ease-in-out;
+    @apply bg-base-cream text-base-black font-sans relative min-h-screen;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* ─── DARK MODE BASE ─────────────────────────────────────── */
+  html.dark {
+    --base-cream: #0f0f1a;
+    --base-white: #1a1a2e;
+    --base-black: #f0f0f0;
+    --base-gray: #2d2d44;
+  }
+
+  html.dark body {
+    background-color: var(--base-cream);
+    color: var(--base-black);
+  }
+
+  html.dark ::selection {
+    background-color: #FF5C00;
+    color: #ffffff;
+  }
+
+  html.dark ::-webkit-scrollbar-track {
+    background-color: #1a1a2e;
+    border-color: #2d2d44;
+  }
+
+  html.dark ::-webkit-scrollbar-thumb {
+    background-color: #FF5C00;
+    border-color: #2d2d44;
+  }
+
+  html.dark :focus-visible {
+    @apply ring-offset-[#0f0f1a];
+  }
     
-    /* Animated background gradient for dark mode */
+  /* Noise overlay */
+  body::before {
+    content: '';
+    @apply fixed inset-0 pointer-events-none opacity-[0.04] z-[-1];
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+    
+  /* Grid pattern overlay */
+  body.retro-grid-bg::after {
+    content: '';
+    @apply fixed inset-0 pointer-events-none z-[-2];
     background-image: 
-      radial-gradient(circle at 20% 50%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
-    background-attachment: fixed;
+      linear-gradient(rgba(17,17,17,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(17,17,17,0.08) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
 
   /* Selection styling */
   ::selection {
-    @apply bg-primary-500/30 text-white;
-  }
-  
-  .dark ::selection {
-    @apply bg-primary-600/40 text-white;
+    @apply bg-retro-yellow text-base-black;
   }
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    @apply w-4 h-4;
   }
   
   ::-webkit-scrollbar-track {
-    @apply bg-transparent;
+    @apply bg-base-gray border-2 border-base-black;
   }
   
   ::-webkit-scrollbar-thumb {
-    @apply bg-primary-400 dark:bg-primary-600 rounded-full;
-    @apply hover:bg-primary-500 dark:hover:bg-primary-500;
-    @apply transition-colors duration-200;
+    @apply bg-retro-orange border-2 border-base-black rounded-sm;
+    @apply hover:bg-retro-blue;
   }
   
-  /* Focus styles for accessibility */
+  /* Focus visible */
   :focus-visible {
-    @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-dark-bg;
+    @apply outline-none ring-4 ring-retro-orange ring-offset-4 ring-offset-base-cream;
   }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   CUSTOM UTILITIES
+   🎭 RETRO TYPOGRAPHY
    ═══════════════════════════════════════════════════════════ */
+@layer base {
+  @font-face {
+    font-family: 'Retro-Display';
+    src: local('Arial Black'), local('Impact'), sans-serif;
+    font-weight: 900;
+    font-display: swap;
+  }
 
-@layer utilities {
-  .shadow-card {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  @font-face {
+    font-family: 'Retro-Mono';
+    src: local('Courier New'), local('Monaco'), monospace;
+    font-display: swap;
   }
-  .shadow-card-dark {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  }
-  .shadow-card-hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+  @font-face {
+    font-family: 'Retro-Hand';
+    src: local('Comic Sans MS'), local('Marker Felt'), cursive;
+    font-display: swap;
   }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   REUSABLE COMPONENTS
+   🧱 RETRO COMPONENT STYLES
    ═══════════════════════════════════════════════════════════ */
-
 @layer components {
-  /* ─────────────────────────────────────────────────────────
-     BUTTONS
-     ───────────────────────────────────────────────────────── */
-  .btn {
-    @apply px-6 py-3 rounded-xl font-semibold 
-           transition-all duration-300 ease-out
-           focus:outline-none focus:ring-2 focus:ring-offset-2
-           disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
-           hover:scale-[1.02] active:scale-[0.98];
+  /* ────────────────────────────────────────────────────────
+     CARD BASE - Brutalist borders & hard shadows
+     ──────────────────────────────────────────────────────── */
+  .retro-card {
+    @apply relative border-4 border-base-black rounded-retro-lg bg-base-white;
+    @apply transition-all duration-200;
+    box-shadow: 4px 4px 0px 0px #111111;
   }
   
-  .btn-primary {
-    @apply btn 
-           bg-gradient-to-r from-primary-600 to-primary-500 
-           hover:from-primary-700 hover:to-primary-600
-           text-white 
-           shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50
-           focus:ring-primary-500 dark:focus:ring-offset-dark-bg;
+  .retro-card:hover {
+    @apply translate-x-[-2px] translate-y-[-2px];
+    box-shadow: 6px 6px 0px 0px #111111;
   }
   
-  .btn-outline {
-    @apply btn 
-           border-2 border-primary-500/50 
-           hover:bg-primary-500/10 hover:border-primary-500
-           text-primary-600 dark:text-primary-400
-           focus:ring-primary-500 dark:focus:ring-offset-dark-bg;
+  .retro-card-sticker {
+    @apply retro-card;
+    box-shadow: 3px 3px 0px 0px #111111, 6px 6px 0px 0px #FF5C00;
+  }
+  .retro-card-sticker:hover {
+    box-shadow: 2px 2px 0px 0px #111111, 4px 4px 0px 0px #FF5C00;
   }
   
-  .btn-glass {
-    @apply btn 
-           bg-white/10 backdrop-blur-md border border-white/20
-           hover:bg-white/20 hover:border-white/30
-           text-white
-           focus:ring-white/50 dark:focus:ring-offset-dark-bg;
+  .retro-card-glass { @apply bg-base-white/90 backdrop-blur-sm; }
+  .retro-card-orange { @apply bg-retro-orange/10 border-retro-orange; }
+  .retro-card-blue { @apply bg-retro-blue/10 border-retro-blue; }
+
+  /* ────────────────────────────────────────────────────────
+     BUTTON BASE - Bold, uppercase, brutalist
+     ──────────────────────────────────────────────────────── */
+  .retro-btn {
+    @apply relative inline-flex items-center justify-center gap-2;
+    @apply px-6 py-3 font-retro-display font-black uppercase tracking-wide text-sm;
+    @apply bg-retro-orange text-base-white border-4 border-base-black rounded-retro;
+    @apply transition-all duration-150 cursor-pointer;
+    @apply focus:outline-none focus:ring-4 focus:ring-retro-yellow/50;
+    box-shadow: 4px 4px 0px 0px #111111;
   }
   
-  .btn-danger {
-    @apply btn 
-           bg-gradient-to-r from-rose-600 to-rose-500 
-           hover:from-rose-700 hover:to-rose-600
-           text-white 
-           shadow-lg shadow-rose-500/30
-           focus:ring-rose-500;
+  .retro-btn:hover {
+    @apply bg-retro-blue translate-x-[-2px] translate-y-[-2px];
+    box-shadow: 6px 6px 0px 0px #111111;
+  }
+  
+  .retro-btn:active {
+    @apply translate-x-[4px] translate-y-[4px];
+    box-shadow: 2px 2px 0px 0px #111111;
+  }
+  
+  .retro-btn:disabled {
+    @apply opacity-60 cursor-not-allowed;
+    box-shadow: 2px 2px 0px 0px #111111;
+  }
+  
+  .retro-btn-secondary { @apply retro-btn bg-retro-blue text-base-white; }
+  .retro-btn-secondary:hover { @apply bg-retro-purple; }
+  
+  .retro-btn-outline {
+    @apply retro-btn bg-base-white text-base-black shadow-none;
+  }
+  .retro-btn-outline:hover {
+    box-shadow: 4px 4px 0px 0px #111111;
+  }
+  
+  .retro-btn-sticker {
+    @apply shadow-sticker rounded-sticker rotate-[-2deg];
+  }
+  .retro-btn-sticker:hover {
+    @apply rotate-0 shadow-sticker-hover;
+  }
+  
+  .retro-btn-sm { @apply px-4 py-2 text-xs; }
+  .retro-btn-lg { @apply px-8 py-4 text-base; }
+
+  /* Shine effect on hover */
+  .retro-btn::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent;
+    @apply -translate-x-full transition-transform duration-500;
+  }
+  .retro-btn:hover::before {
+    @apply translate-x-full;
   }
 
-  /* ─────────────────────────────────────────────────────────
-     CARDS
-     ───────────────────────────────────────────────────────── */
-  .card {
-    @apply bg-white dark:bg-dark-card 
-           rounded-2xl shadow-card dark:shadow-card-dark
-           border border-gray-200 dark:border-dark-border 
-           p-6 md:p-8 
-           transition-all duration-300 ease-out
-           hover:shadow-card-hover hover:border-primary-500/30;
+  /* ────────────────────────────────────────────────────────
+     INPUT BASE - Monospace, brutalist borders
+     ──────────────────────────────────────────────────────── */
+  .retro-input {
+    @apply w-full px-4 py-3 font-retro-mono text-base-black;
+    @apply bg-base-white border-4 border-base-black rounded-retro;
+    @apply focus:outline-none focus:ring-4 focus:ring-retro-orange/50 focus:border-retro-orange;
+    @apply placeholder:text-base-black/50;
+    @apply disabled:opacity-60 disabled:cursor-not-allowed;
+    box-shadow: 2px 2px 0px 0px #111111;
   }
   
-  .card-glass {
-    @apply bg-white/10 dark:bg-dark-card/50 
-           backdrop-blur-xl 
-           border border-white/20 dark:border-dark-border/50
-           rounded-2xl shadow-xl p-6 md:p-8;
+  .retro-input-label {
+    @apply block text-xs font-retro-display font-black uppercase tracking-wider text-base-black mb-2;
   }
   
-  .card-hover {
-    @apply card cursor-pointer 
-           hover:-translate-y-1 hover:shadow-2xl;
+  .retro-input-error {
+    @apply border-danger;
+  }
+  .retro-input-error:focus {
+    @apply ring-danger/50 border-danger;
+  }
+  
+  .retro-textarea {
+    @apply retro-input min-h-[100px] resize-y;
   }
 
-  /* ─────────────────────────────────────────────────────────
-     FORM INPUTS
-     ───────────────────────────────────────────────────────── */
-  .input {
-    @apply w-full px-4 py-3 rounded-xl 
-           border-2 border-gray-300 dark:border-dark-border 
-           bg-white dark:bg-dark-card 
-           text-gray-900 dark:text-dark-text 
-           placeholder-gray-400 dark:placeholder-dark-muted
-           focus:outline-none focus:border-primary-500 
-           focus:ring-4 focus:ring-primary-500/20
-           transition-all duration-300;
+  /* ────────────────────────────────────────────────────────
+     HEADING BASE - Bold, uppercase, drop shadow
+     ──────────────────────────────────────────────────────── */
+  .retro-heading {
+    @apply font-retro-display font-black uppercase tracking-tight text-base-black leading-none;
+    filter: drop-shadow(2px 2px 0px #111111);
   }
   
-  .input-error {
-    @apply input border-danger focus:border-danger focus:ring-danger/20;
+  .retro-heading-orange { @apply text-retro-orange; }
+  .retro-heading-blue { @apply text-retro-blue; }
+  .retro-heading-stroke {
+    -webkit-text-stroke: 2px #111111;
   }
   
-  .label {
-    @apply block text-sm font-semibold 
-           text-gray-700 dark:text-dark-muted 
-           mb-2;
+  .retro-heading-xl { @apply text-4xl md:text-6xl lg:text-8xl; }
+  .retro-heading-lg { @apply text-3xl md:text-5xl lg:text-7xl; }
+  .retro-heading-md { @apply text-2xl md:text-4xl lg:text-5xl; }
+  .retro-heading-sm { @apply text-xl md:text-3xl lg:text-4xl; }
+
+  /* ────────────────────────────────────────────────────────
+     BADGE & STICKER BASE
+     ──────────────────────────────────────────────────────── */
+  .retro-badge {
+    @apply inline-flex items-center gap-1 px-3 py-1 font-retro-mono font-black text-xs uppercase tracking-wider;
+    @apply border-2 border-base-black rounded-full;
+    box-shadow: 2px 2px 0px 0px #111111;
   }
   
-  .label-required::after {
-    content: " *";
-    @apply text-danger;
+  .retro-badge-orange { @apply bg-retro-orange text-base-white; }
+  .retro-badge-blue { @apply bg-retro-blue text-base-white; }
+  .retro-badge-yellow { @apply bg-retro-yellow text-base-black; }
+  .retro-badge-green { @apply bg-success text-base-white; }
+  .retro-badge-purple { @apply bg-retro-purple text-base-white; }
+  
+  .retro-sticker {
+    @apply retro-badge rounded-sticker rotate-[-3deg];
+    @apply hover:rotate-0 transition-transform duration-200;
+    box-shadow: 3px 3px 0px 0px #111111, 6px 6px 0px 0px #FF5C00;
   }
 
-  /* ─────────────────────────────────────────────────────────
-     BADGES & TAGS
-     ───────────────────────────────────────────────────────── */
-  .badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full 
-           text-xs font-medium border;
+  /* ────────────────────────────────────────────────────────
+     NAVBAR - Floating, rounded, brutalist
+     ──────────────────────────────────────────────────────── */
+  .retro-nav {
+    @apply fixed top-4 left-1/2 -translate-x-1/2 z-50;
+    @apply flex items-center gap-1 px-3 py-2;
+    @apply bg-base-white/95 backdrop-blur-md border-4 border-base-black rounded-full;
+    box-shadow: 6px 6px 0px 0px #111111;
   }
   
-  .badge-primary {
-    @apply badge bg-primary-100 dark:bg-primary-900/30 
-           text-primary-700 dark:text-primary-300 
-           border-primary-200 dark:border-primary-700;
+  .retro-nav-link {
+    @apply px-4 py-2 font-retro-mono font-black text-xs uppercase tracking-wide rounded-full;
+    @apply border-2 border-transparent transition-all duration-200;
+    @apply hover:bg-retro-yellow hover:border-base-black;
+  }
+  .retro-nav-link:hover {
+    box-shadow: 2px 2px 0px 0px #111111;
+    transform: translateY(-2px) rotate(-1deg);
   }
   
-  .badge-success {
-    @apply badge bg-success/10 text-success border-success/30;
-  }
-  
-  .badge-warning {
-    @apply badge bg-warning/10 text-warning border-warning/30;
-  }
-  
-  .badge-danger {
-    @apply badge bg-danger/10 text-danger border-danger/30;
+  .retro-nav-link-active {
+    @apply bg-retro-orange text-base-white border-base-black;
+    box-shadow: 2px 2px 0px 0px #111111;
+    transform: rotate(-2deg);
   }
 
-  /* ─────────────────────────────────────────────────────────
-     HERO & SECTIONS
-     ───────────────────────────────────────────────────────── */
-  .hero-section {
-    @apply relative overflow-hidden min-h-[600px] flex items-center justify-center
-           bg-gradient-to-br from-primary-700 via-primary-600 to-dark-bg
-           before:absolute before:inset-0 before:bg-grid-pattern before:opacity-20;
+  /* ────────────────────────────────────────────────────────
+     TOGGLE SWITCH - Retro slider
+     ──────────────────────────────────────────────────────── */
+  .retro-toggle {
+    @apply relative inline-flex h-7 w-14 items-center rounded-full;
+    @apply border-2 border-base-black bg-base-gray transition-colors;
+  }
+  .retro-toggle-checked { @apply bg-retro-orange; }
+  
+  .retro-toggle-slider {
+    @apply absolute left-0.5 top-0.5 h-6 w-6 rounded-sm;
+    @apply bg-base-white border-2 border-base-black transition-transform;
+    box-shadow: 2px 2px 0px 0px #111111;
+  }
+  .retro-toggle-checked .retro-toggle-slider {
+    transform: translateX(28px);
   }
 
-  .section-title {
-    @apply text-3xl md:text-4xl font-bold text-center mb-4
-           bg-gradient-to-r from-primary-600 to-accent-cyan
-           bg-clip-text text-transparent;
+  /* ────────────────────────────────────────────────────────
+     TABS - Brutalist tab bar
+     ──────────────────────────────────────────────────────── */
+  .retro-tabs {
+    @apply flex gap-2 overflow-x-auto pb-2;
   }
   
-  .section-subtitle {
-    @apply text-lg text-gray-600 dark:text-dark-muted text-center mb-12 max-w-2xl mx-auto;
+  .retro-tab {
+    @apply px-4 py-2 font-retro-display font-black text-xs uppercase tracking-wide;
+    @apply bg-base-white border-4 border-base-black rounded-retro;
+    @apply transition-all duration-150;
+    box-shadow: 4px 4px 0px 0px #111111;
+  }
+  .retro-tab:hover {
+    @apply bg-retro-yellow translate-y-[-2px];
+    box-shadow: 6px 6px 0px 0px #111111;
+  }
+  .retro-tab-active {
+    @apply bg-retro-orange text-base-white rotate-[-2deg];
+    box-shadow: 3px 3px 0px 0px #111111, 6px 6px 0px 0px #FF5C00;
   }
 
-  /* ─────────────────────────────────────────────────────────
-     DECORATIVE ELEMENTS
-     ───────────────────────────────────────────────────────── */
-  .sparkle {
-    @apply absolute w-1.5 h-1.5 bg-white rounded-full animate-sparkle;
+  /* ────────────────────────────────────────────────────────
+     TABLE - Brutalist data table
+     ──────────────────────────────────────────────────────── */
+  .retro-table {
+    @apply w-full border-4 border-base-black rounded-retro overflow-hidden bg-base-white;
+    box-shadow: 4px 4px 0px 0px #111111;
   }
   
-  .glow-orb {
-    @apply absolute rounded-full blur-3xl opacity-20 pointer-events-none;
+  .retro-table-header {
+    @apply bg-retro-orange text-base-white font-retro-display font-black uppercase tracking-wide text-xs;
+    @apply border-b-4 border-base-black;
   }
   
-  .glow-orb-purple {
-    @apply glow-orb bg-primary-500 w-96 h-96;
+  .retro-table-row {
+    @apply border-b-2 border-base-black/20 hover:bg-retro-yellow/20;
   }
   
-  .glow-orb-cyan {
-    @apply glow-orb bg-accent-cyan w-80 h-80;
+  .retro-table-cell {
+    @apply px-4 py-3 font-retro-mono font-medium text-sm;
   }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   UTILITY CLASSES
+   ✨ RETRO ANIMATIONS & UTILITIES
    ═══════════════════════════════════════════════════════════ */
-
 @layer utilities {
-  /* Text gradients */
-  .text-gradient {
-    @apply bg-clip-text text-transparent 
-           bg-gradient-to-r from-primary-400 to-accent-cyan;
+  .text-outline {
+    -webkit-text-stroke: 2px #111111;
   }
   
-  .text-gradient-purple {
-    @apply bg-clip-text text-transparent 
-           bg-gradient-to-r from-primary-500 to-primary-700;
+  .text-shadow-retro {
+    text-shadow: 2px 2px 0px #111111;
   }
   
-  /* Glassmorphism */
-  .glass-effect {
-    @apply bg-white/10 backdrop-blur-md 
-           border border-white/20 dark:border-white/10;
-  }
-  
-  /* Glow effects */
-  .glow-purple {
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
-  }
-  
-  .glow-cyan {
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
-  }
-  
-  .glow-pink {
-    box-shadow: 0 0 20px rgba(236, 72, 153, 0.5);
-  }
-  
-  /* Hover lift effect */
-  .hover-lift {
-    @apply transition-transform duration-300 hover:-translate-y-1;
-  }
-  
-  /* Smooth fade */
-  .fade-enter {
-    @apply opacity-0;
-  }
-  .fade-enter-active {
-    @apply opacity-100 transition-opacity duration-300;
-  }
-  
-  /* Grid background pattern */
-  .bg-grid {
+  .bg-retro-grid {
     background-image: 
-      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
+      linear-gradient(rgba(17,17,17,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(17,17,17,0.08) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
-  
-  .dark .bg-grid {
-    background-image: 
-      linear-gradient(rgba(168,85,247,0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(168,85,247,0.05) 1px, transparent 1px);
+
+  /* Animation utilities */
+  .animate-float-retro {
+    animation: float-retro 3s ease-in-out infinite;
+  }
+  .animate-wobble {
+    animation: wobble 2s ease-in-out infinite;
+  }
+  .animate-sparkle-retro {
+    animation: sparkle-retro 1.5s ease-in-out infinite;
+  }
+  .animate-retro-pulse {
+    animation: retro-pulse 2s ease-in-out infinite;
   }
 }
 
+/* Keyframes */
+@keyframes wobble {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+
+@keyframes sparkle-retro {
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(180deg); }
+}
+
+@keyframes float-retro {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
+}
+
+@keyframes retro-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0px rgba(255,92,0,0);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255,92,0,0.4);
+    transform: scale(1.05);
+  }
+}
+
+@keyframes retro-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+  20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
+
+.animate-retro-shake {
+  animation: retro-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
 /* ═══════════════════════════════════════════════════════════
-   PRINT STYLES
+   📱 RESPONSIVE ADJUSTMENTS
    ═══════════════════════════════════════════════════════════ */
-@media print {
-  .no-print {
-    display: none !important;
+@media (max-width: 768px) {
+  .retro-heading-xl { @apply text-3xl; }
+  .retro-nav { @apply w-[95%] max-w-md; }
+  .retro-card { box-shadow: 2px 2px 0px 0px #111111; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   🌙 DARK MODE SUPPORT
+   Full override using direct CSS properties (Tailwind @apply
+   uses compile-time values, so CSS vars won't work there)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Dark mode background & text for key semantic elements */
+html.dark body,
+html.dark .retro-grid-bg {
+  background-color: #0f0f1a;
+  color: #f0f0f0;
+}
+
+/* Cards → dark surface */
+html.dark .retro-card {
+  background-color: #1a1a2e;
+  border-color: #9D4EDD;
+  box-shadow: 4px 4px 0px 0px #9D4EDD;
+  color: #f0f0f0;
+}
+html.dark .retro-card:hover {
+  box-shadow: 6px 6px 0px 0px #9D4EDD;
+}
+
+/* Inputs → dark surface */
+html.dark .retro-input {
+  background-color: #1a1a2e;
+  color: #f0f0f0;
+  border-color: #9D4EDD;
+}
+html.dark .retro-input:focus {
+  border-color: #FF5C00;
+  box-shadow: 0 0 0 3px rgba(255,92,0,0.25);
+}
+html.dark .retro-input::placeholder {
+  color: #8888aa;
+}
+
+/* Labels */
+html.dark .retro-label {
+  color: #f0f0f0;
+}
+
+/* Buttons stay mostly the same — just adjust outline variant */
+html.dark .retro-btn-outline {
+  background-color: transparent;
+  color: #f0f0f0;
+  border-color: #f0f0f0;
+}
+html.dark .retro-btn-outline:hover {
+  background-color: #FF5C00;
+  color: #ffffff;
+  border-color: #FF5C00;
+}
+
+/* Badges */
+html.dark .retro-badge {
+  border-color: #f0f0f0;
+  color: #f0f0f0;
+}
+
+/* Navigation links */
+html.dark .retro-nav-link {
+  color: #f0f0f0;
+}
+html.dark .retro-nav-link:hover {
+  color: #FF5C00;
+}
+
+/* Headings */
+html.dark .retro-heading {
+  color: #f0f0f0;
+  filter: drop-shadow(2px 2px 0px #9D4EDD);
+}
+
+/* Sidebar & Layout panels */
+html.dark aside,
+html.dark header,
+html.dark nav {
+  background-color: #1a1a2e;
+  border-color: #2d2d44;
+}
+
+/* Scrollbar in dark mode */
+html.dark ::-webkit-scrollbar-track {
+  background-color: #1a1a2e;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background-color: #FF5C00;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ♿ ACCESSIBILITY & PREFERENCES
+   ═══════════════════════════════════════════════════════════ */
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
-  
-  body {
-    @apply bg-white text-black;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .retro-btn,
+  .retro-input,
+  .retro-card {
+    @apply border-4;
+    box-shadow: 4px 4px 0px 0px #000 !important;
   }
-  
-  .card {
-    @apply shadow-none border-gray-300;
-  }
+}
+
+/* Focus visible for keyboard navigation */
+.retro-btn:focus-visible,
+.retro-input:focus-visible,
+.retro-nav-link:focus-visible {
+  @apply outline-none ring-4 ring-retro-orange ring-offset-2;
+}
+
+/* Screen reader only */
+.sr-only {
+  @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+  clip: rect(0, 0, 0, 0);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   🧹 BASE RESET & NORMALIZATION
+   ═══════════════════════════════════════════════════════════ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+img, picture, video, canvas, svg {
+  @apply block max-w-full;
+}
+
+input, button, textarea, select {
+  font: inherit;
+}
+
+a {
+  @apply text-inherit no-underline;
+}
+
+ul, ol {
+  @apply list-none;
 }

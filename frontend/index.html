@@ -1,23 +1,114 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RPL Smart Ecosystem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- SEO & Meta -->
+    <title>RPL Smart Ecosystem | Retro Futuristic School OS</title>
+    <meta name="description" content="Sistem manajemen sekolah modern dengan desain retro futuristic. Kelola absensi, PKL, jadwal, dan siswa dengan gaya Y2K cyber aesthetic." />
+    <meta name="keywords" content="sekolah, absensi, PKL, RPL, manajemen, retro, futuristic, dashboard" />
+    <meta name="author" content="RPL Smart Team" />
+    <meta name="theme-color" content="#FF5C00" />
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:title" content="RPL Smart Ecosystem" />
+    <meta property="og:description" content="Next-gen school management system with retro futuristic design" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/og-image.png" />
+    
+    <!-- Fonts: Retro Display & Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Primary Retro Display Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Righteous&family=Anton&display=swap" rel="stylesheet">
+    
+    <!-- Secondary & Mono Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+    
+    <!-- Fallback Sans-serif -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Theme Initialization Script -->
     <script>
       (function() {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        // Check for saved theme preference or respect OS preference
+        const savedTheme = localStorage.getItem('rpl-theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        // Retro theme is primarily LIGHT mode, but support dark if explicitly set
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
           document.documentElement.classList.add('dark');
         } else {
           document.documentElement.classList.remove('dark');
         }
       })();
     </script>
+    
+    <!-- Preload critical assets -->
+    <link rel="modulepreload" href="/src/main.jsx" />
+    
+    <!-- PWA Manifest (Optional) -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   </head>
-  <body>
+  
+  <body class="antialiased">
+    <!-- Loading Screen (Retro Style) -->
+    <div id="loading-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-base-cream">
+      <div class="text-center">
+        <!-- Retro Loading Animation -->
+        <div class="relative mb-6">
+          <div class="w-20 h-20 mx-auto border-4 border-base-black rounded-retro-lg flex items-center justify-center bg-retro-orange animate-pulse">
+            <span class="text-3xl font-black text-base-white">R</span>
+          </div>
+          <div class="absolute -top-2 -right-2 w-6 h-6 bg-retro-yellow border-2 border-base-black rounded-full flex items-center justify-center text-xs font-black animate-bounce-retro">
+            ✨
+          </div>
+        </div>
+        
+        <h1 class="retro-heading retro-heading-orange text-2xl mb-2">RPL SMART</h1>
+        <p class="font-retro-mono text-sm text-base-black/70">Loading awesome stuff...</p>
+        
+        <!-- Retro Progress Bar -->
+        <div class="mt-4 w-48 mx-auto h-3 border-2 border-base-black rounded-sm overflow-hidden">
+          <div class="h-full bg-retro-blue animate-[marquee_2s_linear_infinite]" style="width: 30%"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Root App -->
     <div id="root"></div>
+    
+    <!-- Main Application Script -->
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Hide loading screen after app loads -->
+    <script>
+      window.addEventListener('load', function() {
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+          loadingScreen.style.opacity = '0';
+          loadingScreen.style.transition = 'opacity 0.3s ease-out';
+          setTimeout(() => {
+            loadingScreen.style.display = 'none';
+          }, 300);
+        }
+      });
+    </script>
+    
+    <!-- Retro Decorative Elements -->
+    <div id="retro-decor" class="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+      <!-- Floating decorative elements -->
+      <div class="retro-smiley absolute top-20 left-10 animate-float-retro"></div>
+      <div class="retro-arrow absolute bottom-32 right-20 animate-wobble">➜</div>
+      <div class="retro-star absolute top-1/3 right-10 text-2xl animate-sparkle-retro">★</div>
+      <div class="retro-blob w-32 h-32 top-1/4 left-1/4"></div>
+      <div class="retro-blob w-24 h-24 bottom-1/4 right-1/4 bg-retro-blue/20"></div>
+    </div>
   </body>
 </html>

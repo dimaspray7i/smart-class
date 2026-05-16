@@ -8,6 +8,7 @@ use App\Models\Subject;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SubjectController extends Controller
 {
@@ -16,7 +17,7 @@ class SubjectController extends Controller
      */
     public function __construct(protected SubjectService $subjectService)
     {
-        // Middleware akan menangani autentikasi dan otorisasi
+        // Middleware handled at route level
     }
 
     /**
@@ -27,29 +28,42 @@ class SubjectController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $subjects = $this->subjectService->all(
-            $request->only(['category', 'is_active', 'search', 'credits_min', 'credits_max', 'sort', 'all'])
-        );
+        try {
+            $filters = $request->only([
+                'category', 'is_active', 'search', 
+                'credits_min', 'credits_max', 'sort', 'all'
+            ]);
+            
+            $subjects = $this->subjectService->all($filters);
 
-        $responseData = [
-            'status' => 'success',
-            'message' => 'Mapel berhasil diambil.',
-            'code' => 'SUBJECTS_SUCCESS',
-            'data' => $request->has('all') ? $subjects : $subjects->items(),
-        ];
-
-        if (!$request->has('all')) {
-            $responseData['meta'] = [
-                'current_page' => $subjects->currentPage(),
-                'per_page' => $subjects->perPage(),
-                'total' => $subjects->total(),
-                'last_page' => $subjects->lastPage(),
-                'from' => $subjects->firstItem(),
-                'to' => $subjects->lastItem(),
+            $responseData = [
+                'status' => 'success',
+                'message' => 'Mapel berhasil diambil.',
+                'code' => 'SUBJECTS_SUCCESS',
+                'data' => $request->has('all') ? $subjects : $subjects->items(),
             ];
-        }
 
-        return response()->json($responseData, 200);
+            if (!$request->has('all')) {
+                $responseData['meta'] = [
+                    'current_page' => $subjects->currentPage(),
+                    'per_page' => $subjects->perPage(),
+                    'total' => $subjects->total(),
+                    'last_page' => $subjects->lastPage(),
+                    'from' => $subjects->firstItem(),
+                    'to' => $subjects->lastItem(),
+                ];
+            }
+
+            return response()->json($responseData, 200);
+            
+        } catch (\Exception $e) {
+            Log::error('Subject index error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengambil data mata pelajaran.',
+                'code' => 'SUBJECTS_ERROR',
+            ], 500);
+        }
     }
 
     /**
@@ -60,46 +74,56 @@ class SubjectController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $subject = Subject::withCount(['schedules', 'classes'])
-            ->with(['profiles.user' => function($query) {
-                $query->select('id', 'name', 'email');
-            }])
-            ->find($id);
+        try {
+            $subject = Subject::withCount(['schedules', 'classes'])
+                ->with(['profiles.user' => function($query) {
+                    $query->select('id', 'name', 'email');
+                }])
+                ->find($id);
 
-        if (!$subject) {
+            if (!$subject) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Mapel tidak ditemukan.',
+                    'code' => 'NOT_FOUND',
+                ], 404);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Mapel berhasil diambil.',
+                'code' => 'SUBJECT_SUCCESS',
+                'data' => [
+                    'id' => $subject->id,
+                    'code' => $subject->code,
+                    'name' => $subject->name,
+                    'category' => $subject->category,
+                    'category_label' => $subject->category_label, // ✅ Requires accessor in Model
+                    'credits' => $subject->credits,
+                    'description' => $subject->description,
+                    'is_active' => $subject->is_active,
+                    'schedules_count' => $subject->schedules_count,
+                    'classes_count' => $subject->classes_count,
+                    'teachers' => $subject->profiles->map(function ($profile) {
+                        return [
+                            'id' => $profile->user?->id,
+                            'name' => $profile->user?->name,
+                            'email' => $profile->user?->email,
+                        ];
+                    })->filter()->values(),
+                    'created_at' => $subject->created_at?->toDateTimeString(),
+                    'updated_at' => $subject->updated_at?->toDateTimeString(),
+                ],
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('Subject show error: ' . $e->getMessage());
             return response()->json([
                 'status' => 'error',
-                'message' => 'Mapel tidak ditemukan.',
-                'code' => 'NOT_FOUND',
-            ], 404);
+                'message' => 'Gagal mengambil detail mata pelajaran.',
+                'code' => 'SUBJECT_ERROR',
+            ], 500);
         }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Mapel berhasil diambil.',
-            'code' => 'SUBJECT_SUCCESS',
-            'data' => [
-                'id' => $subject->id,
-                'code' => $subject->code,
-                'name' => $subject->name,
-                'category' => $subject->category,
-                'category_label' => $subject->category_label,
-                'credits' => $subject->credits,
-                'description' => $subject->description,
-                'is_active' => $subject->is_active,
-                'schedules_count' => $subject->schedules_count,
-                'classes_count' => $subject->classes_count,
-                'teachers' => $subject->profiles->map(function ($profile) {
-                    return [
-                        'id' => $profile->user?->id,
-                        'name' => $profile->user?->name,
-                        'email' => $profile->user?->email,
-                    ];
-                })->filter()->values(),
-                'created_at' => $subject->created_at?->toDateTimeString(),
-                'updated_at' => $subject->updated_at?->toDateTimeString(),
-            ],
-        ], 200);
     }
 
     /**
@@ -110,32 +134,49 @@ class SubjectController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:50|unique:subjects,code',
-            'name' => 'required|string|max:255',
-            'category' => 'required|in:productive,normative,adaptive',
-            'credits' => 'sometimes|integer|min:1|max:10',
-            'description' => 'nullable|string|max:1000',
-            'is_active' => 'nullable|boolean',
-        ]);
+        try {
+            $validated = $request->validate([
+                'code' => 'required|string|max:50|unique:subjects,code',
+                'name' => 'required|string|max:255',
+                'category' => 'required|in:productive,normative,adaptive',
+                'credits' => 'sometimes|integer|min:1|max:10',
+                'description' => 'nullable|string|max:1000',
+                'is_active' => 'nullable|boolean',
+            ]);
 
-        $result = $this->subjectService->create($validated);
+            $result = $this->subjectService->create($validated);
 
-        if (!$result['success']) {
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'CREATE_FAILED',
+                    'errors' => $result['errors'] ?? null,
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $result['message'],
+                'code' => 'CREATE_SUCCESS',
+                'data' => $result['subject'],
+            ], 201);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => $result['message'],
-                'code' => $result['code'] ?? 'CREATE_FAILED',
-                'errors' => $result['errors'] ?? null,
-            ], 400);
+                'message' => 'Validasi gagal.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Subject store error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal membuat mata pelajaran.',
+                'code' => 'CREATE_ERROR',
+            ], 500);
         }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => $result['message'],
-            'code' => 'CREATE_SUCCESS',
-            'data' => $result['subject'],
-        ], 201);
     }
 
     /**
@@ -147,32 +188,49 @@ class SubjectController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'sometimes|string|max:50|unique:subjects,code,' . $id,
-            'name' => 'sometimes|string|max:255',
-            'category' => 'sometimes|in:productive,normative,adaptive',
-            'credits' => 'sometimes|integer|min:1|max:10',
-            'description' => 'nullable|string|max:1000',
-            'is_active' => 'nullable|boolean',
-        ]);
+        try {
+            $validated = $request->validate([
+                'code' => 'sometimes|string|max:50|unique:subjects,code,' . $id,
+                'name' => 'sometimes|string|max:255',
+                'category' => 'sometimes|in:productive,normative,adaptive',
+                'credits' => 'sometimes|integer|min:1|max:10',
+                'description' => 'nullable|string|max:1000',
+                'is_active' => 'nullable|boolean',
+            ]);
 
-        $result = $this->subjectService->update($id, $validated);
+            $result = $this->subjectService->update($id, $validated);
 
-        if (!$result['success']) {
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'UPDATE_FAILED',
+                    'errors' => $result['errors'] ?? null,
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $result['message'],
+                'code' => 'UPDATE_SUCCESS',
+                'data' => $result['subject'],
+            ], 200);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => $result['message'],
-                'code' => $result['code'] ?? 'UPDATE_FAILED',
-                'errors' => $result['errors'] ?? null,
-            ], 400);
+                'message' => 'Validasi gagal.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Subject update error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal update mata pelajaran.',
+                'code' => 'UPDATE_ERROR',
+            ], 500);
         }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => $result['message'],
-            'code' => 'UPDATE_SUCCESS',
-            'data' => $result['subject'],
-        ], 200);
     }
 
     /**
@@ -184,45 +242,54 @@ class SubjectController extends Controller
      */
     public function destroy(Request $request, int $id = null): JsonResponse
     {
-        // Support bulk delete via request body
-        $ids = $request->input('ids', $id ? [$id] : []);
-        
-        if (empty($ids)) {
+        try {
+            // Support bulk delete via request body
+            $ids = $request->input('ids', $id ? [$id] : []);
+            
+            if (empty($ids)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'ID mata pelajaran tidak ditemukan.',
+                    'code' => 'INVALID_ID',
+                ], 400);
+            }
+
+            $results = [];
+            
+            foreach ($ids as $subjectId) {
+                $result = $this->subjectService->delete($subjectId);
+                $results[] = $result;
+            }
+
+            $success = collect($results)->every(fn($r) => $r['success'] === true);
+
+            if (!$success) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Gagal menghapus satu atau lebih mata pelajaran.',
+                    'code' => 'DELETE_FAILED',
+                ], 400);
+            }
+
+            $count = count($ids);
+            $message = $count > 1 
+                ? "{$count} mata pelajaran berhasil dihapus." 
+                : 'Mata pelajaran berhasil dihapus.';
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $message,
+                'code' => 'DELETE_SUCCESS',
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('Subject destroy error: ' . $e->getMessage());
             return response()->json([
                 'status' => 'error',
-                'message' => 'ID mata pelajaran tidak ditemukan.',
-                'code' => 'INVALID_ID',
-            ], 400);
+                'message' => 'Gagal menghapus mata pelajaran.',
+                'code' => 'DELETE_ERROR',
+            ], 500);
         }
-
-        $results = [];
-        
-        foreach ($ids as $subjectId) {
-            $result = $this->subjectService->delete($subjectId);
-            $results[] = $result;
-        }
-
-        $success = collect($results)->every(function ($result) {
-            return $result['success'] === true;
-        });
-
-        if (!$success) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Gagal menghapus satu atau lebih mata pelajaran.',
-                'code' => 'DELETE_FAILED',
-            ], 400);
-        }
-
-        $message = count($ids) > 1 
-            ? count($ids) . ' mata pelajaran berhasil dihapus.' 
-            : 'Mata pelajaran berhasil dihapus.';
-
-        return response()->json([
-            'status' => 'success',
-            'message' => $message,
-            'code' => 'DELETE_SUCCESS',
-        ], 200);
     }
 
     /**
@@ -274,16 +341,8 @@ class SubjectController extends Controller
                 
                 // Write header row
                 fputcsv($file, [
-                    'ID',
-                    'Kode',
-                    'Nama',
-                    'Kategori',
-                    'Kredit',
-                    'Deskripsi',
-                    'Status',
-                    'Jumlah Jadwal',
-                    'Jumlah Kelas',
-                    'Tanggal Dibuat'
+                    'ID', 'Kode', 'Nama', 'Kategori', 'Kredit', 
+                    'Deskripsi', 'Status', 'Jumlah Jadwal', 'Jumlah Kelas', 'Tanggal Dibuat'
                 ], ';');
                 
                 // Write data rows
@@ -292,7 +351,7 @@ class SubjectController extends Controller
                         $subject->id,
                         $subject->code,
                         $subject->name,
-                        $subject->category_label,
+                        $subject->category_label, // ✅ Requires accessor
                         $subject->credits,
                         strip_tags($subject->description),
                         $subject->is_active ? 'Aktif' : 'Non-Aktif',
@@ -308,11 +367,80 @@ class SubjectController extends Controller
             return response()->stream($callback, 200, $headers);
             
         } catch (\Exception $e) {
+            Log::error('Subject export error: ' . $e->getMessage());
             return response()->json([
                 'status' => 'error',
                 'message' => 'Gagal export data: ' . $e->getMessage(),
                 'code' => 'EXPORT_FAILED',
             ], 500);
         }
+    }
+
+    /**
+     * Get subject categories for dropdown/filter
+     * 
+     * @return JsonResponse
+     */
+    public function categories(): JsonResponse
+    {
+        $categories = [
+            ['value' => 'productive', 'label' => '📊 Produktif', 'color' => 'bg-retro-purple/10 text-retro-purple'],
+            ['value' => 'normative', 'label' => '📚 Normatif', 'color' => 'bg-retro-blue/10 text-retro-blue'],
+            ['value' => 'adaptive', 'label' => '🔧 Adaptif', 'color' => 'bg-retro-lime/10 text-retro-lime'],
+        ];
+        
+        return response()->json([
+            'status' => 'success',
+            'data' => $categories,
+        ], 200);
+    }
+
+    /**
+     * Get subjects for grid/list view (with retro metadata)
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function gridView(Request $request): JsonResponse
+    {
+        $subjects = $this->subjectService->all($request->only(['category', 'search', 'is_active']));
+        
+        $data = collect($subjects->items())->map(function($subject) {
+            return [
+                'id' => $subject->id,
+                'code' => $subject->code,
+                'name' => $subject->name,
+                'category' => $subject->category,
+                'category_label' => $subject->category_label,
+                'credits' => $subject->credits,
+                'description' => $subject->description,
+                'is_active' => $subject->is_active,
+                'schedules_count' => $subject->schedules_count ?? 0,
+                'classes_count' => $subject->classes_count ?? 0,
+                'retro_badge' => $this->getRetroBadge($subject->category),
+            ];
+        });
+        
+        return response()->json([
+            'status' => 'success',
+            'data' => $data,
+            'meta' => [
+                'total' => $subjects->total(),
+                'page' => $subjects->currentPage(),
+            ],
+        ], 200);
+    }
+
+    /**
+     * Get retro badge config for a category
+     */
+    private function getRetroBadge(string $category): array
+    {
+        $badges = [
+            'productive' => ['icon' => '📊', 'color' => 'retro-badge-purple', 'label' => 'Produktif'],
+            'normative' => ['icon' => '📚', 'color' => 'retro-badge-blue', 'label' => 'Normatif'],
+            'adaptive' => ['icon' => '🔧', 'color' => 'retro-badge-lime', 'label' => 'Adaptif'],
+        ];
+        return $badges[$category] ?? $badges['productive'];
     }
 }

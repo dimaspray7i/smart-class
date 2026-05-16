@@ -126,6 +126,18 @@ class Schedule extends Model
         return $query->where('day', strtolower($day));
     }
 
+    /**
+     * Scope: Search by class, subject, or teacher name
+     */
+    public function scopeSearch($query, string $search)
+    {
+        return $query->where(function($q) use ($search) {
+            $q->whereHas('class', fn($sq) => $sq->where('name', 'like', "%{$search}%"))
+              ->orWhereHas('subject', fn($sq) => $sq->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"))
+              ->orWhereHas('teacher', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
+        });
+    }
+
     // ═══════════════════════════════════════════════════════════
     // ACCESSORS
     // ═══════════════════════════════════════════════════════════

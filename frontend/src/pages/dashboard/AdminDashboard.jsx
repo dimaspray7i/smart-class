@@ -5,215 +5,275 @@ import {
   Users, School, BookOpen, Calendar, 
   Activity, TrendingUp, AlertCircle, RefreshCw,
   Plus, Eye, Settings, BarChart3, Shield,
-  Zap, Database, Server, Clock, Moon, Sun,
-  ChevronRight, ArrowUpRight, CheckCircle2
+  Zap, Database, Server, Clock,
+  ChevronRight, ArrowUpRight, CheckCircle2,
+  Sparkles, Star, Smile, ArrowRight, Target,
+  MapPin, FileText, Award, Rocket, Flame,
+  Menu, X, Cpu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
 
 // ═══════════════════════════════════════════════════════════
-// ANIMATION VARIANTS
+// 🎨 RETRO ANIMATION VARIANTS
 // ═══════════════════════════════════════════════════════════
-const containerVariants = {
+const pageVariants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.15 }
+  visible: { 
+    opacity: 1, 
+    transition: { staggerChildren: 0.06, delayChildren: 0.1 } 
   }
 };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 24 },
+const cardVariants = {
+  hidden: { opacity: 0, y: 30, rotate: -1 },
   visible: { 
     opacity: 1, 
     y: 0, 
-    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] }
+    rotate: 0,
+    transition: { 
+      type: "spring", 
+      stiffness: 100, 
+      damping: 15,
+      mass: 0.1 
+    } 
   }
 };
 
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
+const stickerVariants = {
+  hidden: { scale: 0, rotate: -180 },
+  visible: { 
+    scale: 1, 
+    rotate: 0,
+    transition: { type: "spring", stiffness: 200, damping: 10 } 
+  },
+  hover: { 
+    scale: 1.1, 
+    rotate: [0, -5, 5, -3, 3, 0],
+    transition: { duration: 0.3 }
+  }
+};
+
+const floatVariants = {
+  animate: {
+    y: [0, -8, 0],
+    rotate: [0, 2, -2, 0],
+    transition: { duration: 4, repeat: Infinity, ease: "easeInOut" }
   }
 };
 
 // ═══════════════════════════════════════════════════════════
-// SPACE STAT CARD COMPONENT
+// 🎭 RETRO STAT CARD COMPONENT
 // ═══════════════════════════════════════════════════════════
-function SpaceStatCard({ label, value, icon: Icon, color, trend, subtitle, onClick }) {
+function RetroStatCard({ label, value, icon: Icon, color, trend, subtitle, onClick, sticker }) {
   const colorConfig = {
+    orange: {
+      bg: 'bg-retro-orange/10',
+      border: 'border-retro-orange',
+      icon: 'text-retro-orange',
+      iconBg: 'bg-retro-orange',
+      text: 'text-retro-orange',
+      shadow: 'shadow-[4px_4px_0px_0px_#FF5C00]',
+    },
+    blue: {
+      bg: 'bg-retro-blue/10',
+      border: 'border-retro-blue',
+      icon: 'text-retro-blue',
+      iconBg: 'bg-retro-blue',
+      text: 'text-retro-blue',
+      shadow: 'shadow-[4px_4px_0px_0px_#2E2BBF]',
+    },
+    yellow: {
+      bg: 'bg-retro-yellow/20',
+      border: 'border-retro-yellow',
+      icon: 'text-retro-yellow',
+      iconBg: 'bg-retro-yellow',
+      text: 'text-retro-yellow',
+      shadow: 'shadow-[4px_4px_0px_0px_#FFC928]',
+    },
     purple: {
-      gradient: 'from-primary-600/20 to-primary-500/10',
-      border: 'border-primary-500/30',
-      icon: 'text-primary-400',
-      iconBg: 'from-primary-600/30 to-primary-500/20',
-      glow: 'hover:shadow-[0_0_30px_rgba(168,85,247,0.25)]',
+      bg: 'bg-retro-purple/10',
+      border: 'border-retro-purple',
+      icon: 'text-retro-purple',
+      iconBg: 'bg-retro-purple',
+      text: 'text-retro-purple',
+      shadow: 'shadow-[4px_4px_0px_0px_#9D4EDD]',
     },
-    cyan: {
-      gradient: 'from-accent-cyan/20 to-primary-600/10',
-      border: 'border-accent-cyan/30',
-      icon: 'text-accent-cyan',
-      iconBg: 'from-accent-cyan/30 to-primary-600/20',
-      glow: 'hover:shadow-[0_0_30px_rgba(6,182,212,0.25)]',
-    },
-    pink: {
-      gradient: 'from-accent-pink/20 to-primary-600/10',
-      border: 'border-accent-pink/30',
-      icon: 'text-accent-pink',
-      iconBg: 'from-accent-pink/30 to-primary-600/20',
-      glow: 'hover:shadow-[0_0_30px_rgba(236,72,153,0.25)]',
-    },
-    emerald: {
-      gradient: 'from-success/20 to-primary-600/10',
-      border: 'border-success/30',
-      icon: 'text-success',
-      iconBg: 'from-success/30 to-primary-600/20',
-      glow: 'hover:shadow-[0_0_30px_rgba(16,185,129,0.25)]',
+    lime: {
+      bg: 'bg-retro-lime/10',
+      border: 'border-retro-lime',
+      icon: 'text-retro-lime',
+      iconBg: 'bg-retro-lime',
+      text: 'text-retro-lime',
+      shadow: 'shadow-[4px_4px_0px_0px_#B8F64E]',
     },
   };
 
-  const config = colorConfig[color] || colorConfig.purple;
+  const config = colorConfig[color] || colorConfig.orange;
 
   return (
     <motion.div
-      variants={itemVariants}
-      whileHover={{ y: -6, scale: 1.02 }}
+      variants={cardVariants}
+      whileHover={{ y: -4, rotate: sticker ? [0, -2, 2, -1, 1, 0] : 0 }}
       onClick={onClick}
-      className={`relative group cursor-pointer ${onClick ? '' : 'pointer-events-none'}`}
+      className={`relative retro-card cursor-pointer group ${onClick ? '' : 'pointer-events-none'}`}
     >
-      {/* Animated glow background */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-      
-      {/* Card */}
-      <div className={`relative p-5 rounded-2xl backdrop-blur-xl border ${config.border} 
-        bg-white/80 dark:bg-dark-card/80 
-        shadow-lg ${config.glow} transition-all duration-300`}>
+      {/* Decorative sticker corner */}
+      {sticker && (
+        <motion.div 
+          variants={stickerVariants}
+          initial="hidden"
+          animate="visible"
+          whileHover="hover"
+          className="absolute -top-2 -right-2 z-10"
+        >
+          <div className="retro-sticker bg-retro-yellow text-base-black text-[10px] px-2 py-0.5">
+            {sticker}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Card Content */}
+      <div className={`p-5 ${config.bg} border-4 ${config.border} rounded-retro-lg shadow-hard transition-all duration-200 group-hover:shadow-hard-hover group-hover:-translate-x-0.5 group-hover:-translate-y-0.5`}>
         
         <div className="flex items-start justify-between mb-4">
           <motion.div 
-            className={`p-3 rounded-xl bg-gradient-to-br ${config.iconBg} shadow-lg`}
+            className={`p-3 rounded-retro ${config.iconBg} border-2 border-base-black ${config.shadow}`}
             whileHover={{ scale: 1.1, rotate: 5 }}
             transition={{ type: "spring", stiffness: 300 }}
           >
-            <Icon className={`w-6 h-6 ${config.icon}`} />
+            <Icon className={`w-6 h-6 text-base-white`} />
           </motion.div>
           
           {trend && (
             <motion.div 
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10 border border-success/30"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="retro-badge retro-badge-orange rotate-[-3deg]"
             >
-              <TrendingUp className="w-3.5 h-3.5 text-success" />
-              <span className="text-xs font-semibold text-success">+{trend}%</span>
+              <TrendingUp className="w-3 h-3 mr-1" />
+              +{trend}%
             </motion.div>
           )}
         </div>
         
         <div>
           <motion.h3 
-            className="text-3xl font-bold text-gray-900 dark:text-white mb-1"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
+            className="text-3xl font-retro-display font-black text-base-black mb-1 leading-none"
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
           >
             {value.toLocaleString('id-ID')}
           </motion.h3>
-          <p className="text-gray-600 dark:text-dark-muted text-sm font-medium">{label}</p>
+          <p className="text-sm font-black uppercase tracking-wider text-base-black/70">{label}</p>
           {subtitle && (
-            <p className="text-gray-500 dark:text-gray-600 text-xs mt-1.5 flex items-center gap-1">
-              <ChevronRight className="w-3 h-3" />
+            <p className="text-xs font-medium text-base-black/50 mt-2 flex items-center gap-1">
+              <ArrowRight className="w-3 h-3 rotate-[-45deg]" />
               {subtitle}
             </p>
           )}
         </div>
         
-        {/* Corner accent */}
-        <div className={`absolute top-4 right-4 w-2 h-2 rounded-full bg-gradient-to-r ${config.iconBg} opacity-60 group-hover:opacity-100 transition-opacity`} />
+        {/* Decorative corner accent */}
+        <div className={`absolute bottom-3 right-3 w-3 h-3 ${config.iconBg} border-2 border-base-black rounded-sm rotate-45`} />
       </div>
     </motion.div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════
-// QUICK ACTION BUTTON
+// 🎮 RETRO QUICK ACTION BUTTON
 // ═══════════════════════════════════════════════════════════
-function QuickActionButton({ label, icon: Icon, action, gradient, description, badge }) {
+function RetroQuickAction({ label, icon: Icon, action, color, description, badge, rotate = 0 }) {
+  const colorConfig = {
+    orange: 'bg-retro-orange hover:bg-retro-orange/90',
+    blue: 'bg-retro-blue hover:bg-retro-blue/90',
+    yellow: 'bg-retro-yellow hover:bg-retro-yellow/90 text-base-black',
+    purple: 'bg-retro-purple hover:bg-retro-purple/90',
+    lime: 'bg-retro-lime hover:bg-retro-lime/90 text-base-black',
+    pink: 'bg-retro-pink hover:bg-retro-pink/90',
+  };
+
   return (
     <motion.button
-      variants={itemVariants}
-      whileHover={{ scale: 1.03, y: -3 }}
-      whileTap={{ scale: 0.98 }}
+      variants={cardVariants}
+      whileHover={{ scale: 1.05, y: -3, rotate: rotate + 1 }}
+      whileTap={{ scale: 0.95, rotate: rotate - 1 }}
       onClick={action}
-      className={`relative p-4 rounded-xl bg-gradient-to-br ${gradient} text-white 
-        transition-all duration-300 group overflow-hidden text-left`}
+      className={`relative retro-btn ${colorConfig[color]} text-base-white overflow-hidden text-left`}
+      style={{ transform: `rotate(${rotate}deg)` }}
     >
-      {/* Hover overlay */}
-      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      {/* Hover shine effect */}
+      <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -skew-x-12 -translate-x-full group-hover:translate-x-full" />
       
       {/* Content */}
       <div className="relative z-10">
         <div className="flex items-start justify-between mb-2">
           <Icon className="w-6 h-6" />
           {badge && (
-            <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium">
+            <motion.span 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="retro-badge retro-badge-yellow text-[10px] px-1.5 py-0.5 rotate-[3deg]"
+            >
               {badge}
-            </span>
+            </motion.span>
           )}
         </div>
-        <span className="text-sm font-semibold block mb-0.5">{label}</span>
-        <span className="text-xs opacity-80 hidden xl:block">{description}</span>
+        <span className="text-xs font-black uppercase tracking-wide block mb-0.5">{label}</span>
+        <span className="text-[10px] opacity-90 hidden xl:block font-medium">{description}</span>
       </div>
       
-      {/* Animated corner */}
+      {/* Animated arrow corner */}
       <motion.div 
-        className="absolute bottom-0 right-0 w-8 h-8"
+        className="absolute bottom-1 right-1"
         initial={{ opacity: 0 }}
         whileHover={{ opacity: 1 }}
       >
-        <ArrowUpRight className="w-4 h-4 text-white/60 ml-auto" />
+        <ArrowUpRight className="w-4 h-4 text-base-white/80" />
       </motion.div>
     </motion.button>
   );
 }
 
 // ═══════════════════════════════════════════════════════════
-// SYSTEM HEALTH ITEM
+// 🖥️ RETRO SYSTEM HEALTH ITEM
 // ═══════════════════════════════════════════════════════════
-function SystemHealthItem({ label, value, icon: Icon }) {
+function RetroHealthItem({ label, value, icon: Icon }) {
   const getStatusConfig = (status) => {
     const configs = {
-      connected: { color: 'text-success', bg: 'bg-success/10', border: 'border-success/30', dot: 'bg-success' },
-      active: { color: 'text-success', bg: 'bg-success/10', border: 'border-success/30', dot: 'bg-success' },
-      running: { color: 'text-success', bg: 'bg-success/10', border: 'border-success/30', dot: 'bg-success' },
-      configured: { color: 'text-accent-cyan', bg: 'bg-accent-cyan/10', border: 'border-accent-cyan/30', dot: 'bg-accent-cyan' },
-      disconnected: { color: 'text-danger', bg: 'bg-danger/10', border: 'border-danger/30', dot: 'bg-danger' },
-      inactive: { color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/30', dot: 'bg-warning' },
+      connected: { color: 'text-success', bg: 'bg-success', border: 'border-base-black', dot: 'bg-success', label: 'OK' },
+      active: { color: 'text-success', bg: 'bg-success', border: 'border-base-black', dot: 'bg-success', label: 'ACTIVE' },
+      running: { color: 'text-success', bg: 'bg-success', border: 'border-base-black', dot: 'bg-success', label: 'RUNNING' },
+      configured: { color: 'text-retro-blue', bg: 'bg-retro-blue', border: 'border-base-black', dot: 'bg-retro-blue', label: 'READY' },
+      disconnected: { color: 'text-danger', bg: 'bg-danger', border: 'border-base-black', dot: 'bg-danger', label: 'OFFLINE' },
+      inactive: { color: 'text-warning', bg: 'bg-warning', border: 'border-base-black', dot: 'bg-warning', label: 'IDLE' },
     };
     return configs[status?.toLowerCase()] || configs.configured;
   };
 
   const status = typeof value === 'object' ? value.status : String(value).toLowerCase();
   const config = getStatusConfig(status);
-  const displayValue = typeof value === 'object' ? value.status : String(value);
 
   return (
     <motion.div 
-      variants={itemVariants}
-      whileHover={{ x: 4, backgroundColor: 'rgba(255,255,255,0.03)' }}
-      className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 dark:bg-dark-card/50 border border-white/10"
+      variants={cardVariants}
+      whileHover={{ x: 4, backgroundColor: 'rgba(255,201,40,0.1)' }}
+      className="flex items-center justify-between p-3 retro-card bg-base-white"
     >
       <div className="flex items-center gap-3">
-        {Icon && <Icon className="w-4 h-4 text-gray-400" />}
-        <span className="text-gray-300 text-sm capitalize">{label}</span>
+        {Icon && <Icon className="w-4 h-4 text-base-black" />}
+        <span className="text-xs font-black uppercase tracking-wide text-base-black">{label}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className={`w-2 h-2 rounded-full ${config.dot} animate-pulse`} />
-        <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${config.bg} ${config.border} ${config.color}`}>
-          {displayValue}
+        <motion.span 
+          className={`w-2.5 h-2.5 rounded-sm ${config.dot} border border-base-black`}
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+        <span className={`retro-badge ${config.bg} text-base-white text-[10px] px-2 py-0.5 border-2 border-base-black`}>
+          {config.label}
         </span>
       </div>
     </motion.div>
@@ -221,18 +281,59 @@ function SystemHealthItem({ label, value, icon: Icon }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// MAIN DASHBOARD COMPONENT
+// 🎪 DECORATIVE FLOATING ELEMENTS
+// ═══════════════════════════════════════════════════════════
+function RetroDecorations() {
+  return (
+    <>
+      {/* Floating smiley */}
+      <motion.div 
+        variants={floatVariants}
+        animate="animate"
+        className="absolute top-20 right-10 z-0 hidden lg:block"
+      >
+        <div className="retro-smiley text-xl animate-wobble">😎</div>
+      </motion.div>
+      
+      {/* Floating star */}
+      <motion.div 
+        variants={floatVariants}
+        animate="animate"
+        className="absolute bottom-32 left-20 z-0 hidden lg:block"
+        style={{ animationDelay: '1s' }}
+      >
+        <Star className="w-8 h-8 text-retro-yellow fill-retro-yellow drop-shadow-retro animate-sparkle-retro" />
+      </motion.div>
+      
+      {/* Floating arrow */}
+      <motion.div 
+        variants={floatVariants}
+        animate="animate"
+        className="absolute top-1/3 right-1/4 z-0 hidden xl:block"
+        style={{ animationDelay: '2s' }}
+      >
+        <ArrowRight className="w-10 h-10 text-retro-orange drop-shadow-retro rotate-[-45deg] animate-wobble" />
+      </motion.div>
+      
+      {/* Decorative blob */}
+      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-retro-purple/20 rounded-blob blur-2xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-24 h-24 bg-retro-lime/20 rounded-blob blur-2xl pointer-events-none" />
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 MAIN RETRO DASHBOARD COMPONENT (SIDEBAR READY)
 // ═══════════════════════════════════════════════════════════
 export default function AdminDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
-
-
+  const [sidebarOpen, setSidebarOpen] = useState(false); // For mobile sidebar toggle
 
   // ═════════════════════════════════════════════════════════
-  // API QUERIES
+  // 🔌 API QUERIES
   // ═════════════════════════════════════════════════════════
   const { 
     data: dashboard, 
@@ -248,7 +349,7 @@ export default function AdminDashboard() {
     staleTime: 2 * 60 * 1000,
   });
 
-  const {  analyticsData } = useQuery({
+  const { data: analyticsData } = useQuery({
     queryKey: ['admin-analytics'],
     queryFn: () => api.get('/admin/analytics/attendance'),
     enabled: activeTab === 'analytics',
@@ -261,495 +362,578 @@ export default function AdminDashboard() {
   };
 
   // ═════════════════════════════════════════════════════════
-  // QUICK ACTIONS
+  // 🎮 QUICK ACTIONS CONFIG
   // ═════════════════════════════════════════════════════════
   const quickActions = [
     {
-      label: 'Kelola Users',
+      label: 'Users',
       icon: Users,
       action: () => navigate('/dashboard/admin/users'),
-      gradient: 'from-blue-600 to-primary-600 hover:from-blue-500 hover:to-primary-500',
-      description: 'Tambah, edit, hapus user',
+      color: 'orange',
+      description: 'Manage accounts',
       badge: null,
+      rotate: -2,
     },
     {
-      label: 'Kelola Kelas',
+      label: 'Classes',
       icon: School,
       action: () => navigate('/dashboard/admin/classes'),
-      gradient: 'from-success to-emerald-600 hover:from-success hover:to-emerald-500',
-      description: 'Atur kelas & penjadwalan',
+      color: 'blue',
+      description: 'Manage classes',
       badge: null,
+      rotate: 2,
     },
     {
-      label: 'Kelola Mapel',
+      label: 'Subjects',
       icon: BookOpen,
       action: () => navigate('/dashboard/admin/subjects'),
-      gradient: 'from-primary-600 to-accent-pink hover:from-primary-500 hover:to-accent-pink',
-      description: 'Tambah/edit mata pelajaran',
-      badge: null,
+      color: 'purple',
+      description: 'Manage subjects',
+      badge: 'NEW',
+      rotate: -1,
     },
     {
-      label: 'Jadwal',
+      label: 'Schedule',
       icon: Calendar,
       action: () => navigate('/dashboard/admin/schedules'),
-      gradient: 'from-accent-cyan to-blue-600 hover:from-accent-cyan hover:to-blue-500',
-      description: 'Atur jadwal mengajar',
+      color: 'yellow',
+      description: 'Manage schedule',
       badge: null,
+      rotate: 1,
     },
     {
       label: 'Analytics',
       icon: BarChart3,
       action: () => setActiveTab('analytics'),
-      gradient: 'from-primary-600 to-accent-cyan hover:from-primary-500 hover:to-accent-cyan',
-      description: 'Statistik & laporan',
-      badge: '',
+      color: 'lime',
+      description: 'View reports',
+      badge: '📊',
+      rotate: -3,
     },
     {
       label: 'Settings',
       icon: Settings,
       action: () => navigate('/dashboard/admin/settings'),
-      gradient: 'from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600',
-      description: 'Konfigurasi sistem',
+      color: 'pink',
+      description: 'System config',
       badge: null,
+      rotate: 2,
     },
   ];
 
   // ═════════════════════════════════════════════════════════
-  // LOADING STATE
+  // ⏳ LOADING STATE (RETRO STYLE)
   // ═════════════════════════════════════════════════════════
   if (isLoading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="min-h-[60vh] flex items-center justify-center bg-retro-grid">
         <motion.div 
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
+          {/* Retro loading animation */}
           <motion.div 
             animate={{ rotate: 360 }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-            className="w-16 h-16 border-3 border-primary-500/30 border-t-primary-400 rounded-full mx-auto mb-5"
-          />
-          <p className="text-gray-400 dark:text-dark-muted">Initializing dashboard...</p>
-          <p className="text-gray-500 dark:text-gray-600 text-sm mt-1">Connecting to RPL Smart Ecosystem</p>
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-20 h-20 mx-auto mb-4 border-4 border-base-black rounded-retro-lg flex items-center justify-center bg-retro-orange shadow-hard"
+          >
+            <Sparkles className="w-10 h-10 text-base-white animate-pulse" />
+          </motion.div>
+          
+          <h2 className="retro-heading retro-heading-orange text-2xl mb-2">RPL SMART</h2>
+          <p className="font-retro-mono text-sm text-base-black/70 mb-4">Loading awesome stuff...</p>
+          
+          {/* Retro progress bar */}
+          <div className="w-48 mx-auto h-4 border-4 border-base-black rounded-sm overflow-hidden bg-base-white">
+            <motion.div 
+              className="h-full bg-retro-blue"
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+              style={{ width: '50%' }}
+            />
+          </div>
+          
+          {/* Decorative elements */}
+          <motion.div 
+            animate={{ y: [0, -5, 0] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+            className="mt-4"
+          >
+            <Smile className="w-6 h-6 text-retro-yellow mx-auto animate-wobble" />
+          </motion.div>
         </motion.div>
       </div>
     );
   }
 
   // ═════════════════════════════════════════════════════════
-  // ERROR STATE
+  // ❌ ERROR STATE (RETRO STYLE)
   // ═════════════════════════════════════════════════════════
   if (isError) {
     return (
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="card p-8 text-center max-w-lg mx-auto"
+        className="retro-card p-8 text-center max-w-lg mx-auto bg-base-white"
       >
         <motion.div
-          animate={{ scale: [1, 1.1, 1] }}
+          animate={{ scale: [1, 1.1, 1], rotate: [0, -5, 5, 0] }}
           transition={{ duration: 0.5, repeat: Infinity }}
+          className="w-16 h-16 mx-auto mb-4 border-4 border-base-black rounded-retro-lg flex items-center justify-center bg-danger shadow-[4px_4px_0px_0px_#111111]"
         >
-          <AlertCircle className="w-14 h-14 text-danger mx-auto mb-4" />
+          <AlertCircle className="w-8 h-8 text-base-white" />
         </motion.div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Connection Error</h3>
-        <p className="text-gray-600 dark:text-dark-muted mb-5">
+        
+        <h3 className="retro-heading text-xl mb-3 text-base-black">Oops! Connection Error</h3>
+        <p className="font-retro-mono text-sm text-base-black/70 mb-5">
           {error?.message || 'Failed to connect to server.'}
         </p>
+        
         <div className="flex gap-3 justify-center">
           <button 
             onClick={() => refetch()} 
-            className="btn-primary inline-flex items-center gap-2"
+            className="retro-btn retro-btn-secondary flex items-center gap-2"
             disabled={isFetching}
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-            Retry Connection
+            Retry
           </button>
           <button 
             onClick={() => navigate('/')}
-            className="btn-outline"
+            className="retro-btn retro-btn-outline"
           >
-            Back to Home
+            Go Home
           </button>
+        </div>
+        
+        {/* Decorative error sticker */}
+        <div className="absolute -top-3 -right-3 retro-sticker bg-retro-yellow text-base-black text-xs px-3 py-1">
+          ERROR!
         </div>
       </motion.div>
     );
   }
 
   // ═════════════════════════════════════════════════════════
-  // DATA EXTRACTION
+  // 📊 DATA EXTRACTION
   // ═════════════════════════════════════════════════════════
-  const overview = dashboard?.data?.data?.overview || {};
-  const systemHealth = dashboard?.data?.data?.system_health || {};
-  const recentActivity = dashboard?.data?.data?.recent_activity || {};
+  const overview = dashboard?.data?.overview || {};
+  const systemHealth = dashboard?.data?.system_health || {};
+  const recentActivity = dashboard?.data?.recent_activity || {};
 
   // ═════════════════════════════════════════════════════════
-  // MAIN RENDER
+  // 🎨 MAIN RENDER - RETRO FUTURISTIC DASHBOARD
   // ═════════════════════════════════════════════════════════
   return (
     <motion.div 
-      variants={containerVariants}
+      variants={pageVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6 relative min-h-screen"
+      className="relative min-h-screen bg-base-cream retro-grid-bg"
     >
+      {/* Decorative floating elements */}
+      <RetroDecorations />
+      
       {/* ═══════════════════════════════════════════════════
-          ANIMATED BACKGROUND ORBS (Space Effect)
-          ═══════════════════════════════════════════════════ */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <motion.div 
-          animate={{ 
-            x: [0, 40, 0], 
-            y: [0, -30, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-10 left-10 w-80 h-80 bg-primary-500/10 rounded-full blur-3xl"
-        />
-        <motion.div 
-          animate={{ 
-            x: [0, -35, 0], 
-            y: [0, 35, 0],
-            scale: [1, 0.9, 1]
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute bottom-10 right-10 w-80 h-80 bg-accent-cyan/10 rounded-full blur-3xl"
-        />
-        <motion.div 
-          animate={{ 
-            x: [0, 25, 0], 
-            y: [0, -20, 0],
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute top-1/2 left-1/3 w-64 h-64 bg-accent-pink/10 rounded-full blur-3xl"
-        />
-      </div>
-
-      {/* ═══════════════════════════════════════════════════
-          HEADER WITH THEME TOGGLE
+          🎪 RETRO HEADER (Content Area Header - Not Navbar)
           ═══════════════════════════════════════════════════ */}
       <motion.div 
-        variants={itemVariants}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        variants={cardVariants}
+        className="sticky top-4 z-30 px-4 md:px-6"
       >
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
-            <Shield className="w-7 h-7 text-primary-400" />
-            <span className="text-gradient">Admin Control Panel</span>
-            <motion.button 
-              whileHover={{ rotate: 180 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={handleRefresh}
-              className="p-2 rounded-lg hover:bg-white/5 dark:hover:bg-dark-card/50 border border-white/10 dark:border-dark-border transition-colors"
-              title="Refresh data"
-            >
-              <RefreshCw className={`w-5 h-5 text-primary-400 ${isFetching ? 'animate-spin' : ''}`} />
-            </motion.button>
-          </h1>
-          <p className="text-gray-600 dark:text-dark-muted mt-1.5">
-            Welcome, <span className="text-primary-400 font-semibold">{user?.name}</span> • 
-            {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {/* Theme Toggle */}
-
+        <div className="retro-card max-w-4xl mx-auto p-4 flex items-center justify-between">
+          {/* Page Title */}
+          <div className="flex items-center gap-2">
+            <Shield className="w-6 h-6 text-retro-orange" />
+            <span className="font-retro-display font-black text-base-black text-lg">ADMIN DASHBOARD</span>
+          </div>
           
           {/* Tab Navigation */}
-          <div className="flex bg-white dark:bg-dark-card rounded-xl p-1 border border-gray-200 dark:border-dark-border shadow-sm">
+          <div className="flex items-center gap-1">
             {['overview', 'analytics'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 capitalize ${
+                className={`px-4 py-2 font-black text-xs uppercase tracking-wide rounded-retro border-2 border-base-black transition-all ${
                   activeTab === tab
-                    ? 'bg-gradient-to-r from-primary-600/20 to-primary-500/20 text-primary-600 dark:text-primary-400 shadow-sm border border-primary-500/30'
-                    : 'text-gray-600 dark:text-dark-muted hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-dark-card/50'
+                    ? 'bg-retro-orange text-base-white shadow-[2px_2px_0px_0px_#111111]'
+                    : 'bg-base-white text-base-black hover:bg-retro-yellow'
                 }`}
               >
                 {tab}
               </button>
             ))}
           </div>
+          
+          {/* Refresh Button */}
+          <motion.button 
+            whileHover={{ rotate: 180 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleRefresh}
+            className="retro-btn retro-btn-sm retro-btn-outline"
+            title="Refresh data"
+          >
+            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </motion.button>
         </div>
       </motion.div>
 
-      {/* ═══════════════════════════════════════════════════
-          STATS GRID
-          ═══════════════════════════════════════════════════ */}
-      <motion.div 
-        variants={staggerContainer}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-      >
-        <SpaceStatCard 
-          label="Total Users" 
-          value={overview.users?.total || 0} 
-          icon={Users}
-          color="purple"
-          trend={12}
-          subtitle="Active accounts"
-          onClick={() => navigate('/dashboard/admin/users')}
-        />
-        <SpaceStatCard 
-          label="Total Classes" 
-          value={overview.classes || 0} 
-          icon={School}
-          color="cyan"
-          subtitle="Across all levels"
-          onClick={() => navigate('/dashboard/admin/classes')}
-        />
-        <SpaceStatCard 
-          label="Total Subjects" 
-          value={overview.subjects || 0} 
-          icon={BookOpen}
-          color="pink"
-          subtitle="Curriculum items"
-          onClick={() => navigate('/dashboard/admin/subjects')}
-        />
-        <SpaceStatCard 
-          label="Today's Attendance" 
-          value={overview.attendance_today || 0} 
-          icon={Calendar}
-          color="emerald"
-          subtitle="Students present"
-          onClick={() => setActiveTab('analytics')}
-        />
-      </motion.div>
-
-      {/* ═══════════════════════════════════════════════════
-          MAIN CONTENT BASED ON TAB
-          ═══════════════════════════════════════════════════ */}
-      {activeTab === 'overview' ? (
-        <>
-          {/* Quick Actions */}
-          <motion.div variants={itemVariants} className="card">
-            <h3 className="text-lg font-semibold mb-5 flex items-center gap-2 text-gray-900 dark:text-white">
-              <Zap className="w-5 h-5 text-primary-400" />
-              Quick Actions
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {quickActions.map((action, index) => (
-                <QuickActionButton key={index} {...action} />
-              ))}
+      {/* Main Content Area */}
+      <div className="px-4 md:px-6 py-6 max-w-7xl mx-auto">
+        
+        {/* ═══════════════════════════════════════════════════
+            🎯 PAGE HEADER WITH RETRO TYPOGRAPHY
+            ═══════════════════════════════════════════════════ */}
+        <motion.div variants={cardVariants} className="mb-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="retro-heading retro-heading-xl text-retro-orange mb-2 flex items-center gap-3">
+                <span className="inline-block animate-wobble">🚀</span>
+                ADMIN DASHBOARD
+                <span className="inline-block animate-bounce-retro">✨</span>
+              </h1>
+              <p className="font-retro-mono text-base-black/70 flex items-center gap-2">
+                <span className="retro-badge retro-badge-blue text-[10px]">Welcome</span>
+                <span className="font-bold">{user?.name}</span>
+                <span className="text-base-black/40">•</span>
+                <span>{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}</span>
+              </p>
             </div>
-          </motion.div>
+            
+            {/* Quick Stats Pills */}
+            <div className="flex flex-wrap gap-2">
+              <div className="retro-badge retro-badge-green">
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                System Online
+              </div>
+              <div className="retro-badge retro-badge-purple">
+                <Clock className="w-3 h-3 mr-1" />
+                {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
-          {/* System Health & User Distribution */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* System Health */}
-            <motion.div variants={itemVariants} className="card">
-              <h3 className="text-lg font-semibold mb-5 flex items-center gap-2 text-gray-900 dark:text-white">
-                <Server className="w-5 h-5 text-success" />
-                System Health
-              </h3>
-              <div className="space-y-2.5">
-                {Object.entries(systemHealth).length > 0 ? (
-                  Object.entries(systemHealth).map(([key, value]) => (
-                    <SystemHealthItem 
-                      key={key} 
-                      label={key} 
-                      value={value}
-                      icon={key === 'database' ? Database : key === 'cache' ? Zap : Server}
-                    />
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-600 text-center py-4">
-                    No system health data available
-                  </p>
+        {/* ═══════════════════════════════════════════════════
+            📈 RETRO STATS GRID (BENTO STYLE)
+            ═══════════════════════════════════════════════════ */}
+        <motion.div 
+          variants={pageVariants}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+        >
+          <RetroStatCard 
+            label="Total Users" 
+            value={overview.users?.total || 0} 
+            icon={Users}
+            color="orange"
+            trend={12}
+            subtitle="Active accounts"
+            onClick={() => navigate('/dashboard/admin/users')}
+            sticker="👥"
+          />
+          <RetroStatCard 
+            label="Total Classes" 
+            value={overview.classes || 0} 
+            icon={School}
+            color="blue"
+            subtitle="All levels"
+            onClick={() => navigate('/dashboard/admin/classes')}
+            sticker="🏫"
+          />
+          <RetroStatCard 
+            label="Total Subjects" 
+            value={overview.subjects || 0} 
+            icon={BookOpen}
+            color="purple"
+            subtitle="Curriculum"
+            onClick={() => navigate('/dashboard/admin/subjects')}
+            sticker="📚"
+          />
+          <RetroStatCard 
+            label="Today's Attendance" 
+            value={overview.attendance_today || 0} 
+            icon={Calendar}
+            color="lime"
+            subtitle="Students present"
+            onClick={() => setActiveTab('analytics')}
+            sticker="✅"
+          />
+        </motion.div>
+
+        {/* ═══════════════════════════════════════════════════
+            🎮 TAB CONTENT: OVERVIEW
+            ═══════════════════════════════════════════════════ */}
+        {activeTab === 'overview' && (
+          <motion.div variants={pageVariants} className="space-y-8">
+            
+            {/* Quick Actions - Bento Grid */}
+            <motion.div variants={cardVariants} className="retro-card p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="retro-heading retro-heading-md text-retro-blue flex items-center gap-2">
+                  <Zap className="w-5 h-5" />
+                  QUICK ACTIONS
+                </h3>
+                <div className="retro-badge retro-badge-yellow text-[10px] animate-pulse">
+                  ⚡ FAST ACCESS
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                {quickActions.map((action, index) => (
+                  <RetroQuickAction key={index} {...action} />
+                ))}
+              </div>
+            </motion.div>
+
+            {/* System Health & User Distribution - Split Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* System Health */}
+              <motion.div variants={cardVariants} className="retro-card p-6">
+                <h3 className="retro-heading retro-heading-sm text-retro-purple mb-5 flex items-center gap-2">
+                  <Server className="w-5 h-5" />
+                  SYSTEM HEALTH
+                </h3>
+                <div className="space-y-3">
+                  {Object.entries(systemHealth).length > 0 ? (
+                    Object.entries(systemHealth).map(([key, value], index) => (
+                      <RetroHealthItem 
+                        key={key} 
+                        label={key} 
+                        value={value}
+                        icon={key === 'database' ? Database : key === 'cache' ? Zap : Server}
+                      />
+                    ))
+                  ) : (
+                    <div className="text-center py-6">
+                      <Database className="w-10 h-10 text-base-black/30 mx-auto mb-2" />
+                      <p className="font-retro-mono text-sm text-base-black/50">No system data</p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Decorative corner */}
+                <div className="absolute bottom-4 right-4 opacity-20">
+                  <Cpu className="w-16 h-16 text-retro-purple" />
+                </div>
+              </motion.div>
+
+              {/* User Distribution */}
+              <motion.div variants={cardVariants} className="retro-card p-6">
+                <h3 className="retro-heading retro-heading-sm text-retro-orange mb-5 flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  USER DISTRIBUTION
+                </h3>
+                <div className="space-y-4">
+                  {[
+                    { label: 'Admin', value: overview.users?.admin || 0, color: 'bg-retro-blue', icon: '👨‍💼', badge: 'retro-badge-blue' },
+                    { label: 'Guru', value: overview.users?.guru || 0, color: 'bg-success', icon: '👨‍🏫', badge: 'retro-badge-green' },
+                    { label: 'Siswa', value: overview.users?.siswa || 0, color: 'bg-retro-purple', icon: '👨‍🎓', badge: 'retro-badge-purple' },
+                  ].map((item, index) => {
+                    const total = (overview.users?.admin || 0) + (overview.users?.guru || 0) + (overview.users?.siswa || 0) || 1;
+                    const percentage = total > 0 ? Math.round((item.value / total) * 100) : 0;
+                    
+                    return (
+                      <motion.div 
+                        key={item.label}
+                        variants={cardVariants}
+                        whileHover={{ scale: 1.02 }}
+                        className="group"
+                        style={{ transitionDelay: `${index * 100}ms` }}
+                      >
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-xs font-black uppercase tracking-wide text-base-black flex items-center gap-2">
+                            <span className="text-lg">{item.icon}</span>
+                            {item.label}
+                          </span>
+                          <span className={`retro-badge ${item.badge} text-[10px]`}>
+                            {item.value} ({percentage}%)
+                          </span>
+                        </div>
+                        <div className="w-full bg-base-gray border-2 border-base-black rounded-sm overflow-hidden h-4">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${percentage}%` }}
+                            transition={{ duration: 1, delay: 0.3 + (index * 0.1), ease: [0.22, 1, 0.36, 1] }}
+                            className={`h-full ${item.color} border-r-2 border-base-black relative`}
+                          >
+                            {/* Striped pattern overlay */}
+                            <div className="absolute inset-0 opacity-20" style={{
+                              backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.3) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.3) 75%, transparent 75%, transparent)',
+                              backgroundSize: '10px 10px'
+                            }} />
+                          </motion.div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Recent Activity */}
+            <motion.div variants={cardVariants} className="retro-card p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="retro-heading retro-heading-sm text-retro-blue flex items-center gap-2">
+                  <Activity className="w-5 h-5" />
+                  RECENT ACTIVITY
+                </h3>
+                <button 
+                  onClick={() => navigate('/dashboard/admin/users')} 
+                  className="retro-btn retro-btn-sm retro-btn-outline flex items-center gap-1"
+                >
+                  View All
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                {recentActivity.recent_users?.slice(0, 5).map((user, index) => (
+                  <motion.div 
+                    key={user.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileHover={{ x: 4, backgroundColor: 'rgba(255,201,40,0.1)' }}
+                    className="flex items-center justify-between p-4 retro-card bg-base-white cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <motion.div 
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        className="w-12 h-12 retro-card bg-retro-orange/20 border-retro-orange flex items-center justify-center"
+                      >
+                        <span className="font-retro-display font-black text-retro-orange text-lg">
+                          {user.name?.charAt(0) || 'U'}
+                        </span>
+                      </motion.div>
+                      <div>
+                        <p className="font-retro-display font-black text-base-black text-lg leading-none">{user.name}</p>
+                        <p className="font-retro-mono text-xs text-base-black/50">{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`retro-badge ${
+                        user.role === 'admin' ? 'retro-badge-blue' :
+                        user.role === 'guru' ? 'retro-badge-green' :
+                        'retro-badge-purple'
+                      } text-[10px]`}>
+                        {user.role.toUpperCase()}
+                      </span>
+                      <p className="font-retro-mono text-[10px] text-base-black/40 mt-2">
+                        {new Date(user.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+                
+                {(!recentActivity.recent_users || recentActivity.recent_users.length === 0) && (
+                  <div className="text-center py-8">
+                    <FileText className="w-12 h-12 text-base-black/20 mx-auto mb-3" />
+                    <p className="font-retro-mono text-sm text-base-black/50">No recent activity</p>
+                  </div>
                 )}
               </div>
             </motion.div>
+          </motion.div>
+        )}
 
-            {/* User Distribution */}
-            <motion.div variants={itemVariants} className="card">
-              <h3 className="text-lg font-semibold mb-5 text-gray-900 dark:text-white">User Distribution</h3>
-              <div className="space-y-5">
-                {[
-                  { label: 'Admin', value: overview.users?.admin || 0, gradient: 'from-blue-500 to-primary-600', icon: '👨‍💼', accent: 'text-blue-400' },
-                  { label: 'Guru', value: overview.users?.guru || 0, gradient: 'from-success to-emerald-600', icon: '👨‍🏫', accent: 'text-success' },
-                  { label: 'Siswa', value: overview.users?.siswa || 0, gradient: 'from-primary-500 to-accent-pink', icon: '👨‍🎓', accent: 'text-primary-400' },
-                ].map((item) => {
-                  const total = (overview.users?.admin || 0) + (overview.users?.guru || 0) + (overview.users?.siswa || 0) || 1;
-                  const percentage = total > 0 ? Math.round((item.value / total) * 100) : 0;
-                  
-                  return (
-                    <motion.div 
-                      key={item.label}
-                      variants={itemVariants}
-                      whileHover={{ scale: 1.01 }}
-                      className="group"
-                    >
-                      <div className="flex justify-between items-center mb-2.5">
-                        <span className="text-sm font-medium flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                          <span className="text-lg">{item.icon}</span>
-                          {item.label}
-                        </span>
-                        <span className="text-sm text-gray-600 dark:text-dark-muted">
-                          <span className="font-semibold text-gray-900 dark:text-white">{item.value}</span>
-                          <span className="text-gray-500 dark:text-gray-600 ml-1">({percentage}%)</span>
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-100 dark:bg-dark-border rounded-full h-3 overflow-hidden">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${percentage}%` }}
-                          transition={{ duration: 1.2, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                          className={`h-3 rounded-full bg-gradient-to-r ${item.gradient} shadow-[0_0_10px_rgba(0,0,0,0.2)] group-hover:shadow-[0_0_15px_rgba(0,0,0,0.4)] transition-all`}
-                        />
-                      </div>
-                    </motion.div>
-                  );
-                })}
+        {/* ═══════════════════════════════════════════════════
+            📊 TAB CONTENT: ANALYTICS
+            ═══════════════════════════════════════════════════ */}
+        {activeTab === 'analytics' && (
+          <motion.div variants={pageVariants} className="space-y-8">
+            
+            {/* Analytics Header */}
+            <motion.div variants={cardVariants} className="retro-card p-6 bg-gradient-to-r from-retro-orange/10 to-retro-blue/10">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-retro-orange border-4 border-base-black rounded-retro-lg shadow-[4px_4px_0px_0px_#111111]">
+                  <BarChart3 className="w-8 h-8 text-base-white" />
+                </div>
+                <div>
+                  <h3 className="retro-heading retro-heading-lg text-retro-orange">ATTENDANCE ANALYTICS</h3>
+                  <p className="font-retro-mono text-sm text-base-black/70">Real-time attendance data & insights</p>
+                </div>
               </div>
             </motion.div>
-          </div>
-
-          {/* Recent Activity */}
-          <motion.div variants={itemVariants} className="card">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
-              <button onClick={() => navigate('/dashboard/admin/users')} className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium flex items-center gap-1 transition-colors">
-                View All <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              {recentActivity.recent_users?.slice(0, 5).map((user, index) => (
-                <motion.div 
-                  key={user.id}
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  whileHover={{ backgroundColor: 'rgba(168, 85, 247, 0.05)' }}
-                  className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100 dark:border-dark-border/50 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <motion.div 
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-500/20 to-primary-600/20 
-                        border border-primary-500/30 flex items-center justify-center text-primary-400 font-semibold text-sm"
-                    >
-                      {user.name?.charAt(0) || 'U'}
-                    </motion.div>
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">{user.name}</p>
-                      <p className="text-sm text-gray-500 dark:text-dark-muted">{user.email}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
-                      user.role === 'admin' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
-                      user.role === 'guru' ? 'bg-success/10 text-success border-success/30' :
-                      'bg-primary-500/10 text-primary-400 border-primary-500/30'
-                    }`}>
-                      {user.role.toUpperCase()}
-                    </span>
-                    <p className="text-xs text-gray-500 dark:text-gray-600 mt-1.5">
-                      {new Date(user.created_at).toLocaleDateString('id-ID')}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-              
-              {(!recentActivity.recent_users || recentActivity.recent_users.length === 0) && (
-                <div className="text-center py-6">
-                  <CheckCircle2 className="w-10 h-10 text-gray-400 mx-auto mb-3 opacity-50" />
-                  <p className="text-gray-500 dark:text-dark-muted">No recent activity to display.</p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </>
-      ) : (
-        /* ═══════════════════════════════════════════════════
-            ANALYTICS TAB
-            ═══════════════════════════════════════════════════ */
-        <motion.div variants={containerVariants} className="space-y-6">
-          {/* Attendance Analytics */}
-          <motion.div variants={itemVariants} className="card">
-            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2 text-gray-900 dark:text-white">
-              <BarChart3 className="w-5 h-5 text-primary-400" />
-              Attendance Analytics
-            </h3>
             
             {analyticsData?.data ? (
-              <div className="space-y-6">
+              <>
                 {/* Summary Stats */}
-                <motion.div 
-                  variants={staggerContainer}
-                  className="grid grid-cols-2 md:grid-cols-4 gap-4"
-                >
+                <motion.div variants={pageVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { label: 'Hadir', value: analyticsData.data.summary?.present || 0, color: 'text-success', bg: 'bg-success/10', border: 'border-success/30' },
-                    { label: 'Tidak Hadir', value: analyticsData.data.summary?.absent || 0, color: 'text-danger', bg: 'bg-danger/10', border: 'border-danger/30' },
-                    { label: 'Attendance Rate', value: `${analyticsData.data.summary?.attendance_rate || 0}%`, color: 'text-primary-400', bg: 'bg-primary-500/10', border: 'border-primary-500/30' },
-                    { label: 'Total Siswa', value: analyticsData.data.summary?.total_students || 0, color: 'text-accent-cyan', bg: 'bg-accent-cyan/10', border: 'border-accent-cyan/30' },
+                    { label: 'Hadir', value: analyticsData.data.summary?.present || 0, color: 'text-success', bg: 'bg-success/20', border: 'border-success', icon: CheckCircle2 },
+                    { label: 'Tidak Hadir', value: analyticsData.data.summary?.absent || 0, color: 'text-danger', bg: 'bg-danger/20', border: 'border-danger', icon: AlertCircle },
+                    { label: 'Attendance Rate', value: `${analyticsData.data.summary?.attendance_rate || 0}%`, color: 'text-retro-orange', bg: 'bg-retro-orange/20', border: 'border-retro-orange', icon: Target },
+                    { label: 'Total Siswa', value: analyticsData.data.summary?.total_students || 0, color: 'text-retro-blue', bg: 'bg-retro-blue/20', border: 'border-retro-blue', icon: Users },
                   ].map((stat, index) => (
                     <motion.div
                       key={stat.label}
-                      variants={itemVariants}
-                      whileHover={{ scale: 1.03 }}
-                      className={`p-4 rounded-xl ${stat.bg} border ${stat.border} text-center`}
+                      variants={cardVariants}
+                      whileHover={{ scale: 1.03, rotate: 1 }}
+                      className={`retro-card p-4 ${stat.bg} border-4 ${stat.border} text-center`}
+                      style={{ transitionDelay: `${index * 50}ms` }}
                     >
-                      <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-                      <div className="text-sm text-gray-600 dark:text-dark-muted mt-1">{stat.label}</div>
+                      <stat.icon className={`w-6 h-6 ${stat.color} mx-auto mb-2`} />
+                      <div className={`text-2xl font-retro-display font-black ${stat.color}`}>{stat.value}</div>
+                      <div className="font-retro-mono text-[10px] uppercase tracking-wide text-base-black/70 mt-1">{stat.label}</div>
                     </motion.div>
                   ))}
                 </motion.div>
 
-                {/* Chart Placeholder */}
-                <motion.div 
-                  variants={itemVariants}
-                  whileHover={{ scale: 1.01 }}
-                  className="p-8 bg-gray-50 dark:bg-dark-card/50 rounded-xl border border-gray-200 dark:border-dark-border text-center"
-                >
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                    className="w-24 h-24 mx-auto mb-5 rounded-full border-2 border-dashed border-primary-500/30 flex items-center justify-center"
-                  >
-                    <BarChart3 className="w-12 h-12 text-primary-400/60" />
-                  </motion.div>
-                  <p className="text-gray-600 dark:text-dark-muted font-medium">
-                    Interactive chart visualization
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-600 mt-1.5">
-                    Period: <span className="font-medium text-gray-700 dark:text-gray-300">{analyticsData.data.period?.start}</span> → <span className="font-medium text-gray-700 dark:text-gray-300">{analyticsData.data.period?.end}</span>
-                  </p>
+                {/* Chart Placeholder - Retro Style */}
+                <motion.div variants={cardVariants} className="retro-card p-6">
+                  <div className="text-center">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                      className="w-28 h-28 mx-auto mb-4 border-4 border-dashed border-retro-orange rounded-full flex items-center justify-center bg-retro-orange/10"
+                    >
+                      <BarChart3 className="w-14 h-14 text-retro-orange" />
+                    </motion.div>
+                    <p className="font-retro-display font-black text-base-black text-lg mb-1">Interactive Chart</p>
+                    <p className="font-retro-mono text-xs text-base-black/50 mb-3">
+                      Period: <span className="font-bold">{analyticsData.data.period?.start}</span> → <span className="font-bold">{analyticsData.data.period?.end}</span>
+                    </p>
+                    <button className="retro-btn retro-btn-sm retro-btn-outline">
+                      Launch Full Analytics →
+                    </button>
+                  </div>
                 </motion.div>
 
-                {/* Daily Data Table */}
+                {/* Daily Data Table - Retro Style */}
                 {analyticsData.data.daily?.length > 0 && (
-                  <motion.div variants={itemVariants}>
-                    <h4 className="font-semibold mb-4 text-gray-900 dark:text-white">Daily Breakdown</h4>
-                    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-dark-border">
-                      <table className="w-full text-sm">
+                  <motion.div variants={cardVariants} className="retro-card overflow-hidden">
+                    <div className="p-4 border-b-4 border-base-black bg-retro-blue text-base-white">
+                      <h4 className="font-retro-display font-black uppercase tracking-wide">Daily Breakdown</h4>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full font-retro-mono text-sm">
                         <thead>
-                          <tr className="bg-gray-50 dark:bg-dark-card/50 border-b border-gray-200 dark:border-dark-border">
+                          <tr className="bg-retro-yellow/20 border-b-4 border-base-black">
                             {['Tanggal', 'Hadir', 'Terlambat', 'Izin', 'Sakit', 'Alpha'].map((header) => (
-                              <th key={header} className="text-left py-3.5 px-4 text-gray-600 dark:text-dark-muted font-semibold">
+                              <th key={header} className="text-left py-3 px-4 font-black uppercase tracking-wide text-xs text-base-black">
                                 {header}
                               </th>
                             ))}
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-dark-border/50">
+                        <tbody className="divide-y-2 divide-base-black/10">
                           {analyticsData.data.daily.slice(0, 7).map((day, index) => (
                             <motion.tr 
                               key={day.date}
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               transition={{ delay: index * 0.03 }}
-                              whileHover={{ backgroundColor: 'rgba(168, 85, 247, 0.04)' }}
+                              whileHover={{ backgroundColor: 'rgba(255,201,40,0.2)' }}
                               className="transition-colors"
                             >
-                              <td className="py-3.5 px-4 font-medium text-gray-900 dark:text-white">{day.date}</td>
-                              <td className="py-3.5 px-4 text-center text-success font-medium">{day.hadir}</td>
-                              <td className="py-3.5 px-4 text-center text-warning font-medium">{day.terlambat}</td>
-                              <td className="py-3.5 px-4 text-center text-info font-medium">{day.izin}</td>
-                              <td className="py-3.5 px-4 text-center text-amber-500 font-medium">{day.sakit}</td>
-                              <td className="py-3.5 px-4 text-center text-danger font-medium">{day.alpha}</td>
+                              <td className="py-3 px-4 font-bold text-base-black">{day.date}</td>
+                              <td className="py-3 px-4 text-center font-bold text-success">{day.hadir}</td>
+                              <td className="py-3 px-4 text-center font-bold text-warning">{day.terlambat}</td>
+                              <td className="py-3 px-4 text-center font-bold text-retro-blue">{day.izin}</td>
+                              <td className="py-3 px-4 text-center font-bold text-retro-orange">{day.sakit}</td>
+                              <td className="py-3 px-4 text-center font-bold text-danger">{day.alpha}</td>
                             </motion.tr>
                           ))}
                         </tbody>
@@ -757,16 +941,55 @@ export default function AdminDashboard() {
                     </div>
                   </motion.div>
                 )}
-              </div>
+              </>
             ) : (
-              <div className="text-center py-10 text-gray-500 dark:text-dark-muted">
-                <Clock className="w-14 h-14 mx-auto mb-4 opacity-40" />
-                <p>Loading analytics data...</p>
-              </div>
+              <motion.div variants={cardVariants} className="retro-card p-8 text-center">
+                <Clock className="w-16 h-16 text-base-black/20 mx-auto mb-4" />
+                <p className="font-retro-display font-black text-base-black text-lg mb-2">Loading Analytics...</p>
+                <p className="font-retro-mono text-sm text-base-black/50">Please wait while we fetch your data</p>
+              </motion.div>
             )}
           </motion.div>
+        )}
+      </div>
+
+      {/* ═══════════════════════════════════════════════════
+          🎯 FLOATING ACTION BUTTON (Desktop - Sidebar Ready)
+          ═══════════════════════════════════════════════════ */}
+      <motion.button
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => navigate('/dashboard/admin/users')}
+        className="fixed bottom-6 right-6 z-50 retro-btn retro-btn-lg retro-btn-sticker hidden md:flex items-center gap-2"
+      >
+        <Plus className="w-5 h-5" />
+        <span className="hidden lg:inline">Add New</span>
+      </motion.button>
+
+      {/* ═══════════════════════════════════════════════════
+          🎪 DECORATIVE FOOTER STICKERS
+          ═══════════════════════════════════════════════════ */}
+      <div className="fixed bottom-4 left-4 z-0 hidden lg:block pointer-events-none">
+        <motion.div 
+          animate={{ rotate: [0, -10, 10, -5, 5, 0] }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className="retro-sticker bg-retro-pink text-base-white text-xs px-3 py-1"
+        >
+          POWERED BY RPL
         </motion.div>
-      )}
+      </div>
+      
+      <div className="fixed bottom-4 right-4 z-0 hidden lg:block pointer-events-none">
+        <motion.div 
+          animate={{ rotate: [0, 10, -10, 5, -5, 0] }}
+          transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+          className="retro-sticker bg-retro-lime text-base-black text-xs px-3 py-1"
+        >
+          v2.0 RETRO ✨
+        </motion.div>
+      </div>
     </motion.div>
   );
 }

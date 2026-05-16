@@ -1,13 +1,41 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { RouterProvider, createBrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
-import { router } from './routes';
-import './index.css';
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { RouterProvider } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-// React Query client configuration
+// ═══════════════════════════════════════════════════════════
+// 🔐 CONTEXT PROVIDERS - IMPORT ONCE
+// ═══════════════════════════════════════════════════════════
+import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
+
+// ═══════════════════════════════════════════════════════════
+// 🗂️ ROUTES & STYLES
+// ═══════════════════════════════════════════════════════════
+import { router } from './routes'
+import './index.css'
+
+// ═══════════════════════════════════════════════════════════
+// 🎨 RETRO CONSOLE GREETING (Dev Only)
+// ═══════════════════════════════════════════════════════════
+if (process.env.NODE_ENV === 'development') {
+  console.log(`
+╔════════════════════════════════════════════╗
+║  🚀 RPL SMART ECOSYSTEM v2.0 RETRO        ║
+║  ─────────────────────────────────────    ║
+║  ✨ Retro Futuristic UI Loaded            ║
+║  🎮 Press ? for keyboard shortcuts        ║
+║  🌙 Ctrl+T to toggle theme                ║
+║  🔐 Ctrl+L for quick logout               ║
+║                                          ║
+║  Built with ❤️  & ☕  | Made in Indonesia  ║
+╚════════════════════════════════════════════╝
+  `)
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🔍 REACT QUERY CONFIG
+// ═══════════════════════════════════════════════════════════
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -15,29 +43,37 @@ const queryClient = new QueryClient({
       retry: 1,
       refetchOnWindowFocus: false,
       onError: (error) => {
-        console.error('Query error:', error);
+        // Retro-style error logging
+        console.error('🔍 Query error:', {
+          message: error?.message || 'Unknown error',
+          timestamp: new Date().toISOString(),
+          url: window.location.href,
+        })
       },
     },
     mutations: {
+      retry: 1,
       onError: (error) => {
-        console.error('Mutation error:', error);
+        console.error('✏️ Mutation error:', {
+          message: error?.message || 'Unknown error',
+          timestamp: new Date().toISOString(),
+        })
       },
     },
   },
-});
+})
 
-// Create browser router from our route definitions
-const browserRouter = createBrowserRouter(router);
-
-// Render app
+// ═══════════════════════════════════════════════════════════
+// 🎯 RENDER APP
+// ═══════════════════════════════════════════════════════════
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ThemeProvider>
-          <RouterProvider router={browserRouter} />
-        </ThemeProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
-  </React.StrictMode>
-);
+  </React.StrictMode>,
+)

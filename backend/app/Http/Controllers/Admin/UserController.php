@@ -68,7 +68,7 @@ class UserController extends Controller
         }
 
         // Load relationships for detailed view
-        $user->load(['profile', 'profile.subjects']);
+        $user->load(['profile', 'profile.subjects', 'classes']);
 
         return response()->json([
             'status' => 'success',
@@ -147,15 +147,32 @@ class UserController extends Controller
                 ], 400);
             }
 
+            // Handle avatar upload if provided
+            if ($request->hasFile('avatar') && $result['user']) {
+                $avatarPath = $request->file('avatar')->store('avatars', 'public');
+                $result['user']->update(['avatar_url' => asset('storage/' . $avatarPath)]);
+            }
+
             // Attach subjects for teacher if provided
-            if ($role === 'guru' && !empty($validated['subjects'])) {
+            if ($role === 'guru' && !empty($validated['subjects']) && $result['user']?->profile) {
                 $result['user']->profile->subjects()->sync($validated['subjects']);
+            }
+
+            // Attach class for student if provided
+            if ($role === 'siswa' && !empty($validated['class_id']) && $result['user']) {
+                $result['user']->classes()->sync([
+                    $validated['class_id'] => [
+                        'role_in_class' => 'siswa',
+                        'academic_year' => date('Y'),
+                        'is_active' => true,
+                    ]
+                ]);
             }
 
             DB::commit();
 
             // Reload user with relationships for response
-            $result['user']->load(['profile', 'profile.subjects']);
+            $result['user']->load(['profile', 'profile.subjects', 'classes']);
 
             return response()->json([
                 'status' => 'success',
@@ -259,15 +276,36 @@ class UserController extends Controller
                 ], 400);
             }
 
+            // Handle avatar update if provided
+            if ($request->hasFile('avatar') && $result['user']) {
+                // Delete old avatar if exists
+                if ($result['user']->avatar_url && file_exists(public_path('storage/' . parse_url($result['user']->avatar_url, PHP_URL_PATH)))) {
+                    unlink(public_path('storage/' . parse_url($result['user']->avatar_url, PHP_URL_PATH)));
+                }
+                $avatarPath = $request->file('avatar')->store('avatars', 'public');
+                $result['user']->update(['avatar_url' => asset('storage/' . $avatarPath)]);
+            }
+
             // Sync subjects for teacher if provided
-            if ($role === 'guru' && isset($validated['subjects'])) {
+            if ($role === 'guru' && isset($validated['subjects']) && $result['user']?->profile) {
                 $result['user']->profile->subjects()->sync($validated['subjects']);
+            }
+
+            // Sync class for student if provided
+            if ($role === 'siswa' && isset($validated['class_id']) && $result['user']) {
+                $result['user']->classes()->sync([
+                    $validated['class_id'] => [
+                        'role_in_class' => 'siswa',
+                        'academic_year' => date('Y'),
+                        'is_active' => true,
+                    ]
+                ]);
             }
 
             DB::commit();
 
             // Reload user with relationships for response
-            $result['user']->load(['profile', 'profile.subjects']);
+            $result['user']->load(['profile', 'profile.subjects', 'classes']);
 
             return response()->json([
                 'status' => 'success',

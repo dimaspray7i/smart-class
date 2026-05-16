@@ -10,15 +10,27 @@ use Illuminate\Http\JsonResponse;
 
 class DashboardController extends Controller
 {
+    /**
+     * Constructor with dependency injection
+     * 
+     * @param AdminService $adminService
+     * @param AnalyticsService $analyticsService
+     */
     public function __construct(
         protected AdminService $adminService,
         protected AnalyticsService $analyticsService
     ) {
-        //
+        // Middleware for auth & role checks should be applied in routes/api.php
+        // Example: Route::middleware(['auth:sanctum', 'role:admin'])->group(...)
     }
 
     /**
      * Get admin dashboard data
+     * 
+     * This endpoint returns comprehensive dashboard data including:
+     * - Overview statistics (users, classes, subjects, attendance)
+     * - System health status (database, cache, queue, storage)
+     * - Recent activity (new users, recent attendance)
      * 
      * @param Request $request
      * @return JsonResponse
@@ -44,10 +56,13 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get analytics data
+     * Get analytics data (general)
      * 
      * @param Request $request
      * @return JsonResponse
+     * 
+     * @deprecated Use AnalyticsController@index instead
+     * @see AnalyticsController::index()
      */
     public function analytics(Request $request): JsonResponse
     {
@@ -68,6 +83,9 @@ class DashboardController extends Controller
      * 
      * @param Request $request
      * @return JsonResponse
+     * 
+     * @deprecated Use AnalyticsController::attendanceAnalytics instead
+     * @see AnalyticsController::attendanceAnalytics()
      */
     public function attendanceAnalytics(Request $request): JsonResponse
     {
@@ -88,6 +106,9 @@ class DashboardController extends Controller
      * 
      * @param Request $request
      * @return JsonResponse
+     * 
+     * @deprecated Use AnalyticsController::studentAnalytics instead
+     * @see AnalyticsController::studentAnalytics()
      */
     public function studentAnalytics(Request $request): JsonResponse
     {

@@ -3,11 +3,15 @@
 namespace App\Services;
 
 use App\Models\Schedule;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
 class ScheduleService
 {
+    /**
+     * Get paginated schedules with filters
+     */
     public function all(array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = Schedule::query();
@@ -24,40 +28,68 @@ class ScheduleService
             $query->where('day', $filters['day']);
         }
 
-        return $query->with(['class', 'subject', 'teacher'])->orderBy('day')->orderBy('start_time')->paginate(15);
+        if (isset($filters['is_active'])) {
+            $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
+        }
+
+        if (!empty($filters['search'])) {
+            $query->search($filters['search']);
+        }
+
+        return $query->with(['class', 'subject', 'teacher'])
+            ->orderBy('day')
+            ->orderBy('start_time')
+            ->paginate(15);
     }
 
+    /**
+     * Find schedule by ID with relationships
+     */
     public function find(int $id): ?Schedule
     {
         return Schedule::with(['class', 'subject', 'teacher'])->find($id);
     }
 
+    /**
+     * Create new schedule with conflict check & transaction
+     */
     public function create(array $data): array
     {
         try {
-            // Check for conflicts
-            if ($this->hasConflict($data)) {
+            DB::beginTransaction();
+
+            // Check for conflicts (returns false or conflict message string)
+            $conflict = $this->hasConflict($data);
+            if ($conflict !== false) {
+                DB::rollBack();
                 return [
                     'success' => false,
                     'message' => 'Jadwal bentrok dengan jadwal lain.',
                     'code' => 'SCHEDULE_CONFLICT',
+                    'errors' => ['non_field_errors' => [$conflict]],
                 ];
             }
 
             $schedule = Schedule::create($data);
+            
+            DB::commit();
 
             return [
                 'success' => true,
                 'message' => 'Jadwal berhasil dibuat.',
-                'schedule' => $schedule,
+                'schedule' => $schedule->load(['class', 'subject', 'teacher']),
             ];
 
         } catch (Exception $e) {
-            Log::error('ScheduleService::create failed', ['error' => $e->getMessage()]);
-            return ['success' => false, 'message' => 'Gagal membuat jadwal.', 'code' => 'SERVER_ERROR'];
+            DB::rollBack();
+            Log::error('ScheduleService::create failed', ['error' => $e->getMessage(), 'data' => $data]);
+            return ['success' => false, 'message' => 'Gagal membuat jadwal: ' . $e->getMessage(), 'code' => 'SERVER_ERROR'];
         }
     }
 
+    /**
+     * Update schedule with conflict check & transaction
+     */
     public function update(int $id, array $data): array
     {
         try {
@@ -66,27 +98,36 @@ class ScheduleService
                 return ['success' => false, 'message' => 'Jadwal tidak ditemukan.', 'code' => 'NOT_FOUND'];
             }
 
-            // Check for conflicts (excluding current schedule)
-            $tempSchedule = new Schedule($data);
-            $tempSchedule->id = $id;
+            DB::beginTransaction();
 
-            if ($this->hasConflict($data, $id)) {
+            // Check for conflicts (excluding current schedule)
+            $conflict = $this->hasConflict($data, $id);
+            if ($conflict !== false) {
+                DB::rollBack();
                 return [
                     'success' => false,
                     'message' => 'Jadwal bentrok dengan jadwal lain.',
                     'code' => 'SCHEDULE_CONFLICT',
+                    'errors' => ['non_field_errors' => [$conflict]],
                 ];
             }
 
             $schedule->update($data);
-            return ['success' => true, 'message' => 'Jadwal berhasil diupdate.', 'schedule' => $schedule->fresh()];
+            
+            DB::commit();
+            
+            return ['success' => true, 'message' => 'Jadwal berhasil diupdate.', 'schedule' => $schedule->fresh()->load(['class', 'subject', 'teacher'])];
 
         } catch (Exception $e) {
-            Log::error('ScheduleService::update failed', ['error' => $e->getMessage()]);
-            return ['success' => false, 'message' => 'Gagal update jadwal.', 'code' => 'SERVER_ERROR'];
+            DB::rollBack();
+            Log::error('ScheduleService::update failed', ['error' => $e->getMessage(), 'id' => $id, 'data' => $data]);
+            return ['success' => false, 'message' => 'Gagal update jadwal: ' . $e->getMessage(), 'code' => 'SERVER_ERROR'];
         }
     }
 
+    /**
+     * Delete schedule
+     */
     public function delete(int $id): array
     {
         try {
@@ -99,16 +140,22 @@ class ScheduleService
             return ['success' => true, 'message' => 'Jadwal berhasil dihapus.'];
 
         } catch (Exception $e) {
-            Log::error('ScheduleService::delete failed', ['error' => $e->getMessage()]);
-            return ['success' => false, 'message' => 'Gagal menghapus jadwal.', 'code' => 'SERVER_ERROR'];
+            Log::error('ScheduleService::delete failed', ['error' => $e->getMessage(), 'id' => $id]);
+            return ['success' => false, 'message' => 'Gagal menghapus jadwal: ' . $e->getMessage(), 'code' => 'SERVER_ERROR'];
         }
     }
 
-    public function checkConflict(array $data): bool
+    /**
+     * Check schedule conflict (returns false or conflict message string)
+     */
+    public function checkConflict(array $data): bool|string
     {
         return $this->hasConflict($data);
     }
 
+    /**
+     * Get schedules by teacher
+     */
     public function getByTeacher(int $teacherId): array
     {
         return Schedule::where('teacher_id', $teacherId)
@@ -120,28 +167,46 @@ class ScheduleService
             ->toArray();
     }
 
-    private function hasConflict(array $data, ?int $excludeId = null): bool
+    /**
+     * Check for time conflicts (Class & Teacher separately)
+     * Returns false if no conflict, or string message if conflict exists
+     */
+    private function hasConflict(array $data, ?int $excludeId = null): bool|string
     {
-        $query = Schedule::where('class_id', $data['class_id'])
-            ->where('teacher_id', $data['teacher_id'])
+        // 1. Check Class Conflict
+        $classSchedules = Schedule::where('class_id', $data['class_id'])
             ->where('day', $data['day'])
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->with(['subject'])
+            ->get();
 
-        if ($excludeId) {
-            $query->where('id', '!=', $excludeId);
+        foreach ($classSchedules as $schedule) {
+            if ($this->timeOverlaps($data['start_time'], $data['end_time'], $schedule->start_time, $schedule->end_time)) {
+                return "Bentrok dengan jadwal kelas: {$schedule->subject->name} ({$schedule->start_time} - {$schedule->end_time})";
+            }
         }
 
-        $schedules = $query->get();
+        // 2. Check Teacher Conflict
+        $teacherSchedules = Schedule::where('teacher_id', $data['teacher_id'])
+            ->where('day', $data['day'])
+            ->where('is_active', true)
+            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->with(['class', 'teacher'])
+            ->get();
 
-        foreach ($schedules as $schedule) {
+        foreach ($teacherSchedules as $schedule) {
             if ($this->timeOverlaps($data['start_time'], $data['end_time'], $schedule->start_time, $schedule->end_time)) {
-                return true;
+                return "Guru {$schedule->teacher->name} sudah mengajar di kelas {$schedule->class->name} pada jam tersebut.";
             }
         }
 
         return false;
     }
 
+    /**
+     * Check if two time ranges overlap
+     */
     private function timeOverlaps($start1, $end1, $start2, $end2): bool
     {
         $s1 = \Carbon\Carbon::parse($start1);
@@ -149,6 +214,7 @@ class ScheduleService
         $s2 = \Carbon\Carbon::parse($start2);
         $e2 = \Carbon\Carbon::parse($end2);
 
+        // Overlap logic: (StartA < EndB) and (EndA > StartB)
         return $s1->lt($e2) && $e1->gt($s2);
     }
 }
