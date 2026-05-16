@@ -1,0 +1,600 @@
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  X, LayoutDashboard, CalendarCheck, FolderKanban, GraduationCap, 
+  Users, BookOpen, Settings, LogOut, Rocket, Shield, School,
+  Sparkles, Star, Zap, ChevronRight, ArrowRight, Palette,
+  Menu, Home, Briefcase, Award, Target, Clock, CheckCircle2
+} from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import ThemeToggle from './ThemeToggle';
+
+// ═══════════════════════════════════════════════════════════
+// 🎨 RETRO ANIMATION VARIANTS
+// ═══════════════════════════════════════════════════════════
+const sidebarVariants = {
+  hidden: { x: '-100%', opacity: 0 },
+  visible: { 
+    x: 0, 
+    opacity: 1,
+    transition: { type: "spring", stiffness: 100, damping: 20, mass: 0.1 }
+  },
+  exit: { 
+    x: '-100%', 
+    opacity: 0,
+    transition: { duration: 0.2 }
+  }
+};
+
+const menuItemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: (i) => ({ 
+    opacity: 1, 
+    x: 0,
+    transition: { delay: i * 0.05, duration: 0.3 }
+  }),
+  hover: { x: 4, transition: { duration: 0.15 } }
+};
+
+const stickerVariants = {
+  hidden: { scale: 0, rotate: -180, opacity: 0 },
+  visible: { 
+    scale: 1, 
+    rotate: 0, 
+    opacity: 1,
+    transition: { type: "spring", stiffness: 200, damping: 10 }
+  },
+  hover: { 
+    scale: 1.15, 
+    rotate: [0, -8, 8, -4, 4, 0],
+    transition: { duration: 0.4 }
+  }
+};
+
+const floatVariants = {
+  animate: {
+    y: [0, -6, 0],
+    rotate: [0, 2, -2, 0],
+    transition: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+  }
+};
+
+const pulseVariants = {
+  animate: {
+    scale: [1, 1.05, 1],
+    boxShadow: [
+      '0 0 0px rgba(255,92,0,0)',
+      '0 0 15px rgba(255,92,0,0.4)',
+      '0 0 0px rgba(255,92,0,0)'
+    ],
+    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🎭 RETRO DECORATIVE COMPONENTS
+// ═══════════════════════════════════════════════════════════
+
+// Floating Decorative Elements for Sidebar
+function SidebarDecorations() {
+  return (
+    <>
+      {/* Floating Stars */}
+      {[...Array(4)].map((_, i) => (
+        <motion.div
+          key={`star-${i}`}
+          variants={floatVariants}
+          animate="animate"
+          className="absolute hidden lg:block"
+          style={{
+            top: `${15 + i * 20}%`,
+            right: `${5 + i * 3}%`,
+            animationDelay: `${i * 0.8}s`
+          }}
+        >
+          <Star className="w-3 h-3 text-retro-yellow fill-retro-yellow drop-shadow-retro animate-sparkle-retro" />
+        </motion.div>
+      ))}
+      
+      {/* Floating Icons */}
+      <motion.div variants={floatVariants} animate="animate" className="absolute top-24 right-4 hidden lg:block">
+        <Rocket className="w-5 h-5 text-retro-orange drop-shadow-retro animate-pulse" />
+      </motion.div>
+      <motion.div variants={floatVariants} animate="animate" className="absolute bottom-32 right-6 hidden lg:block" style={{animationDelay: '1.5s'}}>
+        <School className="w-5 h-5 text-retro-blue drop-shadow-retro animate-pulse" />
+      </motion.div>
+      
+      {/* Decorative Corner Accents - Brutalist Style */}
+      <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-retro-orange pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-retro-blue pointer-events-none" />
+      
+      {/* Grid Pattern Overlay */}
+      <div className="absolute inset-0 bg-retro-grid opacity-20 pointer-events-none" />
+    </>
+  );
+}
+
+// Retro Menu Item with Sticker & Animation
+function RetroMenuItem({ item, isActive, index, onClick }) {
+  const Icon = item.icon;
+  
+  // Role-based color mapping for active state
+  const roleColors = {
+    siswa: { active: 'bg-retro-purple/20 border-retro-purple text-retro-purple', sticker: 'bg-retro-purple text-base-white' },
+    guru: { active: 'bg-retro-blue/20 border-retro-blue text-retro-blue', sticker: 'bg-retro-blue text-base-white' },
+    admin: { active: 'bg-retro-orange/20 border-retro-orange text-retro-orange', sticker: 'bg-retro-orange text-base-white' },
+    public: { active: 'bg-retro-yellow/20 border-retro-yellow text-retro-yellow', sticker: 'bg-retro-yellow text-base-black' },
+  };
+  
+  const getRole = (href) => {
+    if (href.includes('/student')) return 'siswa';
+    if (href.includes('/teacher')) return 'guru';
+    if (href.includes('/admin')) return 'admin';
+    return 'public';
+  };
+  
+  const role = getRole(item.href);
+  const colors = roleColors[role];
+  
+  return (
+    <motion.div
+      variants={menuItemVariants}
+      custom={index}
+      initial="hidden"
+      animate="visible"
+      whileHover="hover"
+    >
+      <Link
+        to={item.href}
+        onClick={onClick}
+        className={`relative flex items-center gap-3 px-4 py-3 rounded-retro border-2 border-base-black transition-all duration-200 group ${
+          isActive 
+            ? `${colors.active} shadow-[4px_4px_0px_0px_#111111]` 
+            : 'bg-base-white hover:bg-retro-yellow/10 hover:border-retro-blue text-base-black/80'
+        }`}
+      >
+        {/* Decorative corner for active item */}
+        {isActive && (
+          <motion.div 
+            variants={stickerVariants}
+            initial="hidden"
+            animate="visible"
+            className="absolute -top-1.5 -right-1.5"
+          >
+            <div className={`retro-sticker ${colors.sticker} text-[8px] px-1.5 py-0.5`}>
+              ACTIVE
+            </div>
+          </motion.div>
+        )}
+        
+        {/* Icon with animation */}
+        <motion.div 
+          className={`p-2 rounded-retro ${isActive ? 'bg-base-black' : 'bg-base-gray'}`}
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
+          <Icon className={`w-5 h-5 ${isActive ? 'text-base-white' : 'text-base-black/60 group-hover:text-retro-orange'}`} />
+        </motion.div>
+        
+        {/* Label */}
+        <span className={`font-retro-display font-black text-sm flex-1 ${isActive ? 'text-base-black' : 'text-base-black/80'}`}>
+          {item.label}
+        </span>
+        
+        {/* Arrow indicator for active */}
+        {isActive && (
+          <motion.div
+            initial={{ x: -10, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            className="text-retro-orange"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </motion.div>
+        )}
+        
+        {/* Hover sparkle effect */}
+        <motion.div 
+          className="absolute right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+          whileHover={{ scale: [1, 1.3, 1] }}
+          transition={{ duration: 0.3 }}
+        >
+          <Sparkles className="w-4 h-4 text-retro-yellow" />
+        </motion.div>
+      </Link>
+    </motion.div>
+  );
+}
+
+// Retro User Profile Section
+function RetroUserProfile({ user, onLogout }) {
+  return (
+    <motion.div 
+      variants={cardVariants}
+      className="retro-card bg-base-white border-4 border-base-black p-4"
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <motion.div 
+          variants={pulseVariants}
+          animate="animate"
+          className="w-12 h-12 rounded-retro bg-retro-orange/20 border-2 border-retro-orange flex items-center justify-center flex-shrink-0"
+        >
+          <span className="font-retro-display font-black text-retro-orange text-lg">
+            {user.name?.charAt(0)?.toUpperCase() || 'U'}
+          </span>
+        </motion.div>
+        <div className="flex-1 min-w-0">
+          <p className="font-retro-display font-black text-base-black text-sm truncate">{user.name}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className={`retro-badge text-[9px] ${
+              user.role === 'admin' ? 'retro-badge-orange' : 
+              user.role === 'guru' ? 'retro-badge-blue' : 'retro-badge-purple'
+            }`}>
+              {user.role.toUpperCase()}
+            </span>
+            <span className="font-retro-mono text-[9px] text-base-black/50">Online</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Quick Stats */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        {[
+          { label: 'Login', value: '✓', icon: CheckCircle2, color: 'text-success' },
+          { label: 'Role', value: user.role.charAt(0).toUpperCase(), icon: Shield, color: 'text-retro-orange' },
+          { label: 'Active', value: '●', icon: Clock, color: 'text-retro-lime' },
+        ].map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <div key={i} className="text-center p-2 rounded-retro bg-base-gray border-2 border-base-black/30">
+              <Icon className={`w-3 h-3 ${stat.color} mx-auto mb-1`} />
+              <p className="font-retro-mono text-[8px] text-base-black/60">{stat.label}</p>
+              <p className={`font-retro-display font-black text-xs ${stat.color}`}>{stat.value}</p>
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* Logout Button */}
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={onLogout}
+        className="w-full retro-btn retro-btn-sm bg-danger hover:bg-danger/90 text-base-white flex items-center justify-center gap-2"
+      >
+        <LogOut className="w-4 h-4" />
+        <span className="font-retro-mono text-xs">LOGOUT</span>
+      </motion.button>
+      
+      {/* Decorative sticker */}
+      <motion.div 
+        variants={stickerVariants}
+        initial="hidden"
+        animate="visible"
+        className="absolute -top-2 -left-2"
+      >
+        <div className="retro-sticker bg-retro-lime text-base-black text-[8px] px-2 py-0.5">
+          SECURE 🔐
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// Retro Public Login Section
+function RetroPublicLogin({ onClose }) {
+  return (
+    <motion.div 
+      variants={cardVariants}
+      className="retro-card bg-base-white border-4 border-base-black p-4 text-center"
+    >
+      <div className="w-12 h-12 mx-auto mb-3 rounded-retro bg-retro-orange/20 border-2 border-retro-orange flex items-center justify-center">
+        <Rocket className="w-6 h-6 text-retro-orange" />
+      </div>
+      <p className="font-retro-mono text-xs text-base-black/70 mb-4">
+        Login to access your personalized dashboard
+      </p>
+      <Link
+        to="/login"
+        onClick={onClose}
+        className="retro-btn retro-btn-sm w-full flex items-center justify-center gap-2"
+      >
+        <Shield className="w-4 h-4" />
+        <span className="font-retro-mono text-xs">LOGIN NOW</span>
+      </Link>
+      
+      {/* Decorative corner */}
+      <div className="absolute bottom-2 right-2 w-2 h-2 bg-retro-yellow border border-base-black rounded-sm rotate-45" />
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🔧 HELPER VARIANTS (defined before Sidebar to avoid hoisting issues)
+// ═══════════════════════════════════════════════════════════
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { type: "spring", stiffness: 100, damping: 15 }
+  }
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 MAIN RETRO SIDEBAR COMPONENT
+// ═══════════════════════════════════════════════════════════
+export default function Sidebar({ isOpen, onClose }) {
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const [showKeyboardHint, setShowKeyboardHint] = useState(false);
+
+  // Role-based menu items with retro metadata
+  const getMenuItems = () => {
+    if (!user) {
+      return [
+        { icon: Home, label: 'Home', href: '/', shortcut: 'h', description: 'Landing page' },
+        { icon: Users, label: 'Gallery', href: '/gallery', shortcut: 'g', description: 'Student projects' },
+        { icon: BookOpen, label: 'Simulator', href: '/simulator', shortcut: 's', description: 'Career path' },
+      ];
+    }
+
+    if (user.role === 'siswa') {
+      return [
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/student', shortcut: 'd', description: 'Overview' },
+        { icon: CalendarCheck, label: 'Absensi', href: '/dashboard/student/attendance', shortcut: 'a', description: 'Check in/out' },
+        { icon: FolderKanban, label: 'Project', href: '/dashboard/student/projects', shortcut: 'p', description: 'My projects' },
+        { icon: GraduationCap, label: 'Skill', href: '/dashboard/student/skills', shortcut: 'k', description: 'Progress' },
+      ];
+    } else if (user.role === 'guru') {
+      return [
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/teacher', shortcut: 'd', description: 'Overview' },
+        { icon: CalendarCheck, label: 'Absensi', href: '/dashboard/teacher/attendance', shortcut: 'a', description: 'Manage attendance' },
+        { icon: Users, label: 'Siswa', href: '/dashboard/teacher/students', shortcut: 's', description: 'Student list' },
+        { icon: BookOpen, label: 'Izin', href: '/dashboard/teacher/permissions', shortcut: 'i', description: 'Approvals' },
+      ];
+    } else if (user.role === 'admin') {
+      return [
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/admin', shortcut: 'd', description: 'System overview' },
+        { icon: Users, label: 'Users', href: '/dashboard/admin/users', shortcut: 'u', description: 'Manage accounts' },
+        { icon: GraduationCap, label: 'Kelas', href: '/dashboard/admin/classes', shortcut: 'c', description: 'Class management' },
+        { icon: BookOpen, label: 'Mapel', href: '/dashboard/admin/subjects', shortcut: 'm', description: 'Subjects' },
+        { icon: CalendarCheck, label: 'Jadwal', href: '/dashboard/admin/schedules', shortcut: 'j', description: 'Schedules' },
+        { icon: Settings, label: 'Settings', href: '/dashboard/admin/settings', shortcut: 't', description: 'System config' },
+      ];
+    }
+    return [];
+  };
+
+  const menuItems = getMenuItems();
+
+  // Keyboard shortcuts support — MUST be before any early return
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only if sidebar is open and no input is focused
+      if (!isOpen || document.activeElement?.tagName === 'INPUT') return;
+      
+      // Escape to close sidebar
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      
+      // Show/hide keyboard hint
+      if (e.key === '?') {
+        e.preventDefault();
+        setShowKeyboardHint(prev => !prev);
+        return;
+      }
+      
+      // Navigate by shortcut key
+      const item = menuItems.find(i => i.shortcut && e.key && i.shortcut === e.key.toLowerCase());
+      if (item) {
+        e.preventDefault();
+        onClose();
+        window.location.href = item.href;
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose, menuItems]);
+
+  // Handle logout with confirmation
+  const handleLogout = () => {
+    if (window.confirm('Apakah Anda yakin ingin logout?')) {
+      logout();
+      onClose();
+    }
+  };
+
+  // Don't render if no user and not open (AFTER all hooks)
+  if (!user && !isOpen) return null;
+
+  // ═══════════════════════════════════════════════════════════
+  // 🎨 MAIN RENDER - RETRO FUTURISTIC SIDEBAR
+  // ═══════════════════════════════════════════════════════════
+  return (
+    <>
+      {/* Mobile Overlay - Retro Style */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-base-black/60 backdrop-blur-sm z-40 lg:hidden" 
+            onClick={onClose}
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar Panel - Retro Style */}
+      <AnimatePresence mode="wait">
+        {(isOpen || window.innerWidth >= 1024) && (
+          <motion.aside
+            key="sidebar"
+            variants={sidebarVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className={`
+              fixed top-0 left-0 z-50 h-screen w-64 
+              bg-base-cream retro-grid-bg border-r-4 border-base-black
+              lg:static lg:z-auto lg:translate-x-0
+              ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+            `}
+          >
+            {/* Decorative Elements */}
+            <SidebarDecorations />
+            
+            <div className="flex flex-col h-full relative">
+              
+              {/* Sidebar Header - Retro Style */}
+              <motion.div 
+                variants={cardVariants}
+                className="h-16 flex items-center justify-between px-4 border-b-4 border-base-black bg-base-white"
+              >
+                <Link to="/" onClick={onClose} className="flex items-center gap-2 group">
+                  <motion.div 
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.5 }}
+                    className="w-8 h-8 retro-card bg-retro-orange border-2 border-base-black flex items-center justify-center"
+                  >
+                    <Rocket className="w-5 h-5 text-base-white" />
+                  </motion.div>
+                  <span className="font-retro-display font-black text-base-black text-lg group-hover:text-retro-orange transition-colors">
+                    RPL SMART
+                  </span>
+                </Link>
+                
+                <div className="flex items-center gap-1">
+                  {/* Theme Toggle - Retro Styled */}
+                  <div className="scale-75 origin-right">
+                    <ThemeToggle size="sm" showTooltip={false} />
+                  </div>
+                  
+                  {/* Close button for mobile - Retro Style */}
+                  <motion.button 
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={onClose} 
+                    className="lg:hidden p-2 retro-btn retro-btn-sm"
+                    aria-label="Close menu"
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                </div>
+                
+                {/* Decorative sticker */}
+                <motion.div 
+                  variants={stickerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="absolute -top-2 -right-2"
+                >
+                  <div className="retro-sticker bg-retro-yellow text-base-black text-[8px] px-2 py-0.5">
+                    v2.0 ✨
+                  </div>
+                </motion.div>
+              </motion.div>
+
+              {/* Navigation Menu - Retro Style */}
+              <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto scrollbar-thin">
+                <motion.div variants={staggerContainer} initial="hidden" animate="visible">
+                  {menuItems.map((item, index) => {
+                    const isActive = location.pathname === item.href;
+                    return (
+                      <RetroMenuItem 
+                        key={item.href} 
+                        item={item} 
+                        isActive={isActive} 
+                        index={index} 
+                        onClick={onClose} 
+                      />
+                    );
+                  })}
+                </motion.div>
+                
+                {/* Keyboard Shortcut Hint */}
+                <AnimatePresence>
+                  {showKeyboardHint && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="mt-4 p-3 retro-card bg-retro-yellow/10 border-retro-yellow"
+                    >
+                      <p className="font-retro-mono text-[9px] text-base-black/70 mb-2 flex items-center gap-1">
+                        <Keyboard className="w-3 h-3" />
+                        Keyboard Shortcuts
+                      </p>
+                      <div className="space-y-1">
+                        {menuItems.map(item => item.shortcut && (
+                          <div key={item.href} className="flex items-center justify-between text-[9px]">
+                            <span className="font-retro-mono text-base-black/60">{item.label}</span>
+                            <kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black font-retro-mono text-[8px]">
+                              {item.shortcut}
+                            </kbd>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="font-retro-mono text-[8px] text-base-black/40 mt-2">
+                        Press <kbd className="px-1 py-0.5 rounded-sm bg-base-gray border border-base-black/30">?</kbd> to toggle hints
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </nav>
+
+              {/* User Info / Login Section - Retro Style */}
+              <div className="p-4 border-t-4 border-base-black bg-base-white">
+                {user ? (
+                  <RetroUserProfile user={user} onLogout={handleLogout} />
+                ) : (
+                  <RetroPublicLogin onClose={onClose} />
+                )}
+                
+                {/* Version Info - Retro Badge */}
+                <div className="mt-4 text-center">
+                  <span className="retro-badge retro-badge-blue text-[9px] px-3 py-1">
+                    RPL Smart v2.0 RETRO
+                  </span>
+                </div>
+              </div>
+              
+              {/* Decorative Bottom Sticker */}
+              <motion.div 
+                variants={stickerVariants}
+                initial="hidden"
+                animate="visible"
+                className="absolute bottom-4 left-4"
+              >
+                <div className="retro-sticker bg-retro-pink text-base-white text-[8px] px-2 py-0.5">
+                  MADE WITH ❤️
+                </div>
+              </motion.div>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+// Import Keyboard icon for hint display
+const Keyboard = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M6 16h12" />
+  </svg>
+);

@@ -7,12 +7,13 @@ use App\Services\ScheduleService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ScheduleController extends Controller
 {
     public function __construct(protected ScheduleService $scheduleService)
     {
-        //
+        // Middleware handles auth & role checks
     }
 
     /**
@@ -77,18 +78,18 @@ class ScheduleController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $result = $this->scheduleService->create(
-            $request->validate([
-                'class_id' => 'required|exists:classes,id',
-                'subject_id' => 'required|exists:subjects,id',
-                'teacher_id' => 'required|exists:users,id',
-                'day' => 'required|in:senin,selasa,rabu,kamis,jumat,sabtu',
-                'start_time' => 'required|date_format:H:i',
-                'end_time' => 'required|date_format:H:i|after:start_time',
-                'room' => 'nullable|string|max:50',
-                'is_active' => 'nullable|boolean',
-            ])
-        );
+        $validated = $request->validate([
+            'class_id' => 'required|exists:classes,id',
+            'subject_id' => 'required|exists:subjects,id',
+            'teacher_id' => 'required|exists:users,id',
+            'day' => 'required|in:senin,selasa,rabu,kamis,jumat,sabtu',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'room' => 'nullable|string|max:50',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $result = $this->scheduleService->create($validated);
 
         if (!$result['success']) {
             $statusCode = $result['code'] === 'SCHEDULE_CONFLICT' ? 409 : 400;
@@ -118,7 +119,7 @@ class ScheduleController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $result = $this->scheduleService->update($id, $request->validate([
+        $validated = $request->validate([
             'class_id' => 'sometimes|exists:classes,id',
             'subject_id' => 'sometimes|exists:subjects,id',
             'teacher_id' => 'sometimes|exists:users,id',
@@ -127,7 +128,9 @@ class ScheduleController extends Controller
             'end_time' => 'sometimes|date_format:H:i|after:start_time',
             'room' => 'nullable|string|max:50',
             'is_active' => 'nullable|boolean',
-        ]));
+        ]);
+
+        $result = $this->scheduleService->update($id, $validated);
 
         if (!$result['success']) {
             $statusCode = $result['code'] === 'SCHEDULE_CONFLICT' ? 409 : 400;
@@ -191,20 +194,37 @@ class ScheduleController extends Controller
             ], 400);
         }
 
-        $results = [];
-        foreach ($ids as $id) {
-            $result = $this->scheduleService->delete($id);
-            $results[] = ['id' => $id, 'success' => $result['success']];
+        try {
+            DB::beginTransaction();
+            
+            $results = [];
+            $successCount = 0;
+            
+            foreach ($ids as $id) {
+                $result = $this->scheduleService->delete($id);
+                $results[] = ['id' => $id, 'success' => $result['success'], 'message' => $result['message'] ?? ''];
+                if ($result['success']) $successCount++;
+            }
+            
+            DB::commit();
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => "{$successCount} dari " . count($ids) . " jadwal berhasil dihapus.",
+                'code' => 'BULK_DELETE_SUCCESS',
+                'data' => $results,
+            ], 200);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('ScheduleController::destroyBulk failed', ['error' => $e->getMessage()]);
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menghapus jadwal secara massal.',
+                'code' => 'BULK_DELETE_FAILED',
+            ], 500);
         }
-
-        $successCount = count(array_filter($results, fn($r) => $r['success']));
-        
-        return response()->json([
-            'status' => 'success',
-            'message' => "{$successCount} dari " . count($ids) . " jadwal berhasil dihapus.",
-            'code' => 'BULK_DELETE_SUCCESS',
-            'data' => $results,
-        ], 200);
     }
 
     /**
@@ -302,25 +322,23 @@ class ScheduleController extends Controller
      */
     public function checkConflict(Request $request): JsonResponse
     {
-        $hasConflict = $this->scheduleService->checkConflict(
-            $request->validate([
-                'class_id' => 'required|exists:classes,id',
-                'teacher_id' => 'required|exists:users,id',
-                'day' => 'required|in:senin,selasa,rabu,kamis,jumat,sabtu',
-                'start_time' => 'required|date_format:H:i',
-                'end_time' => 'required|date_format:H:i',
-            ])
-        );
+        $validated = $request->validate([
+            'class_id' => 'required|exists:classes,id',
+            'teacher_id' => 'required|exists:users,id',
+            'day' => 'required|in:senin,selasa,rabu,kamis,jumat,sabtu',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i',
+        ]);
+
+        $conflictResult = $this->scheduleService->checkConflict($validated);
 
         return response()->json([
             'status' => 'success',
             'message' => 'Pengecekan konflik berhasil.',
             'code' => 'CONFLICT_CHECK_SUCCESS',
             'data' => [
-                'has_conflict' => $hasConflict,
-                'message' => $hasConflict 
-                    ? 'Jadwal bentrok dengan jadwal lain.' 
-                    : 'Tidak ada konflik jadwal.',
+                'has_conflict' => is_string($conflictResult),
+                'message' => is_string($conflictResult) ? $conflictResult : 'Tidak ada konflik jadwal.',
             ],
         ], 200);
     }

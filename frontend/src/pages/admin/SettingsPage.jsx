@@ -2,18 +2,20 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Globe, Clock, Briefcase, Shield, ToggleRight, Save, RefreshCw,
+  Globe2 as Globe, Clock, Briefcase, Shield, ToggleRight, Save, RefreshCw,
   MapPin, Camera, QrCode, Smartphone, Wifi, Bluetooth, Fingerprint,
   Mail, Bell, Download, Upload, Trash2, Eye, EyeOff, Search,
   ChevronDown, ChevronRight, ChevronLeft, Settings2, Building2,
-  School, Users, Calendar, Cloud, Database, Lock, Key, BarChart3,
+  School, Users, Calendar, Cloud, Database, Lock, Key, ChartBar as BarChart3,
   Zap, Brain, BookOpen, GraduationCap, Award, AlertTriangle,
   CheckCircle2, XCircle, Info, Moon, Sun, Palette, Layout,
   HardDrive, Cpu, Activity, Radio, Satellite, LockOpen, KeyRound,
-  MonitorSmartphone, ShieldCheck, ShieldAlert, FileText, Image,
-  Video, Music, Archive, Clock3, Timer, CalendarDays, Map,
+  TabletSmartphone as MonitorSmartphone, ShieldCheck, ShieldAlert, FileText, Image,
+  Video, Music, Archive, Clock as Clock3, Timer, CalendarDays, Map,
   Navigation, Target, Compass, Crosshair, EyeOff as EyeSlash,
-  MessageCircle, Monitor, Coffee, History, UserCheck, Plus
+  MessageCircle, Monitor, Coffee, RefreshCw as History, UserCheck, Plus,
+  Menu, X, Star, Sparkles, Smile, Rocket, Tag, Layers, GitBranch,
+  Terminal, Server, HardHat, Wrench, Package, Box, Folder, File
 } from 'lucide-react';
 import { api } from '../../api';
 import Button from '../../components/ui/Button';
@@ -21,7 +23,7 @@ import Toast from '../../components/ui/Toast';
 import Modal from '../../components/ui/Modal';
 
 // ═══════════════════════════════════════════════════════════
-// ANIMATION VARIANTS (Reusable)
+// 🎨 RETRO ANIMATION VARIANTS
 // ═══════════════════════════════════════════════════════════
 const pageVariants = {
   hidden: { opacity: 0 },
@@ -29,38 +31,57 @@ const pageVariants = {
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 20, scale: 0.98 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
+  hidden: { opacity: 0, y: 30, rotate: -1 },
+  visible: { 
+    opacity: 1, y: 0, rotate: 0,
+    transition: { type: "spring", stiffness: 100, damping: 15, mass: 0.1 } 
+  }
+};
+
+const stickerVariants = {
+  hidden: { scale: 0, rotate: -180 },
+  visible: { scale: 1, rotate: 0, transition: { type: "spring", stiffness: 200, damping: 10 } },
+  hover: { scale: 1.1, rotate: [0, -5, 5, -3, 3, 0], transition: { duration: 0.3 } }
+};
+
+const floatVariants = {
+  animate: {
+    y: [0, -8, 0], rotate: [0, 2, -2, 0],
+    transition: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+  }
 };
 
 // ═══════════════════════════════════════════════════════════
-// HELPER COMPONENTS (Inline - No Separate Folder Needed)
+// 🎭 RETRO HELPER COMPONENTS (Inline - No Separate Folder)
 // ═══════════════════════════════════════════════════════════
 
-// Glassmorphism Card Wrapper
-function SettingsCard({ children, className = '', icon: Icon, title, description, actions }) {
+// Retro Card Wrapper with Brutalist Borders
+function RetroSettingsCard({ children, className = '', icon: Icon, title, description, actions }) {
   return (
     <motion.div
       variants={cardVariants}
-      whileHover={{ y: -2, scale: 1.005 }}
-      className={`relative group rounded-2xl overflow-hidden ${className}`}
+      whileHover={{ y: -2, rotate: 1 }}
+      className={`relative group rounded-retro-lg overflow-hidden ${className}`}
     >
-      {/* Glow border effect */}
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary-500/20 via-accent-cyan/20 to-primary-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
+      {/* Decorative corner accents */}
+      <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-retro-orange" />
+      <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-retro-blue" />
+      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-retro-purple" />
+      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-retro-lime" />
       
-      {/* Card content */}
-      <div className="relative bg-white/5 dark:bg-[#1a1a2e]/80 backdrop-blur-xl border border-white/10 dark:border-[#2d2d44]/50 rounded-2xl p-6 transition-all duration-300 group-hover:border-primary-500/30">
+      {/* Card content with brutalist styling */}
+      <div className="relative bg-base-white border-4 border-base-black rounded-retro-lg p-6 transition-all duration-300 group-hover:shadow-hard-hover group-hover:-translate-x-0.5 group-hover:-translate-y-0.5">
         {(Icon || title) && (
           <div className="flex items-start justify-between mb-5">
             <div className="flex items-center gap-3">
               {Icon && (
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary-500/20 to-accent-cyan/20 border border-primary-500/30">
-                  <Icon className="w-5 h-5 text-primary-400" />
+                <div className="p-2.5 rounded-retro bg-retro-orange/20 border-2 border-retro-orange">
+                  <Icon className="w-5 h-5 text-retro-orange" />
                 </div>
               )}
               <div>
-                {title && <h3 className="text-lg font-semibold text-white">{title}</h3>}
-                {description && <p className="text-sm text-gray-400 mt-0.5">{description}</p>}
+                {title && <h3 className="retro-heading retro-heading-sm text-base-black">{title}</h3>}
+                {description && <p className="font-retro-mono text-[10px] text-base-black/60 mt-0.5">{description}</p>}
               </div>
             </div>
             {actions && <div className="flex items-center gap-2">{actions}</div>}
@@ -72,34 +93,34 @@ function SettingsCard({ children, className = '', icon: Icon, title, description
   );
 }
 
-// Animated Toggle Switch
-function SettingsToggle({ label, checked, onChange, description, icon: Icon, disabled = false }) {
+// Retro Toggle Switch with Animated Slider
+function RetroSettingsToggle({ label, checked, onChange, description, icon: Icon, disabled = false }) {
   return (
     <motion.div 
       whileHover={{ scale: disabled ? 1 : 1.01 }}
-      className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${
+      className={`flex items-center justify-between p-4 rounded-retro border-2 border-base-black transition-all duration-300 ${
         checked 
-          ? 'bg-primary-500/10 border-primary-500/30' 
-          : 'bg-white/5 dark:bg-[#1a1a2e]/50 border-white/10 dark:border-[#2d2d44]/50'
-      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary-500/30 cursor-pointer'}`}
+          ? 'bg-retro-orange/10 border-retro-orange' 
+          : 'bg-base-gray border-base-black/30'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-retro-yellow/10 cursor-pointer'}`}
       onClick={() => !disabled && onChange(!checked)}
     >
       <div className="flex items-start gap-3">
-        {Icon && <Icon className={`w-5 h-5 mt-0.5 ${checked ? 'text-primary-400' : 'text-gray-500'}`} />}
+        {Icon && <Icon className={`w-5 h-5 mt-0.5 ${checked ? 'text-retro-orange' : 'text-base-black/40'}`} />}
         <div>
-          <p className={`font-medium ${checked ? 'text-white' : 'text-gray-300'}`}>{label}</p>
-          {description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>}
+          <p className={`font-retro-display font-black text-sm ${checked ? 'text-base-black' : 'text-base-black/70'}`}>{label}</p>
+          {description && <p className="font-retro-mono text-[9px] text-base-black/50 mt-0.5">{description}</p>}
         </div>
       </div>
       <motion.div
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-          checked ? 'bg-primary-600' : 'bg-gray-600'
+        className={`relative inline-flex h-6 w-12 items-center rounded-retro border-2 border-base-black transition-colors ${
+          checked ? 'bg-retro-orange' : 'bg-base-gray'
         }`}
         whileTap={{ scale: 0.95 }}
       >
         <motion.span
-          className="inline-block h-4 w-4 transform rounded-full bg-white shadow-lg"
-          animate={{ x: checked ? 20 : 4 }}
+          className="inline-block h-4 w-4 transform rounded-sm bg-base-white border-2 border-base-black shadow-[2px_2px_0px_0px_#111111]"
+          animate={{ x: checked ? 24 : 4 }}
           transition={{ type: "spring", stiffness: 500, damping: 30 }}
         />
       </motion.div>
@@ -107,21 +128,21 @@ function SettingsToggle({ label, checked, onChange, description, icon: Icon, dis
   );
 }
 
-// Modern Input with Glow Effect
-function SettingsInput({ label, name, type = "text", value, onChange, error, required, disabled, placeholder, icon: Icon, helperText, suffix, prefix }) {
+// Retro Input with Thick Borders & Glow
+function RetroSettingsInput({ label, name, type = "text", value, onChange, error, required, disabled, placeholder, icon: Icon, helperText, suffix, prefix }) {
   const [focused, setFocused] = useState(false);
   
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-300">
+      <label className="block text-xs font-black uppercase tracking-wider text-base-black">
         <span className="flex items-center gap-1.5">
-          {Icon && <Icon className="w-4 h-4 text-gray-500" />}
+          {Icon && <Icon className="w-4 h-4" />}
           {label}
-          {required && <span className="text-primary-400">*</span>}
+          {required && <span className="text-retro-orange">*</span>}
         </span>
       </label>
       <div className="relative">
-        {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">{prefix}</span>}
+        {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-black/50 text-xs font-retro-mono">{prefix}</span>}
         <input
           type={type}
           name={name}
@@ -129,84 +150,86 @@ function SettingsInput({ label, name, type = "text", value, onChange, error, req
           onChange={(e) => onChange(prev => ({ ...prev, [name]: e.target.value }))}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          className={`w-full px-4 py-3 rounded-xl bg-white/5 border transition-all duration-300 text-white placeholder-gray-500 focus:outline-none ${
+          className={`w-full px-4 py-3 rounded-retro bg-base-white border-2 border-base-black transition-all duration-300 text-base-black placeholder-base-black/40 focus:outline-none font-retro-mono text-sm ${
             focused 
-              ? 'border-primary-500/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]' 
-              : 'border-white/10 hover:border-white/20'
-          } ${error ? 'border-danger/50' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${prefix ? 'pl-10' : ''} ${suffix ? 'pr-10' : ''}`}
+              ? 'border-retro-orange shadow-[4px_4px_0px_0px_#FF5C00]' 
+              : 'hover:border-retro-blue'
+          } ${error ? 'border-danger shadow-[4px_4px_0px_0px_#FF1744]' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${prefix ? 'pl-10' : ''} ${suffix ? 'pr-10' : ''}`}
           required={required}
           disabled={disabled}
           placeholder={placeholder}
         />
-        {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">{suffix}</span>}
+        {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-base-black/50 text-xs font-retro-mono">{suffix}</span>}
       </div>
-      {helperText && <p className="text-xs text-gray-500">{helperText}</p>}
-      {error && <p className="text-danger text-xs">{Array.isArray(error) ? error[0] : error}</p>}
+      {helperText && <p className="text-[9px] font-retro-mono text-base-black/50">{helperText}</p>}
+      {error && <p className="text-danger text-[9px] font-retro-mono mt-0.5">{Array.isArray(error) ? error[0] : error}</p>}
     </div>
   );
 }
 
-// Modern Select Dropdown
-function SettingsSelect({ label, name, value, onChange, options, error, required, disabled, icon: Icon, placeholder }) {
+// Retro Select with Custom Styling
+function RetroSettingsSelect({ label, name, value, onChange, options, error, required, disabled, icon: Icon, placeholder }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-300">
+      <label className="block text-xs font-black uppercase tracking-wider text-base-black">
         <span className="flex items-center gap-1.5">
-          {Icon && <Icon className="w-4 h-4 text-gray-500" />}
+          {Icon && <Icon className="w-4 h-4" />}
           {label}
-          {required && <span className="text-primary-400">*</span>}
+          {required && <span className="text-retro-orange">*</span>}
         </span>
       </label>
       <select
         name={name}
         value={value || ''}
         onChange={(e) => onChange(prev => ({ ...prev, [name]: e.target.value }))}
-        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 focus:border-primary-500/50 focus:shadow-[0_0_20px_rgba(168,85,247,0.2)] transition-all duration-300 text-white focus:outline-none appearance-none cursor-pointer"
+        className="w-full px-4 py-3 rounded-retro bg-base-white border-2 border-base-black hover:border-retro-blue focus:border-retro-orange focus:shadow-[4px_4px_0px_0px_#FF5C00] transition-all duration-300 text-base-black focus:outline-none appearance-none cursor-pointer font-retro-mono text-sm"
         required={required}
         disabled={disabled}
       >
-        {placeholder && <option value="">{placeholder}</option>}
+        {placeholder && <option value="" className="bg-base-cream text-base-black">{placeholder}</option>}
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value} className="bg-[#1a1a2e] text-white">{opt.label}</option>
+          <option key={opt.value} value={opt.value} className="bg-base-cream text-base-black">{opt.label}</option>
         ))}
       </select>
-      {error && <p className="text-danger text-xs">{Array.isArray(error) ? error[0] : error}</p>}
+      {error && <p className="text-danger text-[9px] font-retro-mono mt-0.5">{Array.isArray(error) ? error[0] : error}</p>}
     </div>
   );
 }
 
-// Stats Badge Component
-function StatsBadge({ label, value, icon: Icon, color = "primary" }) {
+// Retro Stats Badge
+function RetroStatsBadge({ label, value, icon: Icon, color = "orange" }) {
   const colorClasses = {
-    primary: "bg-primary-500/10 text-primary-400 border-primary-500/30",
-    success: "bg-success/10 text-success border-success/30",
-    warning: "bg-warning/10 text-warning border-warning/30",
-    danger: "bg-danger/10 text-danger border-danger/30",
-    info: "bg-accent-cyan/10 text-accent-cyan border-accent-cyan/30",
+    orange: "bg-retro-orange/10 text-retro-orange border-retro-orange",
+    blue: "bg-retro-blue/10 text-retro-blue border-retro-blue",
+    yellow: "bg-retro-yellow/20 text-retro-yellow border-retro-yellow",
+    purple: "bg-retro-purple/10 text-retro-purple border-retro-purple",
+    lime: "bg-retro-lime/10 text-retro-lime border-retro-lime",
+    green: "bg-success/10 text-success border-success",
+    red: "bg-danger/10 text-danger border-danger",
   };
   
   return (
-    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${colorClasses[color]}`}>
-      {Icon && <Icon className="w-4 h-4" />}
-      <span className="text-xs font-medium">{label}</span>
-      {value !== undefined && <span className="font-bold">{value}</span>}
-    </div>
+    <motion.div whileHover={{ scale: 1.05, rotate: 2 }} className={`retro-badge text-[10px] px-3 py-1.5 ${colorClasses[color]}`}>
+      {Icon && <Icon className="w-4 h-4 mr-1 inline" />}
+      <span className="font-black uppercase tracking-wide">{label}</span>
+      {value !== undefined && <span className="font-retro-display font-black ml-1">{value}</span>}
+    </motion.div>
   );
 }
 
-// Map Preview Component
-function MapPreview({ lat, lng }) {
+// Retro Map Preview Component
+function RetroMapPreview({ lat, lng }) {
   if (!lat || !lng) return (
-    <div className="flex flex-col items-center justify-center h-48 rounded-xl bg-white/5 border border-dashed border-white/10 text-gray-500">
+    <div className="flex flex-col items-center justify-center h-48 rounded-retro bg-base-gray border-2 border-dashed border-base-black/30 text-base-black/50">
       <MapPin className="w-8 h-8 mb-2 opacity-50" />
-      <p className="text-sm">Masukkan Latitude & Longitude</p>
+      <p className="font-retro-mono text-xs">Enter Latitude & Longitude</p>
     </div>
   );
 
   const embedUrl = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
 
   return (
-    <div className="relative rounded-xl overflow-hidden border border-white/10 h-64 group">
+    <div className="relative rounded-retro overflow-hidden border-4 border-base-black h-64 group">
       <iframe
         title="Location Preview"
         width="100%"
@@ -215,30 +238,28 @@ function MapPreview({ lat, lng }) {
         src={embedUrl}
         allowFullScreen
       />
-      <div className="absolute top-3 left-3 px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[10px] text-white flex items-center gap-2">
-        <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
-        LIVE PREVIEW: {lat}, {lng}
+      <div className="absolute top-3 left-3 px-3 py-1.5 rounded-retro bg-retro-orange border-2 border-base-black text-[10px] text-base-white font-retro-mono flex items-center gap-2">
+        <div className="w-2 h-2 rounded-sm bg-base-white animate-pulse" />
+        LIVE: {lat}, {lng}
       </div>
     </div>
   );
 }
 
-// Modal for adding PKL Location
-function PklLocationModal({ isOpen, onClose, onSave, isSaving }) {
+// Retro PKL Location Modal
+function RetroPklLocationModal({ isOpen, onClose, onSave, isSaving }) {
   const [formData, setFormData] = useState({
     company_name: '', address: '', latitude: '', longitude: '',
     radius_meters: 100, supervisor_name: '', supervisor_phone: '',
-    supervisor_email: '', is_approved: true
+    supervisor_email: '', is_approved: true, student_ids: []
   });
 
-  // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
       setFormData({
         company_name: '', address: '', latitude: '', longitude: '',
         radius_meters: 100, supervisor_name: '', supervisor_phone: '',
-        supervisor_email: '', is_approved: true,
-        student_ids: []
+        supervisor_email: '', is_approved: true, student_ids: []
       });
     }
   }, [isOpen]);
@@ -264,57 +285,78 @@ function PklLocationModal({ isOpen, onClose, onSave, isSaving }) {
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Tambah Lokasi PKL" size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title="🏢 ADD PKL LOCATION" size="lg">
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SettingsInput label="Nama Perusahaan" name="company_name" value={formData.company_name} onChange={setFormData} required icon={Building2} />
-          <SettingsInput label="Nama Pembimbing" name="supervisor_name" value={formData.supervisor_name} onChange={setFormData} icon={UserCheck} />
-          <SettingsInput label="Email" name="supervisor_email" value={formData.supervisor_email} onChange={setFormData} icon={Mail} />
-          <SettingsInput label="Telepon" name="supervisor_phone" value={formData.supervisor_phone} onChange={setFormData} icon={Smartphone} />
+          <RetroSettingsInput label="Company Name" name="company_name" value={formData.company_name} onChange={setFormData} required icon={Building2} placeholder="PT. Example Indonesia" />
+          <RetroSettingsInput label="Supervisor Name" name="supervisor_name" value={formData.supervisor_name} onChange={setFormData} icon={UserCheck} placeholder="Budi Santoso" />
+          <RetroSettingsInput label="Email" name="supervisor_email" value={formData.supervisor_email} onChange={setFormData} icon={Mail} placeholder="supervisor@example.com" />
+          <RetroSettingsInput label="Phone" name="supervisor_phone" value={formData.supervisor_phone} onChange={setFormData} icon={Smartphone} placeholder="08123456789" />
         </div>
-        <SettingsInput label="Alamat Lengkap" name="address" value={formData.address} onChange={setFormData} required icon={MapPin} />
+        <RetroSettingsInput label="Full Address" name="address" value={formData.address} onChange={setFormData} required icon={MapPin} placeholder="Jl. Mawar No. 123, Jakarta" />
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <SettingsInput label="Latitude" name="latitude" value={formData.latitude} onChange={setFormData} required />
-          <SettingsInput label="Longitude" name="longitude" value={formData.longitude} onChange={setFormData} required />
-          <SettingsInput label="Radius (m)" name="radius_meters" type="number" value={formData.radius_meters} onChange={setFormData} required />
+          <RetroSettingsInput label="Latitude" name="latitude" value={formData.latitude} onChange={setFormData} required placeholder="-6.200000" />
+          <RetroSettingsInput label="Longitude" name="longitude" value={formData.longitude} onChange={setFormData} required placeholder="106.816666" />
+          <RetroSettingsInput label="Radius (m)" name="radius_meters" type="number" value={formData.radius_meters} onChange={setFormData} required placeholder="100" />
+        </div>
+
+        <div className="p-3 retro-card bg-retro-yellow/10 border-retro-yellow">
+          <p className="text-[10px] font-black uppercase tracking-wider text-base-black/70 mb-2">⚡ Quick Location Templates</p>
+          <div className="flex flex-wrap gap-2">
+            {[{name:'Tech Hub Jakarta',lat:'-6.2088',lng:'106.8456'},{name:'Digital Valley',lat:'-6.2297',lng:'106.8200'}].map(t => (
+              <button type="button" key={t.name} onClick={() => setFormData({...formData, latitude: t.lat, longitude: t.lng, company_name: t.name})} className="retro-btn retro-btn-sm retro-btn-outline text-[10px]">{t.name}</button>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-3">
-          <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary-400" /> Pilih Siswa Penempatan (Opsional)
+          <label className="text-xs font-black uppercase tracking-wider text-base-black flex items-center gap-2">
+            <Users className="w-4 h-4 text-retro-orange" /> Assign Students (Optional)
           </label>
-          <div className="max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-white/5 p-2 space-y-1 scrollbar-thin">
+          <div className="max-h-48 overflow-y-auto rounded-retro border-2 border-base-black bg-base-gray p-2 space-y-1 scrollbar-thin">
             {eligibleStudents.length > 0 ? eligibleStudents.map(student => (
-              <label key={student.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors group">
+              <label key={student.id} className="flex items-center gap-3 p-2 rounded-sm hover:bg-retro-yellow/20 cursor-pointer transition-colors group">
                 <input 
                   type="checkbox" 
                   checked={formData.student_ids.includes(student.id)}
                   onChange={() => toggleStudent(student.id)}
-                  className="w-4 h-4 rounded border-white/10 bg-white/5 text-primary-500 focus:ring-primary-500/30"
+                  className="w-4 h-4 rounded-sm border-2 border-base-black bg-base-white text-retro-orange focus:ring-retro-orange/30 accent-retro-orange"
                 />
                 <div className="flex-1">
-                  <p className="text-sm text-white group-hover:text-primary-400 transition-colors">{student.name}</p>
-                  <p className="text-[10px] text-gray-500">NIS: {student.profile?.nis || '-'} {student.pkl_location_id ? `(Saat ini: ${student.pkl_location?.company_name})` : '(Belum ada penempatan)'}</p>
+                  <p className="text-sm font-retro-display font-black text-base-black group-hover:text-retro-orange transition-colors">{student.name}</p>
+                  <p className="text-[9px] font-retro-mono text-base-black/50">NIS: {student.profile?.nis || '-'} {student.pkl_location_id ? `(Placed: ${student.pkl_location?.company_name})` : '(Unplaced)'}</p>
                 </div>
               </label>
             )) : (
-              <p className="text-xs text-gray-500 text-center py-4">Tidak ada siswa RPL XII ditemukan</p>
+              <p className="text-[10px] font-retro-mono text-base-black/50 text-center py-4">No RPL XII students found</p>
             )}
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 mt-8">
-          <Button variant="outline" onClick={onClose}>Batal</Button>
-          <Button onClick={() => onSave(formData)} loading={isSaving}>Simpan Lokasi</Button>
+        <div className="flex justify-end gap-3 mt-8 pt-4 border-t-4 border-base-black">
+          <button onClick={onClose} className="retro-btn retro-btn-outline">Cancel</button>
+          <button onClick={() => onSave(formData)} className="retro-btn" disabled={isSaving}>{isSaving ? 'Saving...' : '💾 Save Location'}</button>
         </div>
       </div>
     </Modal>
   );
 }
 
+// Retro Decorative Elements
+function SettingsDecorations() {
+  return (
+    <>
+      <motion.div variants={floatVariants} animate="animate" className="absolute top-20 right-10 z-0 hidden lg:block"><div className="retro-smiley text-xl animate-wobble">⚙️</div></motion.div>
+      <motion.div variants={floatVariants} animate="animate" className="absolute bottom-32 left-20 z-0 hidden lg:block" style={{animationDelay:'1s'}}><Star className="w-8 h-8 text-retro-yellow fill-retro-yellow drop-shadow-retro animate-sparkle-retro" /></motion.div>
+      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-retro-purple/20 rounded-blob blur-2xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-24 h-24 bg-retro-lime/20 rounded-blob blur-2xl pointer-events-none" />
+    </>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════
-// MAIN COMPONENT
+// 🎯 MAIN RETRO SETTINGS COMPONENT
 // ═══════════════════════════════════════════════════════════
 export default function SettingsPage() {
   const queryClient = useQueryClient();
@@ -326,6 +368,7 @@ export default function SettingsPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [toast, setToast] = useState(null);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // PKL Management State
   const [pklLocations, setPklLocations] = useState([]);
@@ -337,26 +380,26 @@ export default function SettingsPage() {
   // Fetch Settings
   const { data: settingsData, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['admin-settings'],
-    queryFn: () => api.get('/admin/settings').then(res => res.data?.data),
+    queryFn: () => api.get('/admin/settings').then(res => res.data?.data ?? null),
   });
 
   // Tab Definitions
   const tabs = useMemo(() => [
-    { id: 'general', label: 'Umum', icon: Settings2, description: 'Identitas, branding, notifikasi' },
-    { id: 'attendance', label: 'Absensi', icon: Clock, description: 'GPS, validasi, QR, smart attendance' },
-    { id: 'pkl', label: 'PKL / Magang', icon: Briefcase, description: 'Lokasi, siswa, monitoring' },
-    { id: 'security', label: 'Keamanan', icon: Shield, description: 'Auth, password, API, monitoring' },
-    { id: 'features', label: 'Fitur', icon: ToggleRight, description: 'Modul, AI, public website' },
+    { id: 'general', label: 'General', icon: Settings2, description: 'Identity, branding, notifications' },
+    { id: 'attendance', label: 'Attendance', icon: Clock, description: 'GPS, validation, QR, smart features' },
+    { id: 'pkl', label: 'PKL / Internship', icon: Briefcase, description: 'Locations, students, monitoring' },
+    { id: 'security', label: 'Security', icon: Shield, description: 'Auth, password, API, monitoring' },
+    { id: 'features', label: 'Features', icon: ToggleRight, description: 'Modules, AI, public website' },
     { id: 'backup', label: 'Backup', icon: Database, description: 'Backup, restore, system info' },
   ], []);
 
-  // Settings State
+  // Settings State (Retro-compatible structure)
   const [general, setGeneral] = useState({
     app_name: 'RPL Smart Ecosystem', school_name: '', npsn: '', school_slogan: '',
     school_description: '', address: '', province: '', city: '', district: '',
     postal_code: '', website: '', support_email: '', support_phone: '',
-    academic_year: '2024/2025', semester: '1', primary_color: '#a855f7',
-    secondary_color: '#3b82f6', default_theme: 'dark', login_background: '',
+    academic_year: '2024/2025', semester: '1', primary_color: '#FF5C00',
+    secondary_color: '#2E2BBF', default_theme: 'light', login_background: '',
     dashboard_banner: '', default_page: 'dashboard', show_realtime_stats: true,
     show_weather: true, show_daily_motivation: true, show_academic_calendar: true,
     timezone: 'Asia/Jakarta', date_format: 'DD/MM/YYYY', time_format: '24h',
@@ -421,8 +464,6 @@ export default function SettingsPage() {
       if (settingsData.security) setSecurity(prev => ({ ...prev, ...settingsData.security }));
       if (settingsData.features) setFeatures(prev => ({ ...prev, ...settingsData.features }));
       if (settingsData.backup) setBackup(prev => ({ ...prev, ...settingsData.backup }));
-      
-      // Prevent immediate unsaved changes trigger
       setTimeout(() => setHasUnsavedChanges(false), 200);
     }
   }, [settingsData]);
@@ -433,12 +474,12 @@ export default function SettingsPage() {
     onSuccess: (res) => {
       setIsSaving(false);
       setHasUnsavedChanges(false);
-      showToast(res.data?.message || '✅ Pengaturan berhasil disimpan!', 'success');
+      showToast(res.data?.message || '✅ Settings saved!', 'success');
       queryClient.invalidateQueries(['admin-settings']);
     },
     onError: (err) => {
       setIsSaving(false);
-      showToast(`❌ ${err.response?.data?.message || 'Gagal menyimpan pengaturan'}`, 'error');
+      showToast(`❌ ${err.response?.data?.message || 'Failed to save settings'}`, 'error');
     }
   });
 
@@ -480,13 +521,12 @@ export default function SettingsPage() {
     setIsAddingPkl(true);
     try {
       await api.post('/admin/pkl-locations', formData);
-      showToast('🏢 Lokasi PKL berhasil ditambahkan', 'success');
+      showToast('🏢 PKL location added!', 'success');
       setIsPklModalOpen(false);
-      // Refresh list
       const res = await api.get('/admin/pkl-locations');
       setPklLocations(res.data?.data?.data || []);
     } catch (err) {
-      showToast('❌ Gagal menambahkan lokasi PKL', 'error');
+      showToast('❌ Failed to add PKL location', 'error');
     } finally {
       setIsAddingPkl(false);
     }
@@ -498,19 +538,17 @@ export default function SettingsPage() {
         student_ids: [studentId],
         pkl_location_id: locationId
       });
-      showToast('✅ Siswa berhasil ditugaskan', 'success');
-      // Refresh students
+      showToast('✅ Student assigned!', 'success');
       const res = await api.get('/admin/pkl/students', { params: { search: studentSearch } });
       setPklStudents(res.data?.data?.data || []);
     } catch (err) {
-      showToast('❌ Gagal menugaskan siswa', 'error');
+      showToast('❌ Failed to assign student', 'error');
     }
   };
 
   const handleReset = (section) => {
-    // Simple reset logic - extend as needed
     if (section === 'general') setGeneral({ ...general });
-    showToast('🔄 Pengaturan direset ke default', 'info');
+    showToast('🔄 Settings reset to default', 'info');
   };
 
   // Track unsaved changes
@@ -522,254 +560,251 @@ export default function SettingsPage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [hasUnsavedChanges]);
 
-  // Mark as unsaved when any setting changes
   useEffect(() => {
-    // Only mark as unsaved if data is already loaded and we're not currently fetching
     if (settingsData && !isLoadingSettings) {
       setHasUnsavedChanges(true);
     }
   }, [general, attendance, pkl, security, features, backup, settingsData, isLoadingSettings]);
 
   // ═══════════════════════════════════════════════════════════
-  // RENDER FUNCTIONS (Simplified)
+  // 🎨 RENDER FUNCTIONS (RETRO STYLE)
   // ═══════════════════════════════════════════════════════════
 
   const renderGeneralTab = () => (
     <motion.div variants={pageVariants} initial="hidden" animate="visible" className="space-y-8">
       <div className="flex flex-wrap gap-3">
-        <StatsBadge icon={School} label="Status Sistem" value="Online" color="success" />
-        <StatsBadge icon={Database} label="Storage" value="65%" color="warning" />
-        <StatsBadge icon={Cpu} label="Cache" value="Clear" color="info" />
-        <StatsBadge icon={Clock3} label="Uptime" value="99.9%" color="primary" />
+        <RetroStatsBadge icon={School} label="Status" value="Online" color="green" />
+        <RetroStatsBadge icon={Database} label="Storage" value="65%" color="yellow" />
+        <RetroStatsBadge icon={Cpu} label="Cache" value="Clear" color="blue" />
+        <RetroStatsBadge icon={Clock3} label="Uptime" value="99.9%" color="orange" />
       </div>
 
-      <SettingsCard icon={Building2} title="Identitas Sekolah" description="Informasi dasar tentang sekolah">
+      <RetroSettingsCard icon={Building2} title="SCHOOL IDENTITY" description="Basic school information">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SettingsInput label="Nama Aplikasi" name="app_name" value={general.app_name} onChange={setGeneral} required icon={Settings2} />
-          <SettingsInput label="Nama Sekolah" name="school_name" value={general.school_name} onChange={setGeneral} required icon={School} />
-          <SettingsInput label="NPSN" name="npsn" value={general.npsn} onChange={setGeneral} icon={Building2} helperText="Nomor Pokok Sekolah Nasional" />
-          <SettingsInput label="Slogan Sekolah" name="school_slogan" value={general.school_slogan} onChange={setGeneral} icon={Award} />
-          <SettingsInput label="Tahun Ajaran" name="academic_year" value={general.academic_year} onChange={setGeneral} icon={CalendarDays} />
-          <SettingsSelect label="Semester" name="semester" value={general.semester} onChange={setGeneral} icon={Calendar} options={[{value:'1',label:'Semester 1'},{value:'2',label:'Semester 2'}]} />
-          <SettingsInput label="Website" name="website" value={general.website} onChange={setGeneral} icon={Globe} placeholder="https://sekolah.sch.id" />
-          <SettingsInput label="Email Support" name="support_email" value={general.support_email} onChange={setGeneral} icon={Mail} />
-          <SettingsInput label="Telepon" name="support_phone" value={general.support_phone} onChange={setGeneral} icon={Bell} />
-          <SettingsInput label="Alamat" name="address" value={general.address} onChange={setGeneral} icon={MapPin} />
-          <SettingsInput label="Provinsi" name="province" value={general.province} onChange={setGeneral} />
-          <SettingsInput label="Kota" name="city" value={general.city} onChange={setGeneral} />
-          <SettingsInput label="Kecamatan" name="district" value={general.district} onChange={setGeneral} />
-          <SettingsInput label="Kode Pos" name="postal_code" value={general.postal_code} onChange={setGeneral} />
+          <RetroSettingsInput label="App Name" name="app_name" value={general.app_name} onChange={setGeneral} required icon={Settings2} placeholder="RPL Smart Ecosystem" />
+          <RetroSettingsInput label="School Name" name="school_name" value={general.school_name} onChange={setGeneral} required icon={School} placeholder="SMK Negeri 1" />
+          <RetroSettingsInput label="NPSN" name="npsn" value={general.npsn} onChange={setGeneral} icon={Building2} helperText="National School ID" />
+          <RetroSettingsInput label="Slogan" name="school_slogan" value={general.school_slogan} onChange={setGeneral} icon={Award} placeholder="Excellence in Tech" />
+          <RetroSettingsInput label="Academic Year" name="academic_year" value={general.academic_year} onChange={setGeneral} icon={CalendarDays} placeholder="2024/2025" />
+          <RetroSettingsSelect label="Semester" name="semester" value={general.semester} onChange={setGeneral} icon={Calendar} options={[{value:'1',label:'Semester 1'},{value:'2',label:'Semester 2'}]} />
+          <RetroSettingsInput label="Website" name="website" value={general.website} onChange={setGeneral} icon={Globe} placeholder="https://sekolah.sch.id" />
+          <RetroSettingsInput label="Support Email" name="support_email" value={general.support_email} onChange={setGeneral} icon={Mail} placeholder="support@sekolah.sch.id" />
+          <RetroSettingsInput label="Phone" name="support_phone" value={general.support_phone} onChange={setGeneral} icon={Bell} placeholder="(021) 1234567" />
+          <RetroSettingsInput label="Address" name="address" value={general.address} onChange={setGeneral} icon={MapPin} placeholder="Jl. Pendidikan No. 1" />
+          <RetroSettingsInput label="Province" name="province" value={general.province} onChange={setGeneral} />
+          <RetroSettingsInput label="City" name="city" value={general.city} onChange={setGeneral} />
+          <RetroSettingsInput label="District" name="district" value={general.district} onChange={setGeneral} />
+          <RetroSettingsInput label="Postal Code" name="postal_code" value={general.postal_code} onChange={setGeneral} />
         </div>
-        <SettingsInput label="Deskripsi" name="school_description" value={general.school_description} onChange={setGeneral} icon={Info} />
-      </SettingsCard>
+        <RetroSettingsInput label="Description" name="school_description" value={general.school_description} onChange={setGeneral} icon={Info} placeholder="Brief school description..." />
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Palette} title="Branding" description="Kustomisasi tampilan">
+      <RetroSettingsCard icon={Palette} title="BRANDING" description="Customize appearance">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1.5">Warna Primary</label>
+            <label className="block text-xs font-black uppercase tracking-wider text-base-black mb-1.5">Primary Color</label>
             <div className="flex items-center gap-3">
-              <input type="color" value={general.primary_color} onChange={(e) => setGeneral({...general, primary_color: e.target.value})} className="w-12 h-10 rounded-lg cursor-pointer border-0 bg-transparent" />
-              <input type="text" value={general.primary_color} onChange={(e) => setGeneral({...general, primary_color: e.target.value})} className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm font-mono" />
+              <input type="color" value={general.primary_color} onChange={(e) => setGeneral({...general, primary_color: e.target.value})} className="w-12 h-10 rounded-retro cursor-pointer border-2 border-base-black bg-transparent" />
+              <input type="text" value={general.primary_color} onChange={(e) => setGeneral({...general, primary_color: e.target.value})} className="flex-1 px-3 py-2 rounded-retro bg-base-white border-2 border-base-black text-base-black text-xs font-retro-mono" />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1.5">Warna Secondary</label>
+            <label className="block text-xs font-black uppercase tracking-wider text-base-black mb-1.5">Secondary Color</label>
             <div className="flex items-center gap-3">
-              <input type="color" value={general.secondary_color} onChange={(e) => setGeneral({...general, secondary_color: e.target.value})} className="w-12 h-10 rounded-lg cursor-pointer border-0 bg-transparent" />
-              <input type="text" value={general.secondary_color} onChange={(e) => setGeneral({...general, secondary_color: e.target.value})} className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm font-mono" />
+              <input type="color" value={general.secondary_color} onChange={(e) => setGeneral({...general, secondary_color: e.target.value})} className="w-12 h-10 rounded-retro cursor-pointer border-2 border-base-black bg-transparent" />
+              <input type="text" value={general.secondary_color} onChange={(e) => setGeneral({...general, secondary_color: e.target.value})} className="flex-1 px-3 py-2 rounded-retro bg-base-white border-2 border-base-black text-base-black text-xs font-retro-mono" />
             </div>
           </div>
-          <SettingsSelect label="Default Theme" name="default_theme" value={general.default_theme} onChange={setGeneral} icon={Moon} options={[{value:'dark',label:'🌙 Dark'},{value:'light',label:'☀️ Light'},{value:'system',label:'💻 System'}]} />
-          <SettingsInput label="URL Logo" name="logo_url" value={general.logo_url} onChange={setGeneral} icon={Image} />
+          <RetroSettingsSelect label="Default Theme" name="default_theme" value={general.default_theme} onChange={setGeneral} icon={Moon} options={[{value:'light',label:'☀️ Light'},{value:'dark',label:'🌙 Dark'},{value:'system',label:'💻 System'}]} />
+          <RetroSettingsInput label="Logo URL" name="logo_url" value={general.logo_url} onChange={setGeneral} icon={Image} placeholder="https://..." />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Layout} title="Dashboard" description="Kustomisasi dashboard">
+      <RetroSettingsCard icon={Layout} title="DASHBOARD" description="Customize dashboard">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsSelect label="Default Page" name="default_page" value={general.default_page} onChange={setGeneral} icon={Globe} options={[{value:'dashboard',label:'Dashboard'},{value:'attendance',label:'Absensi'},{value:'projects',label:'Projects'}]} />
-          <SettingsToggle label="Realtime Stats" checked={general.show_realtime_stats} onChange={(v) => setGeneral({...general, show_realtime_stats: v})} icon={Activity} />
-          <SettingsToggle label="Cuaca" checked={general.show_weather} onChange={(v) => setGeneral({...general, show_weather: v})} icon={Sun} />
-          <SettingsToggle label="Motivasi" checked={general.show_daily_motivation} onChange={(v) => setGeneral({...general, show_daily_motivation: v})} icon={Award} />
-          <SettingsToggle label="Kalender" checked={general.show_academic_calendar} onChange={(v) => setGeneral({...general, show_academic_calendar: v})} icon={CalendarDays} />
+          <RetroSettingsSelect label="Default Page" name="default_page" value={general.default_page} onChange={setGeneral} icon={Globe} options={[{value:'dashboard',label:'Dashboard'},{value:'attendance',label:'Attendance'},{value:'projects',label:'Projects'}]} />
+          <RetroSettingsToggle label="Realtime Stats" checked={general.show_realtime_stats} onChange={(v) => setGeneral({...general, show_realtime_stats: v})} icon={Activity} />
+          <RetroSettingsToggle label="Weather Widget" checked={general.show_weather} onChange={(v) => setGeneral({...general, show_weather: v})} icon={Sun} />
+          <RetroSettingsToggle label="Daily Motivation" checked={general.show_daily_motivation} onChange={(v) => setGeneral({...general, show_daily_motivation: v})} icon={Award} />
+          <RetroSettingsToggle label="Academic Calendar" checked={general.show_academic_calendar} onChange={(v) => setGeneral({...general, show_academic_calendar: v})} icon={CalendarDays} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Clock3} title="Waktu" description="Timezone & format">
+      <RetroSettingsCard icon={Clock3} title="TIME SETTINGS" description="Timezone & formats">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SettingsSelect label="Timezone" name="timezone" value={general.timezone} onChange={setGeneral} icon={Clock3} options={[{value:'Asia/Jakarta',label:'WIB'},{value:'Asia/Makassar',label:'WITA'},{value:'Asia/Jayapura',label:'WIT'}]} />
-          <SettingsSelect label="Format Tanggal" name="date_format" value={general.date_format} onChange={setGeneral} icon={Calendar} options={[{value:'DD/MM/YYYY',label:'DD/MM/YYYY'},{value:'MM/DD/YYYY',label:'MM/DD/YYYY'}]} />
-          <SettingsSelect label="Format Jam" name="time_format" value={general.time_format} onChange={setGeneral} icon={Clock} options={[{value:'24h',label:'24 Jam'},{value:'12h',label:'12 Jam'}]} />
-          <SettingsInput label="Auto Logout" name="auto_logout_minutes" type="number" value={general.auto_logout_minutes} onChange={setGeneral} icon={Lock} suffix="menit" />
-          <SettingsToggle label="Sync Server Time" checked={general.sync_server_time} onChange={(v) => setGeneral({...general, sync_server_time: v})} icon={RefreshCw} />
+          <RetroSettingsSelect label="Timezone" name="timezone" value={general.timezone} onChange={setGeneral} icon={Clock3} options={[{value:'Asia/Jakarta',label:'WIB (UTC+7)'},{value:'Asia/Makassar',label:'WITA (UTC+8)'},{value:'Asia/Jayapura',label:'WIT (UTC+9)'}]} />
+          <RetroSettingsSelect label="Date Format" name="date_format" value={general.date_format} onChange={setGeneral} icon={Calendar} options={[{value:'DD/MM/YYYY',label:'DD/MM/YYYY'},{value:'MM/DD/YYYY',label:'MM/DD/YYYY'},{value:'YYYY-MM-DD',label:'YYYY-MM-DD'}]} />
+          <RetroSettingsSelect label="Time Format" name="time_format" value={general.time_format} onChange={setGeneral} icon={Clock} options={[{value:'24h',label:'24 Hour'},{value:'12h',label:'12 Hour (AM/PM)'}]} />
+          <RetroSettingsInput label="Auto Logout" name="auto_logout_minutes" type="number" value={general.auto_logout_minutes} onChange={setGeneral} icon={Lock} suffix="min" helperText="Logout after inactivity" />
+          <RetroSettingsToggle label="Sync Server Time" checked={general.sync_server_time} onChange={(v) => setGeneral({...general, sync_server_time: v})} icon={RefreshCw} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Bell} title="Notifikasi" description="Kelola notifikasi">
+      <RetroSettingsCard icon={Bell} title="NOTIFICATIONS" description="Manage notifications">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="Email" checked={general.email_notifications} onChange={(v) => setGeneral({...general, email_notifications: v})} icon={Mail} />
-          <SettingsToggle label="Push" checked={general.push_notifications} onChange={(v) => setGeneral({...general, push_notifications: v})} icon={Bell} />
-          <SettingsToggle label="Absensi" checked={general.attendance_notification} onChange={(v) => setGeneral({...general, attendance_notification: v})} icon={Clock} />
-          <SettingsToggle label="Login" checked={general.login_notification} onChange={(v) => setGeneral({...general, login_notification: v})} icon={Lock} />
-          <SettingsToggle label="PKL" checked={general.pkl_notification} onChange={(v) => setGeneral({...general, pkl_notification: v})} icon={Briefcase} />
-          <SettingsToggle label="Pelanggaran" checked={general.violation_notification} onChange={(v) => setGeneral({...general, violation_notification: v})} icon={AlertTriangle} />
+          <RetroSettingsToggle label="Email Notifications" checked={general.email_notifications} onChange={(v) => setGeneral({...general, email_notifications: v})} icon={Mail} />
+          <RetroSettingsToggle label="Push Notifications" checked={general.push_notifications} onChange={(v) => setGeneral({...general, push_notifications: v})} icon={Bell} />
+          <RetroSettingsToggle label="Attendance Alerts" checked={general.attendance_notification} onChange={(v) => setGeneral({...general, attendance_notification: v})} icon={Clock} />
+          <RetroSettingsToggle label="Login Alerts" checked={general.login_notification} onChange={(v) => setGeneral({...general, login_notification: v})} icon={Lock} />
+          <RetroSettingsToggle label="PKL Notifications" checked={general.pkl_notification} onChange={(v) => setGeneral({...general, pkl_notification: v})} icon={Briefcase} />
+          <RetroSettingsToggle label="Violation Alerts" checked={general.violation_notification} onChange={(v) => setGeneral({...general, violation_notification: v})} icon={AlertTriangle} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-        <Button variant="outline" onClick={() => handleReset('general')}>Reset</Button>
-        <Button onClick={() => handleSave('general')} loading={isSaving} className="flex items-center gap-2"><Save className="w-4 h-4" /> Simpan</Button>
+      <div className="flex justify-end gap-3 pt-4 border-t-4 border-base-black">
+        <button onClick={() => handleReset('general')} className="retro-btn retro-btn-outline">Reset</button>
+        <button onClick={() => handleSave('general')} className="retro-btn" disabled={isSaving}><Save className="w-4 h-4 mr-1 inline" /> Save Settings</button>
       </div>
     </motion.div>
   );
 
   const renderAttendanceTab = () => (
     <motion.div variants={pageVariants} initial="hidden" animate="visible" className="space-y-8">
-      <SettingsCard icon={MapPin} title="GPS & Lokasi" description="Konfigurasi lokasi sekolah">
+      <RetroSettingsCard icon={MapPin} title="GPS & LOCATION" description="Configure school location">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SettingsInput label="Latitude" name="school_latitude" value={attendance.school_latitude} onChange={setAttendance} icon={MapPin} placeholder="-6.200000" />
-          <SettingsInput label="Longitude" name="school_longitude" value={attendance.school_longitude} onChange={setAttendance} icon={MapPin} placeholder="106.816666" />
+          <RetroSettingsInput label="Latitude" name="school_latitude" value={attendance.school_latitude} onChange={setAttendance} icon={MapPin} placeholder="-6.200000" />
+          <RetroSettingsInput label="Longitude" name="school_longitude" value={attendance.school_longitude} onChange={setAttendance} icon={MapPin} placeholder="106.816666" />
         </div>
         <div className="mt-4">
-          <MapPreview lat={attendance.school_latitude} lng={attendance.school_longitude} />
-          <Button size="sm" variant="outline" className="mt-3 w-full">Pilih dari Peta</Button>
+          <RetroMapPreview lat={attendance.school_latitude} lng={attendance.school_longitude} />
+          <button className="retro-btn retro-btn-sm retro-btn-outline w-full mt-3">🗺️ Pick from Map</button>
         </div>
-        <div className="mt-4 flex items-center justify-between p-3 rounded-lg bg-white/5">
-          <span className="text-sm text-gray-300">Multiple Lokasi</span>
-          <SettingsToggle label="" checked={attendance.multiple_locations} onChange={(v) => setAttendance({...attendance, multiple_locations: v})} />
+        <div className="mt-4 flex items-center justify-between p-3 rounded-retro bg-base-gray border-2 border-base-black">
+          <span className="text-xs font-retro-mono text-base-black/70">Multiple Locations</span>
+          <RetroSettingsToggle label="" checked={attendance.multiple_locations} onChange={(v) => setAttendance({...attendance, multiple_locations: v})} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Target} title="Validasi" description="Parameter absensi">
+      <RetroSettingsCard icon={Target} title="VALIDATION" description="Attendance parameters">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SettingsInput label="Radius" name="radius_meters" type="number" value={attendance.radius_meters} onChange={setAttendance} icon={Crosshair} suffix="meter" />
-          <SettingsInput label="Max Terlambat" name="max_late_minutes" type="number" value={attendance.max_late_minutes} onChange={setAttendance} icon={Clock} suffix="menit" />
-          <SettingsInput label="Jam Masuk" name="check_in_time" type="time" value={attendance.check_in_time} onChange={setAttendance} icon={Clock3} />
-          <SettingsInput label="Jam Pulang" name="check_out_time" type="time" value={attendance.check_out_time} onChange={setAttendance} icon={Clock3} />
-          <SettingsInput label="Istirahat Mulai" name="break_start" type="time" value={attendance.break_start} onChange={setAttendance} icon={Coffee} />
-          <SettingsInput label="Istirahat Selesai" name="break_end" type="time" value={attendance.break_end} onChange={setAttendance} icon={Coffee} />
-          <SettingsInput label="Toleransi" name="late_tolerance" type="number" value={attendance.late_tolerance} onChange={setAttendance} icon={Timer} suffix="menit" />
-          <SettingsToggle label="Auto Alpha" checked={attendance.auto_alpha} onChange={(v) => setAttendance({...attendance, auto_alpha: v})} icon={AlertTriangle} />
+          <RetroSettingsInput label="Radius" name="radius_meters" type="number" value={attendance.radius_meters} onChange={setAttendance} icon={Crosshair} suffix="m" helperText="Max distance from school" />
+          <RetroSettingsInput label="Max Late" name="max_late_minutes" type="number" value={attendance.max_late_minutes} onChange={setAttendance} icon={Clock} suffix="min" />
+          <RetroSettingsInput label="Check-in Time" name="check_in_time" type="time" value={attendance.check_in_time} onChange={setAttendance} icon={Clock3} />
+          <RetroSettingsInput label="Check-out Time" name="check_out_time" type="time" value={attendance.check_out_time} onChange={setAttendance} icon={Clock3} />
+          <RetroSettingsInput label="Break Start" name="break_start" type="time" value={attendance.break_start} onChange={setAttendance} icon={Coffee} />
+          <RetroSettingsInput label="Break End" name="break_end" type="time" value={attendance.break_end} onChange={setAttendance} icon={Coffee} />
+          <RetroSettingsInput label="Late Tolerance" name="late_tolerance" type="number" value={attendance.late_tolerance} onChange={setAttendance} icon={Timer} suffix="min" />
+          <RetroSettingsToggle label="Auto Alpha" checked={attendance.auto_alpha} onChange={(v) => setAttendance({...attendance, auto_alpha: v})} icon={AlertTriangle} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Zap} title="Smart Attendance" description="Fitur keamanan">
+      <RetroSettingsCard icon={Zap} title="SMART ATTENDANCE" description="Security features">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="Face Verification" checked={attendance.face_verification} onChange={(v) => setAttendance({...attendance, face_verification: v})} icon={Camera} />
-          <SettingsToggle label="Selfie" checked={attendance.selfie_verification} onChange={(v) => setAttendance({...attendance, selfie_verification: v})} icon={Camera} />
-          <SettingsToggle label="Anti Fake GPS" checked={attendance.anti_fake_gps} onChange={(v) => setAttendance({...attendance, anti_fake_gps: v})} icon={MapPin} />
-          <SettingsToggle label="Anti Screenshot" checked={attendance.anti_screenshot} onChange={(v) => setAttendance({...attendance, anti_screenshot: v})} icon={EyeSlash} />
-          <SettingsToggle label="Device Verification" checked={attendance.device_verification} onChange={(v) => setAttendance({...attendance, device_verification: v})} icon={Smartphone} />
-          <SettingsToggle label="Mock Location Detection" checked={attendance.mock_location_detection} onChange={(v) => setAttendance({...attendance, mock_location_detection: v})} icon={Navigation} />
-          <SettingsToggle label="WiFi Validation" checked={attendance.wifi_validation} onChange={(v) => setAttendance({...attendance, wifi_validation: v})} icon={Wifi} />
-          {attendance.wifi_validation && <SettingsInput label="WiFi SSID" name="wifi_ssid" value={attendance.wifi_ssid} onChange={setAttendance} icon={Wifi} />}
-          <SettingsToggle label="Bluetooth Validation" checked={attendance.bluetooth_validation} onChange={(v) => setAttendance({...attendance, bluetooth_validation: v})} icon={Bluetooth} />
+          <RetroSettingsToggle label="Face Verification" checked={attendance.face_verification} onChange={(v) => setAttendance({...attendance, face_verification: v})} icon={Camera} />
+          <RetroSettingsToggle label="Selfie Required" checked={attendance.selfie_verification} onChange={(v) => setAttendance({...attendance, selfie_verification: v})} icon={Camera} />
+          <RetroSettingsToggle label="Anti Fake GPS" checked={attendance.anti_fake_gps} onChange={(v) => setAttendance({...attendance, anti_fake_gps: v})} icon={MapPin} />
+          <RetroSettingsToggle label="Anti Screenshot" checked={attendance.anti_screenshot} onChange={(v) => setAttendance({...attendance, anti_screenshot: v})} icon={EyeSlash} />
+          <RetroSettingsToggle label="Device Verification" checked={attendance.device_verification} onChange={(v) => setAttendance({...attendance, device_verification: v})} icon={Smartphone} />
+          <RetroSettingsToggle label="Mock Location Detection" checked={attendance.mock_location_detection} onChange={(v) => setAttendance({...attendance, mock_location_detection: v})} icon={Navigation} />
+          <RetroSettingsToggle label="WiFi Validation" checked={attendance.wifi_validation} onChange={(v) => setAttendance({...attendance, wifi_validation: v})} icon={Wifi} />
+          {attendance.wifi_validation && <RetroSettingsInput label="WiFi SSID" name="wifi_ssid" value={attendance.wifi_ssid} onChange={setAttendance} icon={Wifi} placeholder="School_WiFi" />}
+          <RetroSettingsToggle label="Bluetooth Validation" checked={attendance.bluetooth_validation} onChange={(v) => setAttendance({...attendance, bluetooth_validation: v})} icon={Bluetooth} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={QrCode} title="QR Absensi" description="Pengaturan QR">
+      <RetroSettingsCard icon={QrCode} title="QR ATTENDANCE" description="QR code settings">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SettingsToggle label="Aktifkan QR" checked={attendance.qr_enabled} onChange={(v) => setAttendance({...attendance, qr_enabled: v})} icon={QrCode} />
-          <SettingsInput label="Expired QR" name="qr_expired_seconds" type="number" value={attendance.qr_expired_seconds} onChange={setAttendance} icon={Timer} suffix="detik" />
-          <SettingsToggle label="Random QR" checked={attendance.qr_random} onChange={(v) => setAttendance({...attendance, qr_random: v})} icon={RefreshCw} />
-          <SettingsToggle label="Animated QR" checked={attendance.qr_animated} onChange={(v) => setAttendance({...attendance, qr_animated: v})} icon={Zap} />
+          <RetroSettingsToggle label="Enable QR" checked={attendance.qr_enabled} onChange={(v) => setAttendance({...attendance, qr_enabled: v})} icon={QrCode} />
+          <RetroSettingsInput label="QR Expire" name="qr_expired_seconds" type="number" value={attendance.qr_expired_seconds} onChange={setAttendance} icon={Timer} suffix="sec" />
+          <RetroSettingsToggle label="Random QR" checked={attendance.qr_random} onChange={(v) => setAttendance({...attendance, qr_random: v})} icon={RefreshCw} />
+          <RetroSettingsToggle label="Animated QR" checked={attendance.qr_animated} onChange={(v) => setAttendance({...attendance, qr_animated: v})} icon={Zap} />
         </div>
-        <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+        <div className="mt-4 p-4 rounded-retro bg-base-gray border-2 border-base-black flex items-center justify-center">
           <div className="text-center">
-            <div className="w-32 h-32 mx-auto mb-2 bg-white rounded-lg p-2">
-              <div className="w-full h-full bg-gray-900 rounded flex items-center justify-center"><QrCode className="w-16 h-16 text-white" /></div>
+            <div className="w-32 h-32 mx-auto mb-2 bg-base-white rounded-retro p-2 border-2 border-base-black">
+              <div className="w-full h-full bg-base-black rounded flex items-center justify-center"><QrCode className="w-16 h-16 text-base-white" /></div>
             </div>
-            <p className="text-xs text-gray-400">Preview QR</p>
+            <p className="font-retro-mono text-[10px] text-base-black/60">QR Preview</p>
           </div>
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Activity} title="Fitur Lanjutan">
+      <RetroSettingsCard icon={Activity} title="ADVANCED FEATURES">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="Multiple Shift" checked={attendance.multiple_shifts} onChange={(v) => setAttendance({...attendance, multiple_shifts: v})} icon={Clock3} />
-          <SettingsToggle label="Jadwal Fleksibel" checked={attendance.flexible_schedule} onChange={(v) => setAttendance({...attendance, flexible_schedule: v})} icon={CalendarDays} />
-          <SettingsToggle label="Izin Online" checked={attendance.online_permission} onChange={(v) => setAttendance({...attendance, online_permission: v})} icon={FileText} />
-          <SettingsToggle label="Approval Guru" checked={attendance.teacher_approval} onChange={(v) => setAttendance({...attendance, teacher_approval: v})} icon={UserCheck} />
-          <SettingsToggle label="Notif Orang Tua" checked={attendance.parent_notification} onChange={(v) => setAttendance({...attendance, parent_notification: v})} icon={Bell} />
-          <SettingsToggle label="WhatsApp Integration" checked={attendance.whatsapp_integration} onChange={(v) => setAttendance({...attendance, whatsapp_integration: v})} icon={Radio} />
+          <RetroSettingsToggle label="Multiple Shifts" checked={attendance.multiple_shifts} onChange={(v) => setAttendance({...attendance, multiple_shifts: v})} icon={Clock3} />
+          <RetroSettingsToggle label="Flexible Schedule" checked={attendance.flexible_schedule} onChange={(v) => setAttendance({...attendance, flexible_schedule: v})} icon={CalendarDays} />
+          <RetroSettingsToggle label="Online Permission" checked={attendance.online_permission} onChange={(v) => setAttendance({...attendance, online_permission: v})} icon={FileText} />
+          <RetroSettingsToggle label="Teacher Approval" checked={attendance.teacher_approval} onChange={(v) => setAttendance({...attendance, teacher_approval: v})} icon={UserCheck} />
+          <RetroSettingsToggle label="Parent Notification" checked={attendance.parent_notification} onChange={(v) => setAttendance({...attendance, parent_notification: v})} icon={Bell} />
+          <RetroSettingsToggle label="WhatsApp Integration" checked={attendance.whatsapp_integration} onChange={(v) => setAttendance({...attendance, whatsapp_integration: v})} icon={Radio} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-        <Button variant="outline" onClick={() => handleReset('attendance')}>Reset</Button>
-        <Button onClick={() => handleSave('attendance')} loading={isSaving} className="flex items-center gap-2"><Save className="w-4 h-4" /> Simpan</Button>
+      <div className="flex justify-end gap-3 pt-4 border-t-4 border-base-black">
+        <button onClick={() => handleReset('attendance')} className="retro-btn retro-btn-outline">Reset</button>
+        <button onClick={() => handleSave('attendance')} className="retro-btn" disabled={isSaving}><Save className="w-4 h-4 mr-1 inline" /> Save Settings</button>
       </div>
     </motion.div>
   );
 
-  // PKL Tab (Simplified)
   const renderPklTab = () => (
     <motion.div variants={pageVariants} initial="hidden" animate="visible" className="space-y-8">
-      <SettingsCard icon={Briefcase} title="PKL / Magang" description="Konfigurasi PKL kelas 12">
+      <RetroSettingsCard icon={Briefcase} title="PKL / INTERNSHIP" description="Configure PKL for Grade 12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="Aktifkan Absensi PKL" checked={pkl.enable_pkl_attendance} onChange={(v) => setPkl({...pkl, enable_pkl_attendance: v})} icon={Briefcase} />
-          <SettingsToggle label="Butuh Approval" checked={pkl.require_supervisor_approval} onChange={(v) => setPkl({...pkl, require_supervisor_approval: v})} icon={CheckCircle2} />
-          <SettingsInput label="Maks Jarak" name="max_distance_km" type="number" value={pkl.max_distance_km} onChange={setPkl} icon={MapPin} suffix="km" />
-          <SettingsToggle label="Progress Tracking" checked={pkl.show_progress_tracking} onChange={(v) => setPkl({...pkl, show_progress_tracking: v})} icon={BarChart3} />
-          <SettingsToggle label="Laporan Mingguan" checked={pkl.require_weekly_report} onChange={(v) => setPkl({...pkl, require_weekly_report: v})} icon={FileText} />
-          <SettingsToggle label="Auto Reminder" checked={pkl.auto_reminder} onChange={(v) => setPkl({...pkl, auto_reminder: v})} icon={Bell} />
-          {pkl.auto_reminder && <SettingsInput label="Reminder Setiap" name="reminder_day" type="number" value={pkl.reminder_day} onChange={setPkl} icon={CalendarDays} suffix="hari" />}
+          <RetroSettingsToggle label="Enable PKL Attendance" checked={pkl.enable_pkl_attendance} onChange={(v) => setPkl({...pkl, enable_pkl_attendance: v})} icon={Briefcase} />
+          <RetroSettingsToggle label="Require Approval" checked={pkl.require_supervisor_approval} onChange={(v) => setPkl({...pkl, require_supervisor_approval: v})} icon={CheckCircle2} />
+          <RetroSettingsInput label="Max Distance" name="max_distance_km" type="number" value={pkl.max_distance_km} onChange={setPkl} icon={MapPin} suffix="km" helperText="From school location" />
+          <RetroSettingsToggle label="Progress Tracking" checked={pkl.show_progress_tracking} onChange={(v) => setPkl({...pkl, show_progress_tracking: v})} icon={BarChart3} />
+          <RetroSettingsToggle label="Weekly Reports" checked={pkl.require_weekly_report} onChange={(v) => setPkl({...pkl, require_weekly_report: v})} icon={FileText} />
+          <RetroSettingsToggle label="Auto Reminder" checked={pkl.auto_reminder} onChange={(v) => setPkl({...pkl, auto_reminder: v})} icon={Bell} />
+          {pkl.auto_reminder && <RetroSettingsInput label="Reminder Every" name="reminder_day" type="number" value={pkl.reminder_day} onChange={setPkl} icon={CalendarDays} suffix="days" />}
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard 
+      <RetroSettingsCard 
         icon={Map} 
-        title="Lokasi PKL" 
-        description="Kelola perusahaan PKL" 
-        actions={<Button size="sm" onClick={() => setIsPklModalOpen(true)}><Plus className="w-4 h-4 mr-1" /> Tambah</Button>}
+        title="PKL LOCATIONS" 
+        description="Manage internship companies" 
+        actions={<button onClick={() => setIsPklModalOpen(true)} className="retro-btn retro-btn-sm"><Plus className="w-4 h-4 mr-1 inline" /> Add</button>}
       >
         {pklLocations.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {pklLocations.map(loc => (
-              <div key={loc.id} className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-start justify-between">
+              <motion.div key={loc.id} whileHover={{ y: -2 }} className="p-4 rounded-retro bg-base-white border-2 border-base-black flex items-start justify-between">
                 <div>
-                  <h4 className="font-semibold text-white">{loc.company_name}</h4>
-                  <p className="text-xs text-gray-400 mt-1 line-clamp-1">{loc.address}</p>
+                  <h4 className="font-retro-display font-black text-base-black text-sm">{loc.company_name}</h4>
+                  <p className="font-retro-mono text-[9px] text-base-black/60 mt-1 line-clamp-1">{loc.address}</p>
                   <div className="flex items-center gap-3 mt-2">
-                    <span className="text-[10px] text-primary-400 font-mono">{loc.latitude}, {loc.longitude}</span>
-                    <span className="text-[10px] text-gray-500">Radius: {loc.radius_meters}m</span>
+                    <span className="text-[9px] font-retro-mono text-retro-orange">{loc.latitude}, {loc.longitude}</span>
+                    <span className="text-[9px] font-retro-mono text-base-black/50">Radius: {loc.radius_meters}m</span>
                   </div>
                 </div>
-                <Button size="sm" variant="outline" className="p-2 h-auto"><ChevronRight className="w-4 h-4" /></Button>
-              </div>
+                <button className="p-2 retro-btn retro-btn-sm retro-btn-outline"><ChevronRight className="w-4 h-4" /></button>
+              </motion.div>
             ))}
           </div>
         ) : (
           <div className="text-center py-8">
-            <Briefcase className="w-12 h-12 text-gray-500 mx-auto mb-3" />
-            <p className="text-gray-400">Belum ada lokasi PKL</p>
-            <Button size="sm" variant="outline" className="mt-3" onClick={() => setIsPklModalOpen(true)}>Tambah Lokasi</Button>
+            <Briefcase className="w-12 h-12 text-base-black/30 mx-auto mb-3" />
+            <p className="font-retro-mono text-sm text-base-black/50">No PKL locations yet</p>
+            <button className="retro-btn retro-btn-sm retro-btn-outline mt-3" onClick={() => setIsPklModalOpen(true)}>Add First Location →</button>
           </div>
         )}
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Users} title="Siswa PKL" description="Penempatan siswa RPL Kelas XII">
+      <RetroSettingsCard icon={Users} title="PKL STUDENTS" description="Assign Grade 12 RPL students">
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-gray-500" />
+            <Search className="w-4 h-4 text-base-black/40" />
             <input 
               type="text" 
-              placeholder="Cari nama siswa..." 
+              placeholder="Search student name..." 
               value={studentSearch}
               onChange={(e) => setStudentSearch(e.target.value)}
-              className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-primary-500/50" 
+              className="flex-1 px-3 py-2 rounded-retro bg-base-white border-2 border-base-black text-base-black text-xs font-retro-mono focus:outline-none focus:border-retro-orange" 
             />
           </div>
           
           <div className="space-y-3">
             {pklStudents.length > 0 ? pklStudents.map(student => (
-              <div key={student.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10 gap-3">
+              <motion.div key={student.id} whileHover={{ x: 4 }} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-retro bg-base-white border-2 border-base-black gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-400 font-bold">
+                  <div className="w-10 h-10 rounded-retro bg-retro-orange/20 border-2 border-retro-orange flex items-center justify-center text-retro-orange font-retro-display font-black">
                     {student.name.charAt(0)}
                   </div>
                   <div>
-                    <h5 className="text-sm font-medium text-white">{student.name}</h5>
-                    <p className="text-[10px] text-gray-500">NIS: {student.profile?.nis || '-'} • Jurusan: {student.profile?.major || 'RPL'}</p>
+                    <h5 className="font-retro-display font-black text-base-black text-sm">{student.name}</h5>
+                    <p className="font-retro-mono text-[9px] text-base-black/50">NIS: {student.profile?.nis || '-'} • RPL</p>
                   </div>
                 </div>
                 
@@ -777,263 +812,250 @@ export default function SettingsPage() {
                   <select 
                     value={student.pkl_location_id || ''} 
                     onChange={(e) => handleAssignStudent(student.id, e.target.value)}
-                    className="flex-1 sm:w-48 px-3 py-1.5 rounded-lg bg-dark-card border border-white/10 text-xs text-white focus:outline-none focus:border-primary-500/50"
+                    className="flex-1 sm:w-48 px-3 py-1.5 rounded-retro bg-base-white border-2 border-base-black text-xs text-base-black font-retro-mono focus:outline-none focus:border-retro-orange"
                   >
-                    <option value="">Belum Ditempatkan</option>
+                    <option value="">Not Assigned</option>
                     {pklLocations.map(loc => (
                       <option key={loc.id} value={loc.id}>{loc.company_name}</option>
                     ))}
                   </select>
                 </div>
-              </div>
+              </motion.div>
             )) : (
-              <div className="text-center py-4 text-gray-500 text-sm italic">
-                Tidak ada siswa RPL XII ditemukan
+              <div className="text-center py-4 font-retro-mono text-base-black/50 text-sm italic">
+                No RPL Grade 12 students found
               </div>
             )}
           </div>
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-        <Button variant="outline" onClick={() => handleReset('pkl')}>Reset</Button>
-        <Button onClick={() => handleSave('pkl')} loading={isSaving} className="flex items-center gap-2"><Save className="w-4 h-4" /> Simpan</Button>
+      <div className="flex justify-end gap-3 pt-4 border-t-4 border-base-black">
+        <button onClick={() => handleReset('pkl')} className="retro-btn retro-btn-outline">Reset</button>
+        <button onClick={() => handleSave('pkl')} className="retro-btn" disabled={isSaving}><Save className="w-4 h-4 mr-1 inline" /> Save Settings</button>
       </div>
     </motion.div>
   );
 
-  // Security Tab (Simplified)
   const renderSecurityTab = () => (
     <motion.div variants={pageVariants} initial="hidden" animate="visible" className="space-y-8">
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-primary-500/20 via-accent-cyan/20 to-primary-500/20 border border-white/10">
+      <motion.div variants={cardVariants} className="p-6 rounded-retro bg-retro-orange/10 border-4 border-retro-orange">
         <div className="flex items-center justify-between">
-          <div><p className="text-sm text-gray-400">Security Score</p><p className="text-3xl font-bold text-white">85<span className="text-lg text-gray-400">/100</span></p></div>
-          <div className="flex items-center gap-2"><ShieldCheck className="w-8 h-8 text-success" /><span className="text-success font-medium">Good</span></div>
+          <div><p className="font-retro-mono text-xs text-base-black/70">Security Score</p><p className="retro-heading retro-heading-lg text-base-black">85<span className="font-retro-mono text-base-black/50">/100</span></p></div>
+          <div className="flex items-center gap-2"><ShieldCheck className="w-8 h-8 text-success" /><span className="font-retro-display font-black text-success">GOOD</span></div>
         </div>
-        <div className="mt-3 w-full bg-white/10 rounded-full h-2"><div className="bg-gradient-to-r from-primary-500 to-accent-cyan h-2 rounded-full" style={{width: '85%'}} /></div>
-      </div>
+        <div className="mt-3 w-full bg-base-gray border-2 border-base-black rounded-sm h-3"><div className="bg-gradient-to-r from-retro-orange to-retro-blue h-3 rounded-sm" style={{width: '85%'}} /></div>
+      </motion.div>
 
-      <SettingsCard icon={Lock} title="Authentication">
+      <RetroSettingsCard icon={Lock} title="AUTHENTICATION">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="2FA" checked={security.two_factor_auth} onChange={(v) => setSecurity({...security, two_factor_auth: v})} icon={Shield} />
-          <SettingsToggle label="OTP Email" checked={security.otp_email} onChange={(v) => setSecurity({...security, otp_email: v})} icon={Mail} />
-          <SettingsToggle label="OTP WhatsApp" checked={security.otp_whatsapp} onChange={(v) => setSecurity({...security, otp_whatsapp: v})} icon={Radio} />
-          <SettingsToggle label="Biometric" checked={security.biometric_login} onChange={(v) => setSecurity({...security, biometric_login: v})} icon={Fingerprint} />
-          <SettingsToggle label="Trusted Devices" checked={security.trusted_devices} onChange={(v) => setSecurity({...security, trusted_devices: v})} icon={MonitorSmartphone} />
-          <SettingsInput label="Max Session" name="session_limit" type="number" value={security.session_limit} onChange={setSecurity} icon={LockOpen} />
+          <RetroSettingsToggle label="Two-Factor Auth" checked={security.two_factor_auth} onChange={(v) => setSecurity({...security, two_factor_auth: v})} icon={Shield} />
+          <RetroSettingsToggle label="OTP via Email" checked={security.otp_email} onChange={(v) => setSecurity({...security, otp_email: v})} icon={Mail} />
+          <RetroSettingsToggle label="OTP via WhatsApp" checked={security.otp_whatsapp} onChange={(v) => setSecurity({...security, otp_whatsapp: v})} icon={Radio} />
+          <RetroSettingsToggle label="Biometric Login" checked={security.biometric_login} onChange={(v) => setSecurity({...security, biometric_login: v})} icon={Fingerprint} />
+          <RetroSettingsToggle label="Trusted Devices" checked={security.trusted_devices} onChange={(v) => setSecurity({...security, trusted_devices: v})} icon={MonitorSmartphone} />
+          <RetroSettingsInput label="Max Sessions" name="session_limit" type="number" value={security.session_limit} onChange={setSecurity} icon={LockOpen} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={ShieldAlert} title="Login Security">
+      <RetroSettingsCard icon={ShieldAlert} title="LOGIN SECURITY">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="Login History" checked={security.login_history_enabled} onChange={(v) => setSecurity({...security, login_history_enabled: v})} icon={History} />
-          <SettingsToggle label="Device History" checked={security.device_history_enabled} onChange={(v) => setSecurity({...security, device_history_enabled: v})} icon={Smartphone} />
-          <SettingsToggle label="IP Tracking" checked={security.ip_tracking} onChange={(v) => setSecurity({...security, ip_tracking: v})} icon={Globe} />
-          <SettingsToggle label="Suspicious Detection" checked={security.suspicious_login_detection} onChange={(v) => setSecurity({...security, suspicious_login_detection: v})} icon={AlertTriangle} />
-          <SettingsToggle label="Failed Login Lockout" checked={security.failed_login_lockout} onChange={(v) => setSecurity({...security, failed_login_lockout: v})} icon={Lock} />
-          <SettingsInput label="Max Failed Attempts" name="failed_attempts_max" type="number" value={security.failed_attempts_max} onChange={setSecurity} icon={XCircle} />
-          <SettingsInput label="Lockout Duration" name="lockout_duration_minutes" type="number" value={security.lockout_duration_minutes} onChange={setSecurity} icon={Clock3} suffix="menit" />
+          <RetroSettingsToggle label="Login History" checked={security.login_history_enabled} onChange={(v) => setSecurity({...security, login_history_enabled: v})} icon={History} />
+          <RetroSettingsToggle label="Device History" checked={security.device_history_enabled} onChange={(v) => setSecurity({...security, device_history_enabled: v})} icon={Smartphone} />
+          <RetroSettingsToggle label="IP Tracking" checked={security.ip_tracking} onChange={(v) => setSecurity({...security, ip_tracking: v})} icon={Globe} />
+          <RetroSettingsToggle label="Suspicious Detection" checked={security.suspicious_login_detection} onChange={(v) => setSecurity({...security, suspicious_login_detection: v})} icon={AlertTriangle} />
+          <RetroSettingsToggle label="Failed Login Lockout" checked={security.failed_login_lockout} onChange={(v) => setSecurity({...security, failed_login_lockout: v})} icon={Lock} />
+          <RetroSettingsInput label="Max Failed Attempts" name="failed_attempts_max" type="number" value={security.failed_attempts_max} onChange={setSecurity} icon={XCircle} />
+          <RetroSettingsInput label="Lockout Duration" name="lockout_duration_minutes" type="number" value={security.lockout_duration_minutes} onChange={setSecurity} icon={Clock3} suffix="min" />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Key} title="Password Policy">
+      <RetroSettingsCard icon={Key} title="PASSWORD POLICY">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SettingsInput label="Min Length" name="min_password_length" type="number" value={security.min_password_length} onChange={setSecurity} icon={Key} />
-          <SettingsInput label="Expire Days" name="password_expire_days" type="number" value={security.password_expire_days} onChange={setSecurity} icon={Clock3} />
-          <SettingsInput label="Password History" name="password_history_count" type="number" value={security.password_history_count} onChange={setSecurity} icon={History} />
-          <SettingsToggle label="Uppercase" checked={security.require_uppercase} onChange={(v) => setSecurity({...security, require_uppercase: v})} icon={Key} />
-          <SettingsToggle label="Number" checked={security.require_number} onChange={(v) => setSecurity({...security, require_number: v})} icon={Key} />
-          <SettingsToggle label="Special Char" checked={security.require_special_char} onChange={(v) => setSecurity({...security, require_special_char: v})} icon={Key} />
-          <SettingsToggle label="Strength Meter" checked={security.password_strength_meter} onChange={(v) => setSecurity({...security, password_strength_meter: v})} icon={Activity} />
+          <RetroSettingsInput label="Min Length" name="min_password_length" type="number" value={security.min_password_length} onChange={setSecurity} icon={Key} />
+          <RetroSettingsInput label="Expire Days" name="password_expire_days" type="number" value={security.password_expire_days} onChange={setSecurity} icon={Clock3} />
+          <RetroSettingsInput label="Password History" name="password_history_count" type="number" value={security.password_history_count} onChange={setSecurity} icon={History} />
+          <RetroSettingsToggle label="Require Uppercase" checked={security.require_uppercase} onChange={(v) => setSecurity({...security, require_uppercase: v})} icon={Key} />
+          <RetroSettingsToggle label="Require Number" checked={security.require_number} onChange={(v) => setSecurity({...security, require_number: v})} icon={Key} />
+          <RetroSettingsToggle label="Require Special Char" checked={security.require_special_char} onChange={(v) => setSecurity({...security, require_special_char: v})} icon={Key} />
+          <RetroSettingsToggle label="Strength Meter" checked={security.password_strength_meter} onChange={(v) => setSecurity({...security, password_strength_meter: v})} icon={Activity} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Radio} title="API & Access">
+      <RetroSettingsCard icon={Radio} title="API & ACCESS">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="API Token" checked={security.api_token_enabled} onChange={(v) => setSecurity({...security, api_token_enabled: v})} icon={KeyRound} />
-          <SettingsInput label="Rate Limit" name="rate_limit_per_minute" type="number" value={security.rate_limit_per_minute} onChange={setSecurity} icon={Zap} suffix="/menit" />
-          <SettingsToggle label="Audit Log" checked={security.audit_log_enabled} onChange={(v) => setSecurity({...security, audit_log_enabled: v})} icon={FileText} />
+          <RetroSettingsToggle label="API Token Enabled" checked={security.api_token_enabled} onChange={(v) => setSecurity({...security, api_token_enabled: v})} icon={KeyRound} />
+          <RetroSettingsInput label="Rate Limit" name="rate_limit_per_minute" type="number" value={security.rate_limit_per_minute} onChange={setSecurity} icon={Zap} suffix="/min" />
+          <RetroSettingsToggle label="Audit Log" checked={security.audit_log_enabled} onChange={(v) => setSecurity({...security, audit_log_enabled: v})} icon={FileText} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-        <Button variant="outline" onClick={() => handleReset('security')}>Reset</Button>
-        <Button onClick={() => handleSave('security')} loading={isSaving} className="flex items-center gap-2"><Save className="w-4 h-4" /> Simpan</Button>
+      <div className="flex justify-end gap-3 pt-4 border-t-4 border-base-black">
+        <button onClick={() => handleReset('security')} className="retro-btn retro-btn-outline">Reset</button>
+        <button onClick={() => handleSave('security')} className="retro-btn" disabled={isSaving}><Save className="w-4 h-4 mr-1 inline" /> Save Settings</button>
       </div>
     </motion.div>
   );
 
-  // Features Tab (Simplified)
   const renderFeaturesTab = () => (
     <motion.div variants={pageVariants} initial="hidden" animate="visible" className="space-y-8">
       <div className="flex items-center gap-3">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-          <input type="text" placeholder="Cari fitur..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" />
+          <input type="text" placeholder="Search features..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-3 rounded-retro bg-base-white border-2 border-base-black text-base-black placeholder-base-black/40 focus:outline-none focus:border-retro-orange font-retro-mono text-sm" />
         </div>
-        <Button variant="outline" size="sm">Semua</Button>
-        <Button variant="outline" size="sm">Aktif</Button>
-        <Button variant="outline" size="sm">Non-Aktif</Button>
+        <button className="retro-btn retro-btn-sm retro-btn-outline">All</button>
+        <button className="retro-btn retro-btn-sm retro-btn-outline">Active</button>
+        <button className="retro-btn retro-btn-sm retro-btn-outline">Inactive</button>
       </div>
 
-      <SettingsCard icon={Globe} title="Public Website">
+      <RetroSettingsCard icon={Globe} title="PUBLIC WEBSITE">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="Galeri Siswa" checked={features.public_gallery} onChange={(v) => setFeatures({...features, public_gallery: v})} icon={Image} />
-          <SettingsToggle label="Career Simulator" checked={features.career_simulator} onChange={(v) => setFeatures({...features, career_simulator: v})} icon={Briefcase} />
-          <SettingsToggle label="Achievement" checked={features.achievement_showcase} onChange={(v) => setFeatures({...features, achievement_showcase: v})} icon={Award} />
-          <SettingsToggle label="Landing Editor" checked={features.landing_page_editor} onChange={(v) => setFeatures({...features, landing_page_editor: v})} icon={Layout} />
-          <SettingsToggle label="News" checked={features.news_management} onChange={(v) => setFeatures({...features, news_management: v})} icon={FileText} />
+          <RetroSettingsToggle label="Student Gallery" checked={features.public_gallery} onChange={(v) => setFeatures({...features, public_gallery: v})} icon={Image} />
+          <RetroSettingsToggle label="Career Simulator" checked={features.career_simulator} onChange={(v) => setFeatures({...features, career_simulator: v})} icon={Briefcase} />
+          <RetroSettingsToggle label="Achievement Showcase" checked={features.achievement_showcase} onChange={(v) => setFeatures({...features, achievement_showcase: v})} icon={Award} />
+          <RetroSettingsToggle label="Landing Page Editor" checked={features.landing_page_editor} onChange={(v) => setFeatures({...features, landing_page_editor: v})} icon={Layout} />
+          <RetroSettingsToggle label="News Management" checked={features.news_management} onChange={(v) => setFeatures({...features, news_management: v})} icon={FileText} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Brain} title="AI Features">
+      <RetroSettingsCard icon={Brain} title="AI FEATURES">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="AI Rekomendasi" checked={features.ai_student_recommendation} onChange={(v) => setFeatures({...features, ai_student_recommendation: v})} icon={Brain} />
-          <SettingsToggle label="AI Analytics" checked={features.ai_analytics} onChange={(v) => setFeatures({...features, ai_analytics: v})} icon={BarChart3} />
-          <SettingsToggle label="AI Chatbot" checked={features.ai_chatbot} onChange={(v) => setFeatures({...features, ai_chatbot: v})} icon={MessageCircle} />
-          <SettingsToggle label="AI Monitoring" checked={features.ai_monitoring} onChange={(v) => setFeatures({...features, ai_monitoring: v})} icon={Eye} />
-          <SettingsToggle label="AI Prediction" checked={features.ai_attendance_prediction} onChange={(v) => setFeatures({...features, ai_attendance_prediction: v})} icon={Clock} />
+          <RetroSettingsToggle label="AI Student Recommendation" checked={features.ai_student_recommendation} onChange={(v) => setFeatures({...features, ai_student_recommendation: v})} icon={Brain} />
+          <RetroSettingsToggle label="AI Analytics" checked={features.ai_analytics} onChange={(v) => setFeatures({...features, ai_analytics: v})} icon={BarChart3} />
+          <RetroSettingsToggle label="AI Chatbot" checked={features.ai_chatbot} onChange={(v) => setFeatures({...features, ai_chatbot: v})} icon={MessageCircle} />
+          <RetroSettingsToggle label="AI Monitoring" checked={features.ai_monitoring} onChange={(v) => setFeatures({...features, ai_monitoring: v})} icon={Eye} />
+          <RetroSettingsToggle label="AI Attendance Prediction" checked={features.ai_attendance_prediction} onChange={(v) => setFeatures({...features, ai_attendance_prediction: v})} icon={Clock} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Cpu} title="System Modules">
+      <RetroSettingsCard icon={Cpu} title="SYSTEM MODULES">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="E-Learning" checked={features.e_learning} onChange={(v) => setFeatures({...features, e_learning: v})} icon={BookOpen} />
-          <SettingsToggle label="CBT Exam" checked={features.cbt_exam} onChange={(v) => setFeatures({...features, cbt_exam: v})} icon={FileText} />
-          <SettingsToggle label="E-Raport" checked={features.e_raport} onChange={(v) => setFeatures({...features, e_raport: v})} icon={GraduationCap} />
-          <SettingsToggle label="Digital Library" checked={features.digital_library} onChange={(v) => setFeatures({...features, digital_library: v})} icon={BookOpen} />
-          <SettingsToggle label="Smart Classroom" checked={features.smart_classroom} onChange={(v) => setFeatures({...features, smart_classroom: v})} icon={Monitor} />
-          <SettingsToggle label="Inventory" checked={features.school_inventory} onChange={(v) => setFeatures({...features, school_inventory: v})} icon={Archive} />
+          <RetroSettingsToggle label="E-Learning" checked={features.e_learning} onChange={(v) => setFeatures({...features, e_learning: v})} icon={BookOpen} />
+          <RetroSettingsToggle label="CBT Exam" checked={features.cbt_exam} onChange={(v) => setFeatures({...features, cbt_exam: v})} icon={FileText} />
+          <RetroSettingsToggle label="E-Raport" checked={features.e_raport} onChange={(v) => setFeatures({...features, e_raport: v})} icon={GraduationCap} />
+          <RetroSettingsToggle label="Digital Library" checked={features.digital_library} onChange={(v) => setFeatures({...features, digital_library: v})} icon={BookOpen} />
+          <RetroSettingsToggle label="Smart Classroom" checked={features.smart_classroom} onChange={(v) => setFeatures({...features, smart_classroom: v})} icon={Monitor} />
+          <RetroSettingsToggle label="School Inventory" checked={features.school_inventory} onChange={(v) => setFeatures({...features, school_inventory: v})} icon={Archive} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Settings2} title="Advanced">
+      <RetroSettingsCard icon={Settings2} title="ADVANCED">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="Dynamic Config" checked={features.dynamic_config} onChange={(v) => setFeatures({...features, dynamic_config: v})} icon={Settings2} />
-          <SettingsToggle label="Realtime Update" checked={features.realtime_update} onChange={(v) => setFeatures({...features, realtime_update: v})} icon={Activity} />
-          <SettingsToggle label="Auto Cache Refresh" checked={features.cache_refresh_auto} onChange={(v) => setFeatures({...features, cache_refresh_auto: v})} icon={RefreshCw} />
+          <RetroSettingsToggle label="Dynamic Config" checked={features.dynamic_config} onChange={(v) => setFeatures({...features, dynamic_config: v})} icon={Settings2} />
+          <RetroSettingsToggle label="Realtime Update" checked={features.realtime_update} onChange={(v) => setFeatures({...features, realtime_update: v})} icon={Activity} />
+          <RetroSettingsToggle label="Auto Cache Refresh" checked={features.cache_refresh_auto} onChange={(v) => setFeatures({...features, cache_refresh_auto: v})} icon={RefreshCw} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-        <Button variant="outline" onClick={() => handleReset('features')}>Reset</Button>
-        <Button onClick={() => handleSave('features')} loading={isSaving} className="flex items-center gap-2"><Save className="w-4 h-4" /> Simpan</Button>
+      <div className="flex justify-end gap-3 pt-4 border-t-4 border-base-black">
+        <button onClick={() => handleReset('features')} className="retro-btn retro-btn-outline">Reset</button>
+        <button onClick={() => handleSave('features')} className="retro-btn" disabled={isSaving}><Save className="w-4 h-4 mr-1 inline" /> Save Settings</button>
       </div>
     </motion.div>
   );
 
-  // Backup Tab (Simplified)
   const renderBackupTab = () => (
     <motion.div variants={pageVariants} initial="hidden" animate="visible" className="space-y-8">
-      <SettingsCard icon={Database} title="Backup Database">
+      <RetroSettingsCard icon={Database} title="BACKUP DATABASE">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="Auto Backup" checked={backup.auto_backup} onChange={(v) => setBackup({...backup, auto_backup: v})} icon={Database} />
-          <SettingsSelect label="Jadwal" name="backup_schedule" value={backup.backup_schedule} onChange={setBackup} icon={CalendarDays} options={[{value:'daily',label:'Harian'},{value:'weekly',label:'Mingguan'},{value:'monthly',label:'Bulanan'}]} />
-          <SettingsInput label="Waktu" name="backup_time" type="time" value={backup.backup_time} onChange={setBackup} icon={Clock3} />
-          <SettingsInput label="Retensi" name="backup_retention_days" type="number" value={backup.backup_retention_days} onChange={setBackup} icon={Clock3} suffix="hari" />
-          <SettingsToggle label="Cloud Backup" checked={backup.cloud_backup} onChange={(v) => setBackup({...backup, cloud_backup: v})} icon={Cloud} />
-          <SettingsToggle label="Compress" checked={backup.compress_backup} onChange={(v) => setBackup({...backup, compress_backup: v})} icon={Archive} />
-          <SettingsToggle label="Encrypt" checked={backup.encrypt_backup} onChange={(v) => setBackup({...backup, encrypt_backup: v})} icon={Lock} />
+          <RetroSettingsToggle label="Auto Backup" checked={backup.auto_backup} onChange={(v) => setBackup({...backup, auto_backup: v})} icon={Database} />
+          <RetroSettingsSelect label="Schedule" name="backup_schedule" value={backup.backup_schedule} onChange={setBackup} icon={CalendarDays} options={[{value:'daily',label:'Daily'},{value:'weekly',label:'Weekly'},{value:'monthly',label:'Monthly'}]} />
+          <RetroSettingsInput label="Time" name="backup_time" type="time" value={backup.backup_time} onChange={setBackup} icon={Clock3} />
+          <RetroSettingsInput label="Retention" name="backup_retention_days" type="number" value={backup.backup_retention_days} onChange={setBackup} icon={Clock3} suffix="days" />
+          <RetroSettingsToggle label="Cloud Backup" checked={backup.cloud_backup} onChange={(v) => setBackup({...backup, cloud_backup: v})} icon={Cloud} />
+          <RetroSettingsToggle label="Compress" checked={backup.compress_backup} onChange={(v) => setBackup({...backup, compress_backup: v})} icon={Archive} />
+          <RetroSettingsToggle label="Encrypt" checked={backup.encrypt_backup} onChange={(v) => setBackup({...backup, encrypt_backup: v})} icon={Lock} />
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={HardDrive} title="Aksi Backup">
+      <RetroSettingsCard icon={HardDrive} title="BACKUP ACTIONS">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary-500/30 transition-all group text-center">
-            <Download className="w-6 h-6 text-primary-400 mx-auto mb-2" />
-            <p className="text-sm font-medium text-white group-hover:text-primary-400">Download</p>
-            <p className="text-xs text-gray-500 mt-1">Backup terbaru</p>
+          <button className="p-4 rounded-retro bg-base-white border-2 border-base-black hover:border-retro-orange transition-all group text-center">
+            <Download className="w-6 h-6 text-retro-orange mx-auto mb-2" />
+            <p className="font-retro-display font-black text-base-black text-sm group-hover:text-retro-orange">Download</p>
+            <p className="font-retro-mono text-[9px] text-base-black/50 mt-1">Latest backup</p>
           </button>
-          <button className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary-500/30 transition-all group text-center">
-            <Upload className="w-6 h-6 text-primary-400 mx-auto mb-2" />
-            <p className="text-sm font-medium text-white group-hover:text-primary-400">Upload</p>
-            <p className="text-xs text-gray-500 mt-1">Restore dari file</p>
+          <button className="p-4 rounded-retro bg-base-white border-2 border-base-black hover:border-retro-orange transition-all group text-center">
+            <Upload className="w-6 h-6 text-retro-orange mx-auto mb-2" />
+            <p className="font-retro-display font-black text-base-black text-sm group-hover:text-retro-orange">Upload</p>
+            <p className="font-retro-mono text-[9px] text-base-black/50 mt-1">Restore from file</p>
           </button>
-          <button className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary-500/30 transition-all group text-center">
-            <Trash2 className="w-6 h-6 text-primary-400 mx-auto mb-2" />
-            <p className="text-sm font-medium text-white group-hover:text-primary-400">Hapus Lama</p>
-            <p className="text-xs text-gray-500 mt-1">Bersihkan storage</p>
+          <button className="p-4 rounded-retro bg-base-white border-2 border-base-black hover:border-retro-orange transition-all group text-center">
+            <Trash2 className="w-6 h-6 text-retro-orange mx-auto mb-2" />
+            <p className="font-retro-display font-black text-base-black text-sm group-hover:text-retro-orange">Delete Old</p>
+            <p className="font-retro-mono text-[9px] text-base-black/50 mt-1">Clean storage</p>
           </button>
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Cpu} title="System Information">
+      <RetroSettingsCard icon={Cpu} title="SYSTEM INFORMATION">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-3">
-            <div className="flex justify-between text-sm"><span className="text-gray-400">Laravel</span><span className="text-white font-mono">11.x</span></div>
-            <div className="flex justify-between text-sm"><span className="text-gray-400">PHP</span><span className="text-white font-mono">8.2.x</span></div>
-            <div className="flex justify-between text-sm"><span className="text-gray-400">Database</span><span className="text-white font-mono">MySQL 8.0</span></div>
-            <div className="flex justify-between text-sm"><span className="text-gray-400">Storage</span><span className="text-white font-mono">2.4 GB / 10 GB</span></div>
+            <div className="flex justify-between text-sm"><span className="font-retro-mono text-base-black/50">Laravel</span><span className="font-retro-mono text-base-black">11.x</span></div>
+            <div className="flex justify-between text-sm"><span className="font-retro-mono text-base-black/50">PHP</span><span className="font-retro-mono text-base-black">8.2.x</span></div>
+            <div className="flex justify-between text-sm"><span className="font-retro-mono text-base-black/50">Database</span><span className="font-retro-mono text-base-black">MySQL 8.0</span></div>
+            <div className="flex justify-between text-sm"><span className="font-retro-mono text-base-black/50">Storage</span><span className="font-retro-mono text-base-black">2.4 GB / 10 GB</span></div>
           </div>
           <div className="space-y-3">
-            <div className="flex justify-between text-sm"><span className="text-gray-400">Cache</span><span className="text-white font-mono">Redis</span></div>
-            <div className="flex justify-between text-sm"><span className="text-gray-400">Queue</span><span className="text-white font-mono">Redis</span></div>
-            <div className="flex justify-between text-sm"><span className="text-gray-400">Environment</span><span className="text-white font-mono">Production</span></div>
-            <div className="flex justify-between text-sm"><span className="text-gray-400">Debug</span><span className="text-danger font-mono">False</span></div>
+            <div className="flex justify-between text-sm"><span className="font-retro-mono text-base-black/50">Cache</span><span className="font-retro-mono text-base-black">Redis</span></div>
+            <div className="flex justify-between text-sm"><span className="font-retro-mono text-base-black/50">Queue</span><span className="font-retro-mono text-base-black">Redis</span></div>
+            <div className="flex justify-between text-sm"><span className="font-retro-mono text-base-black/50">Environment</span><span className="font-retro-mono text-base-black">Production</span></div>
+            <div className="flex justify-between text-sm"><span className="font-retro-mono text-base-black/50">Debug</span><span className="font-retro-mono text-danger">False</span></div>
           </div>
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <SettingsCard icon={Settings2} title="Maintenance">
+      <RetroSettingsCard icon={Settings2} title="MAINTENANCE">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary-500/30 transition-all group text-center">
-            <RefreshCw className="w-6 h-6 text-primary-400 mx-auto mb-2" />
-            <p className="text-sm font-medium text-white group-hover:text-primary-400">Clear Cache</p>
+          <button className="p-4 rounded-retro bg-base-white border-2 border-base-black hover:border-retro-orange transition-all group text-center">
+            <RefreshCw className="w-6 h-6 text-retro-orange mx-auto mb-2" />
+            <p className="font-retro-display font-black text-base-black text-sm group-hover:text-retro-orange">Clear Cache</p>
           </button>
-          <button className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary-500/30 transition-all group text-center">
-            <Activity className="w-6 h-6 text-primary-400 mx-auto mb-2" />
-            <p className="text-sm font-medium text-white group-hover:text-primary-400">Optimize</p>
+          <button className="p-4 rounded-retro bg-base-white border-2 border-base-black hover:border-retro-orange transition-all group text-center">
+            <Activity className="w-6 h-6 text-retro-orange mx-auto mb-2" />
+            <p className="font-retro-display font-black text-base-black text-sm group-hover:text-retro-orange">Optimize</p>
           </button>
-          <button className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary-500/30 transition-all group text-center">
-            <ShieldCheck className="w-6 h-6 text-primary-400 mx-auto mb-2" />
-            <p className="text-sm font-medium text-white group-hover:text-primary-400">Health Check</p>
+          <button className="p-4 rounded-retro bg-base-white border-2 border-base-black hover:border-retro-orange transition-all group text-center">
+            <ShieldCheck className="w-6 h-6 text-retro-orange mx-auto mb-2" />
+            <p className="font-retro-display font-black text-base-black text-sm group-hover:text-retro-orange">Health Check</p>
           </button>
         </div>
-      </SettingsCard>
+      </RetroSettingsCard>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-        <Button variant="outline" onClick={() => handleReset('backup')}>Reset</Button>
-        <Button onClick={() => handleSave('backup')} loading={isSaving} className="flex items-center gap-2"><Save className="w-4 h-4" /> Simpan</Button>
+      <div className="flex justify-end gap-3 pt-4 border-t-4 border-base-black">
+        <button onClick={() => handleReset('backup')} className="retro-btn retro-btn-outline">Reset</button>
+        <button onClick={() => handleSave('backup')} className="retro-btn" disabled={isSaving}><Save className="w-4 h-4 mr-1 inline" /> Save Settings</button>
       </div>
     </motion.div>
   );
 
   // ═══════════════════════════════════════════════════════════
-  // MAIN RENDER
+  // 🎨 MAIN RENDER
   // ═══════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-[#0f0f1a] relative">
-      {/* Animated Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent-cyan/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}} />
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-primary-500/5 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}} />
-      </div>
+    <motion.div variants={pageVariants} initial="hidden" animate="visible" className="relative min-h-screen bg-base-cream retro-grid-bg">
+      
+      <SettingsDecorations />
 
       {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed top-24 right-6 z-50">
-            <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AnimatePresence>{toast && <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed top-24 right-6 z-50"><Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} /></motion.div>}</AnimatePresence>
 
       {/* Save Indicator */}
       <AnimatePresence>
         {showSaveIndicator && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-primary-500/20 border border-primary-500/30 backdrop-blur-xl">
-            <RefreshCw className="w-4 h-4 text-primary-400 animate-spin" />
-            <span className="text-sm text-primary-400">Menyimpan...</span>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2 rounded-retro bg-retro-orange/20 border-2 border-retro-orange backdrop-blur-sm">
+            <RefreshCw className="w-4 h-4 text-retro-orange animate-spin" />
+            <span className="font-retro-mono text-xs text-retro-orange">Saving...</span>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Unsaved Warning */}
       {hasUnsavedChanges && (
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="sticky top-0 z-40 px-4 py-2 bg-warning/20 border-b border-warning/30 backdrop-blur-xl">
-          <p className="text-sm text-warning text-center flex items-center justify-center gap-2">
-            <AlertTriangle className="w-4 h-4" /> Ada perubahan yang belum disimpan
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="sticky top-0 z-40 px-4 py-2 bg-warning/20 border-b-2 border-warning/30 backdrop-blur-sm">
+          <p className="font-retro-mono text-xs text-warning text-center flex items-center justify-center gap-2">
+            <AlertTriangle className="w-4 h-4" /> Unsaved changes detected
           </p>
         </motion.div>
       )}
@@ -1042,14 +1064,14 @@ export default function SettingsPage() {
       <div className="relative z-10 pt-8 pb-6 px-6 max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <Settings2 className="w-8 h-8 text-primary-400" /> Pengaturan Sistem
+            <h1 className="retro-heading retro-heading-xl text-retro-orange flex items-center gap-3">
+              <Settings2 className="w-8 h-8 text-retro-orange" /> SETTINGS
             </h1>
-            <p className="text-gray-400 mt-1">Kelola konfigurasi RPL Smart Ecosystem</p>
+            <p className="font-retro-mono text-base-black/70 mt-1">Configure RPL Smart Ecosystem</p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => handleReset('all')}><RefreshCw className="w-4 h-4 mr-1" /> Reset</Button>
-            <Button onClick={handleSave} loading={isSaving} size="sm" className="flex items-center gap-2"><Save className="w-4 h-4" /> Simpan Semua</Button>
+            <button onClick={() => handleReset('all')} className="retro-btn retro-btn-sm retro-btn-outline"><RefreshCw className="w-4 h-4 mr-1 inline" /> Reset</button>
+            <button onClick={() => handleSave()} className="retro-btn" disabled={isSaving}><Save className="w-4 h-4 mr-1 inline" /> Save All</button>
           </div>
         </div>
       </div>
@@ -1061,7 +1083,7 @@ export default function SettingsPage() {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${isActive ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'}`}>
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-3 rounded-retro text-xs font-black uppercase tracking-wide transition-all whitespace-nowrap border-2 border-base-black ${isActive ? 'bg-retro-orange text-base-white shadow-[4px_4px_0px_0px_#111111]' : 'bg-base-white text-base-black hover:bg-retro-yellow'}`}>
                 <Icon className="w-4 h-4" />
                 <span className="hidden sm:inline">{tab.label}</span>
               </button>
@@ -1085,12 +1107,27 @@ export default function SettingsPage() {
       </div>
 
       {/* Modals */}
-      <PklLocationModal 
+      <RetroPklLocationModal 
         isOpen={isPklModalOpen} 
         onClose={() => setIsPklModalOpen(false)} 
         onSave={handleAddPklLocation} 
         isSaving={isAddingPkl}
       />
-    </div>
+
+      {/* FAB */}
+      <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+        onClick={() => handleSave()}
+        className="fixed bottom-6 right-6 z-50 retro-btn retro-btn-lg retro-btn-sticker hidden md:flex items-center gap-2">
+        <Save className="w-5 h-5" /><span className="hidden lg:inline">Save All</span>
+      </motion.button>
+
+      {/* Footer Stickers */}
+      <div className="fixed bottom-4 left-4 z-0 hidden lg:block pointer-events-none">
+        <motion.div animate={{ rotate: [0, -10, 10, -5, 5, 0] }} transition={{ duration: 3, repeat: Infinity }} className="retro-sticker bg-retro-pink text-base-white text-[10px] px-3 py-1">POWERED BY RPL</motion.div>
+      </div>
+      <div className="fixed bottom-4 right-4 z-0 hidden lg:block pointer-events-none">
+        <motion.div animate={{ rotate: [0, 10, -10, 5, -5, 0] }} transition={{ duration: 3, repeat: Infinity, delay: 1 }} className="retro-sticker bg-retro-lime text-base-black text-[10px] px-3 py-1">v2.0 RETRO ✨</motion.div>
+      </div>
+    </motion.div>
   );
 }

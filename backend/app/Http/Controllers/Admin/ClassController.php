@@ -178,16 +178,16 @@ class ClassController extends Controller
                 }
             }
 
-            // Assign subjects (if provided)
+            // Assign subjects (if provided) - via class_subject pivot table
             if (!empty($validated['subject_ids'])) {
-                // Note: You may need a pivot table class_subject if many-to-many
-                // For now, we'll skip or implement based on your schema
+                // Sync subjects via class_subject pivot table
+                $class->subjectsRelation()->sync($validated['subject_ids']);
             }
 
             DB::commit();
 
             // Load relationships for response
-            $class->load(['teachers', 'waliKelasRelation', 'subjects']);
+            $class->load(['teachers', 'waliKelasRelation', 'subjectsRelation']);
 
             return response()->json([
                 'status' => 'success',
@@ -276,7 +276,7 @@ class ClassController extends Controller
 
             // Sync teachers (if provided)
             if (isset($validated['teacher_ids'])) {
-                // Detach all existing teachers first
+                // Detach all existing teachers first (keep students)
                 $class->users()->wherePivot('role_in_class', '!=', 'siswa')->detach();
                 
                 // Re-attach with roles
@@ -291,14 +291,14 @@ class ClassController extends Controller
                 }
             }
 
-            // Sync subjects (if provided) - implement based on your schema
+            // Sync subjects (if provided) via class_subject pivot table
             if (isset($validated['subject_ids'])) {
-                // Example: $class->subjects()->sync($validated['subject_ids']);
+                $class->subjectsRelation()->sync($validated['subject_ids']);
             }
 
             DB::commit();
 
-            $class->load(['teachers', 'waliKelasRelation', 'subjects']);
+            $class->load(['teachers', 'waliKelasRelation', 'subjectsRelation']);
 
             return response()->json([
                 'status' => 'success',
@@ -358,10 +358,13 @@ class ClassController extends Controller
                 $class = ClassModel::find($classId);
                 
                 if ($class) {
-                    // Detach all relationships first (optional: soft delete instead)
-                    $class->users()->detach();
-                    // $class->subjects()->detach(); // if pivot exists
+                    // Detach all teacher relationships first (keep students for soft delete scenario)
+                    $class->users()->wherePivot('role_in_class', '!=', 'siswa')->detach();
                     
+                    // Detach subjects from pivot table
+                    $class->subjectsRelation()->detach();
+                    
+                    // Delete the class (cascade will handle related records if configured)
                     $class->delete();
                 }
             }

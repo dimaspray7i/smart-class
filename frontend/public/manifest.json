@@ -1,0 +1,16 @@
+{
+  "name": "RPL Smart Ecosystem",
+  "short_name": "RPL Smart",
+  "description": "Retro Futuristic School OS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF9E6",
+  "theme_color": "#FF5C00",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -11,9 +11,21 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 
 class SettingController extends Controller
 {
+    /**
+     * Cache configuration
+     */
+    private const CACHE_KEY = 'app_settings';
+    private const CACHE_TTL = 3600; // 1 hour
+
+    /**
+     * Available settings sections
+     */
+    private const SECTIONS = ['general', 'attendance', 'pkl', 'security', 'features', 'backup'];
+
     /**
      * Display all settings grouped by section.
      * 
@@ -22,7 +34,7 @@ class SettingController extends Controller
     public function index(): JsonResponse
     {
         // Try to get from cache first (1 hour TTL)
-        $settings = Cache::remember('app_settings', 3600, function () {
+        $settings = Cache::remember(self::CACHE_KEY, self::CACHE_TTL, function () {
             $dbSettings = DB::table('settings')->pluck('value', 'key')->toArray();
             
             $defaults = [
@@ -48,9 +60,9 @@ class SettingController extends Controller
                     'semester' => config('app.semester', '1'),
                     
                     // Branding
-                    'primary_color' => config('app.primary_color', '#a855f7'),
-                    'secondary_color' => config('app.secondary_color', '#3b82f6'),
-                    'default_theme' => config('app.default_theme', 'dark'),
+                    'primary_color' => config('app.primary_color', '#FF5C00'),
+                    'secondary_color' => config('app.secondary_color', '#2E2BBF'),
+                    'default_theme' => config('app.default_theme', 'light'),
                     'logo_url' => config('app.logo_url', ''),
                     'login_background' => config('app.login_background', ''),
                     'dashboard_banner' => config('app.dashboard_banner', ''),
@@ -240,7 +252,14 @@ class SettingController extends Controller
                         // Convert booleans
                         if ($dbValue === '1') $value = true;
                         elseif ($dbValue === '0') $value = false;
-                        else $value = $dbValue;
+                        // Convert numeric strings to numbers
+                        elseif (is_numeric($dbValue) && !Str::contains($dbValue, '.')) {
+                            $value = (int) $dbValue;
+                        } elseif (is_numeric($dbValue)) {
+                            $value = (float) $dbValue;
+                        } else {
+                            $value = $dbValue;
+                        }
                     }
                 }
             }
@@ -250,9 +269,14 @@ class SettingController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Pengaturan berhasil diambil.',
+            'message' => 'Settings retrieved successfully.',
             'code' => 'SETTINGS_SUCCESS',
             'data' => $settings,
+            'meta' => [
+                'cached' => Cache::has(self::CACHE_KEY),
+                'generated_at' => now()->toDateTimeString(),
+                'sections' => self::SECTIONS,
+            ],
         ], 200);
     }
 
@@ -269,7 +293,7 @@ class SettingController extends Controller
 
         // If no explicit section/data provided, check if sections are sent as root keys
         if (!$section && !$data) {
-            $sections = ['general', 'attendance', 'pkl', 'security', 'features', 'backup'];
+            $sections = self::SECTIONS;
             $multiData = $request->only($sections);
             
             if (!empty($multiData)) {
@@ -282,9 +306,10 @@ class SettingController extends Controller
         if (empty($section) || empty($data)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Format payload tidak valid atau data kosong.',
+                'message' => 'Invalid payload format or empty data.',
                 'code' => 'VALIDATION_ERROR',
-                'received' => $request->all() // Helpful for debugging
+                'received' => $request->all(),
+                'hint' => 'Send {section: "general", data: {...}} or {general: {...}, attendance: {...}}',
             ], 400);
         }
 
@@ -292,7 +317,7 @@ class SettingController extends Controller
             if ($section === 'all') {
                 DB::beginTransaction();
                 foreach ($data as $s => $d) {
-                    if (in_array($s, ['general', 'attendance', 'pkl', 'security', 'features', 'backup'])) {
+                    if (in_array($s, self::SECTIONS)) {
                         $validated = $this->validateSettings($s, $d);
                         $this->saveSettings($s, $validated);
                     }
@@ -305,23 +330,26 @@ class SettingController extends Controller
             }
 
             // Clear cache
-            Cache::forget('app_settings');
+            Cache::forget(self::CACHE_KEY);
 
             // Log the change
             Log::info('Settings updated', [
                 'section' => $section,
                 'updated_by' => auth()->id(),
+                'user_name' => auth()->user()?->name,
                 'timestamp' => now()->toDateTimeString(),
+                'ip_address' => $request->ip(),
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => $section === 'all' ? "Semua pengaturan berhasil disimpan." : "Pengaturan {$section} berhasil disimpan.",
+                'message' => $section === 'all' ? "All settings saved successfully." : "{$section} settings saved successfully.",
                 'code' => 'SETTINGS_UPDATED',
                 'data' => [
                     'section' => $section,
                     'updated_at' => now()->toDateTimeString(),
                     'updated_by' => auth()->user()?->name,
+                    'user_id' => auth()->id(),
                 ],
             ], 200);
 
@@ -329,9 +357,10 @@ class SettingController extends Controller
             if (DB::transactionLevel() > 0) DB::rollBack();
             return response()->json([
                 'status' => 'error',
-                'message' => 'Validasi pengaturan gagal.',
+                'message' => 'Settings validation failed.',
                 'code' => 'VALIDATION_ERROR',
                 'errors' => $e->errors(),
+                'section' => $section,
             ], 422);
 
         } catch (\Exception $e) {
@@ -340,11 +369,12 @@ class SettingController extends Controller
                 'section' => $section,
                 'error' => $e->getMessage(),
                 'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+                'user_id' => auth()->id(),
             ]);
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal menyimpan pengaturan.',
+                'message' => 'Failed to save settings.',
                 'code' => 'SERVER_ERROR',
                 'debug' => config('app.debug') ? $e->getMessage() : null,
             ], 500);
@@ -352,7 +382,7 @@ class SettingController extends Controller
     }
 
     /**
-     * Get setting value by key.
+     * Get a single setting value by key.
      * 
      * @param string $key
      * @param mixed $default
@@ -360,10 +390,8 @@ class SettingController extends Controller
      */
     public static function get(string $key, mixed $default = null): mixed
     {
-        $settings = Cache::remember('app_settings', 3600, function () {
+        $settings = Cache::remember(self::CACHE_KEY, self::CACHE_TTL, function () {
             $dbSettings = DB::table('settings')->pluck('value', 'key')->toArray();
-            
-            // Merge with config fallbacks
             return array_merge(self::getDefaultSettings(), $dbSettings);
         });
 
@@ -383,8 +411,8 @@ class SettingController extends Controller
         $validator = match ($section) {
             'general' => Validator::make($data, [
                 // School Identity
-                'app_name' => 'required|string|max:255',
-                'school_name' => 'required|string|max:255',
+                'app_name' => 'nullable|string|max:255',
+                'school_name' => 'nullable|string|max:255',
                 'npsn' => 'nullable|string|max:20',
                 'school_slogan' => 'nullable|string|max:255',
                 'school_description' => 'nullable|string|max:1000',
@@ -611,7 +639,7 @@ class SettingController extends Controller
     {
         return [
             'general_app_name' => 'RPL Smart Ecosystem',
-            'general_default_theme' => 'dark',
+            'general_default_theme' => 'light',
             'general_timezone' => 'Asia/Jakarta',
             'attendance_radius_meters' => 100,
             'attendance_check_in_time' => '06:00',
@@ -637,14 +665,20 @@ class SettingController extends Controller
         if (!$section || $section === 'all') {
             // Reset all settings
             DB::table('settings')->truncate();
-            $message = 'Semua pengaturan berhasil direset ke default.';
+            $message = 'All settings reset to default successfully.';
         } else {
             // Reset specific section
             DB::table('settings')->where('key', 'like', "{$section}_%")->delete();
-            $message = "Pengaturan {$section} berhasil direset ke default.";
+            $message = "{$section} settings reset to default successfully.";
         }
         
-        Cache::forget('app_settings');
+        Cache::forget(self::CACHE_KEY);
+        
+        Log::info('Settings reset', [
+            'section' => $section ?? 'all',
+            'reset_by' => auth()->id(),
+            'user_name' => auth()->user()?->name,
+        ]);
         
         return response()->json([
             'status' => 'success',
@@ -662,10 +696,135 @@ class SettingController extends Controller
     {
         $settings = $this->index()->getData(true);
         
-        $filename = 'rpl-settings-' . now()->format('Y-m-d') . '.json';
-        $path = Storage::disk('local')->put($filename, json_encode($settings, JSON_PRETTY_PRINT));
+        $filename = 'rpl-settings-' . now()->format('Y-m-d_H-i-s') . '.json';
+        $content = json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        
+        // Store temporarily
+        $path = Storage::disk('local')->put($filename, $content);
+        
+        Log::info('Settings exported', [
+            'filename' => $filename,
+            'exported_by' => auth()->id(),
+        ]);
         
         return response()->download(Storage::disk('local')->path($filename), $filename)
             ->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Import settings from JSON file.
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function import(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:json|max:2048',
+            'merge' => 'boolean', // If true, merge with existing; if false, replace
+        ]);
+
+        try {
+            $file = $request->file('file');
+            $content = file_get_contents($file->getRealPath());
+            $importData = json_decode($content, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid JSON file.',
+                    'code' => 'INVALID_JSON',
+                    'error' => json_last_error_msg(),
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            $merge = $request->boolean('merge', false);
+            
+            if (!$merge) {
+                // Clear existing settings before import
+                DB::table('settings')->truncate();
+            }
+
+            $imported = 0;
+            foreach ($importData['data'] ?? $importData as $section => $values) {
+                if (is_array($values) && in_array($section, self::SECTIONS)) {
+                    foreach ($values as $key => $value) {
+                        $settingKey = "{$section}_{$key}";
+                        $storedValue = is_bool($value) ? ($value ? '1' : '0') : $value;
+                        
+                        DB::table('settings')->updateOrInsert(
+                            ['key' => $settingKey],
+                            ['value' => $storedValue, 'updated_at' => now()]
+                        );
+                        $imported++;
+                    }
+                }
+            }
+
+            DB::commit();
+            Cache::forget(self::CACHE_KEY);
+
+            Log::info('Settings imported', [
+                'imported_count' => $imported,
+                'merge_mode' => $merge,
+                'imported_by' => auth()->id(),
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => "Settings imported successfully. {$imported} settings updated.",
+                'code' => 'SETTINGS_IMPORTED',
+                'data' => [
+                    'imported_count' => $imported,
+                    'merge_mode' => $merge,
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            if (DB::transactionLevel() > 0) DB::rollBack();
+            Log::error('SettingController::import failed', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to import settings.',
+                'code' => 'IMPORT_FAILED',
+                'debug' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
+        }
+    }
+
+    /**
+     * Get settings changelog/history.
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function history(Request $request): JsonResponse
+    {
+        $query = DB::table('activity_log')
+            ->where('log_name', 'settings')
+            ->orderBy('created_at', 'desc');
+
+        if ($request->filled('section')) {
+            $query->where('properties->section', $request->section);
+        }
+
+        if ($request->filled('user_id')) {
+            $query->where('causer_id', $request->user_id);
+        }
+
+        $history = $query->paginate($request->input('per_page', 20));
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Settings history retrieved.',
+            'code' => 'SETTINGS_HISTORY_SUCCESS',
+            'data' => $history,
+        ], 200);
     }
 }

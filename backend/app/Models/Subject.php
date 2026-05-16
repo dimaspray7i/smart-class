@@ -70,7 +70,90 @@ class Subject extends Model
     }
 
     // ═══════════════════════════════════════════════════════════
-    // RELATIONSHIPS
+    // 🎨 RETRO ACCESSORS (For Frontend Compatibility)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * 🏷️ Accessor: Get human-readable category label
+     * Used in frontend for retro badges and filters
+     */
+    public function getCategoryLabelAttribute(): string
+    {
+        return match($this->category) {
+            'productive' => 'Produktif',
+            'normative' => 'Normatif',
+            'adaptive' => 'Adaptif',
+            default => ucfirst($this->category ?? 'Unknown'),
+        };
+    }
+
+    /**
+     * 🎨 Accessor: Get retro badge config for frontend styling
+     * Returns icon, color class, and label for retro UI
+     */
+    public function getRetroBadgeAttribute(): array
+    {
+        return [
+            'productive' => [
+                'icon' => '📊',
+                'color' => 'retro-badge-purple',
+                'label' => 'Produktif',
+                'bg' => 'bg-retro-purple/10',
+                'text' => 'text-retro-purple',
+            ],
+            'normative' => [
+                'icon' => '📚',
+                'color' => 'retro-badge-blue',
+                'label' => 'Normatif',
+                'bg' => 'bg-retro-blue/10',
+                'text' => 'text-retro-blue',
+            ],
+            'adaptive' => [
+                'icon' => '🔧',
+                'color' => 'retro-badge-lime',
+                'label' => 'Adaptif',
+                'bg' => 'bg-retro-lime/10',
+                'text' => 'text-retro-lime',
+            ],
+        ][$this->category] ?? [
+            'icon' => '📚',
+            'color' => 'retro-badge-blue',
+            'label' => 'Normatif',
+            'bg' => 'bg-retro-blue/10',
+            'text' => 'text-retro-blue',
+        ];
+    }
+
+    /**
+     * 📝 Accessor: Get full subject name with code prefix
+     */
+    public function getFullNameAttribute(): string
+    {
+        return "{$this->code} - {$this->name}";
+    }
+
+    /**
+     * 👥 Accessor: Get count of teachers teaching this subject
+     * Uses cached count if available, otherwise queries
+     */
+    public function getTeachersCountAttribute(): int
+    {
+        return $this->profiles()->count();
+    }
+
+    /**
+     * 👨‍🏫 Accessor: Get teacher names as comma-separated string
+     */
+    public function getTeacherNamesAttribute(): string
+    {
+        return $this->profiles
+            ->map(fn($p) => $p->user?->name)
+            ->filter()
+            ->implode(', ');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 🔗 RELATIONSHIPS
     // ═══════════════════════════════════════════════════════════
 
     /**
@@ -83,6 +166,7 @@ class Subject extends Model
 
     /**
      * Subject belongs to many classes via class_subject pivot table
+     * Note: ClassModel to avoid conflict with PHP reserved keyword
      */
     public function classes(): BelongsToMany
     {
@@ -91,7 +175,7 @@ class Subject extends Model
     }
 
     /**
-     * Subject belongs to many profiles (teachers) via profile_subject pivot table
+     * Subject belongs to many profiles (teachers) via profile_subject pivot
      */
     public function profiles(): BelongsToMany
     {
@@ -110,13 +194,13 @@ class Subject extends Model
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SCOPES
+    // 🔍 SCOPES (Query Builders)
     // ═══════════════════════════════════════════════════════════
 
     /**
      * Scope: Filter by category
      */
-    public function scopeCategory($query, string $category)
+    public function scopeByCategory($query, string $category)
     {
         return $query->where('category', $category);
     }
@@ -130,12 +214,14 @@ class Subject extends Model
     }
 
     /**
-     * Scope: Search by name or code
+     * Scope: Search by name or code (case-insensitive)
      */
     public function scopeSearch($query, string $search)
     {
-        return $query->where('name', 'like', "%{$search}%")
-            ->orWhere('code', 'like', "%{$search}%");
+        return $query->where(function($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('code', 'like', "%{$search}%");
+        });
     }
 
     /**
@@ -143,9 +229,9 @@ class Subject extends Model
      */
     public function scopeTaughtBy($query, int $profileId)
     {
-        return $query->whereHas('profiles', function ($query) use ($profileId) {
-            $query->where('profiles.id', $profileId);
-        });
+        return $query->whereHas('profiles', fn($q) => 
+            $q->where('profiles.id', $profileId)
+        );
     }
 
     /**
@@ -153,9 +239,9 @@ class Subject extends Model
      */
     public function scopeTaughtByUser($query, int $userId)
     {
-        return $query->whereHas('profiles', function ($query) use ($userId) {
-            $query->where('user_id', $userId);
-        });
+        return $query->whereHas('profiles', fn($q) => 
+            $q->where('user_id', $userId)
+        );
     }
 
     /**
@@ -175,54 +261,7 @@ class Subject extends Model
     }
 
     // ═══════════════════════════════════════════════════════════
-    // ACCESSORS
-    // ═══════════════════════════════════════════════════════════
-
-    /**
-     * Accessor: Get category label in Indonesian
-     */
-    public function getCategoryLabelAttribute(): string
-    {
-        $labels = [
-            'productive' => 'Produktif',
-            'normative' => 'Normatif',
-            'adaptive' => 'Adaptif',
-        ];
-
-        return $labels[$this->category] ?? $this->category;
-    }
-
-    /**
-     * Accessor: Get full subject name with code
-     */
-    public function getFullNameAttribute(): string
-    {
-        return "{$this->code} - {$this->name}";
-    }
-
-    /**
-     * Accessor: Get count of teachers teaching this subject
-     */
-    public function getTeachersCountAttribute(): int
-    {
-        return $this->profiles()->count();
-    }
-
-    /**
-     * Accessor: Get teacher names as comma-separated string
-     */
-    public function getTeacherNamesAttribute(): string
-    {
-        return $this->profiles
-            ->map(function ($profile) {
-                return $profile->user?->name;
-            })
-            ->filter()
-            ->implode(', ');
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // BUSINESS LOGIC METHODS
+    // 💼 BUSINESS LOGIC METHODS
     // ═══════════════════════════════════════════════════════════
 
     /**
@@ -246,10 +285,7 @@ class Subject extends Model
      */
     public function addTeacher(int $profileId): bool
     {
-        if ($this->isTaughtBy($profileId)) {
-            return false;
-        }
-        
+        if ($this->isTaughtBy($profileId)) return false;
         $this->profiles()->attach($profileId);
         return true;
     }
@@ -259,16 +295,13 @@ class Subject extends Model
      */
     public function removeTeacher(int $profileId): bool
     {
-        if (!$this->isTaughtBy($profileId)) {
-            return false;
-        }
-        
+        if (!$this->isTaughtBy($profileId)) return false;
         $this->profiles()->detach($profileId);
         return true;
     }
 
     /**
-     * Sync teachers for this subject (replace all)
+     * Sync teachers for this subject (replace all assignments)
      */
     public function syncTeachers(array $profileIds): void
     {
@@ -276,34 +309,45 @@ class Subject extends Model
     }
 
     /**
-     * Check if subject has any teacher assigned
+     * Check if subject has any teacher assigned (uses loaded relation if available)
      */
     public function hasTeachers(): bool
     {
-        return $this->teachers_count > 0;
+        return $this->relationLoaded('profiles') 
+            ? $this->profiles->isNotEmpty()
+            : $this->profiles()->exists();
     }
 
     /**
-     * Get subject info for API response with counts
+     * 🎯 Get subject info for API response with retro metadata
+     * This is the format the frontend expects!
      */
-    public function toApiArray(): array
+    public function toApiArray(bool $withCounts = true): array
     {
-        return [
+        $data = [
             'id' => $this->id,
             'code' => $this->code,
             'name' => $this->name,
             'full_name' => $this->full_name,
             'category' => $this->category,
-            'category_label' => $this->category_label,
+            'category_label' => $this->category_label, // ✅ Accessor
+            'retro_badge' => $this->retro_badge,        // ✅ Retro accessor
             'credits' => $this->credits,
             'description' => $this->description,
             'is_active' => $this->is_active,
-            'schedules_count' => $this->schedules_count ?? 0,
-            'classes_count' => $this->classes_count ?? 0,
-            'teachers_count' => $this->teachers_count,
             'teacher_names' => $this->teacher_names,
             'created_at' => $this->created_at?->toDateTimeString(),
             'updated_at' => $this->updated_at?->toDateTimeString(),
         ];
+
+        if ($withCounts) {
+            $data = array_merge($data, [
+                'schedules_count' => $this->schedules_count ?? 0,
+                'classes_count' => $this->classes_count ?? 0,
+                'teachers_count' => $this->teachers_count,
+            ]);
+        }
+
+        return $data;
     }
 }
