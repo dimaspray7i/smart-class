@@ -5,7 +5,7 @@ import {
   Download, Upload, Filter, MoreVertical, Check, ChevronDown, ChevronUp,
   MapPin, Clock, BookOpen, UserPlus, UserMinus, AlertCircle, CheckCircle2,
   Eye, Settings, BarChart3, RefreshCw, ChevronRight, ChevronLeft,
-  Menu, Star, Sparkles, Smile, ArrowRight, Target, FileText
+  Menu, Star, Sparkles, Smile, ArrowRight, Target, FileText, Rocket
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../api';
@@ -327,7 +327,14 @@ export default function ClassManagement() {
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const debouncedSearch = useDebounce(search, 500);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   // Fetch teachers for form
   useEffect(() => {
@@ -339,10 +346,13 @@ export default function ClassManagement() {
   }, [isCreateOpen, isEditOpen]);
 
   // Fetch classes with filters
-  const { data, isLoading, isError, isFetching } = useQuery({
+  const { data, isPending, isError, isFetching } = useQuery({
     queryKey: ['admin-classes', debouncedSearch],
     queryFn: () => api.get('/admin/classes', {
-      params: { page: 1, search: debouncedSearch || undefined }
+      params: { 
+        page: 1, 
+        search: debouncedSearch || undefined 
+      }
     }),
     placeholderData: (prev) => prev,
     staleTime: 30000,
@@ -475,7 +485,7 @@ export default function ClassManagement() {
   // ═══════════════════════════════════════════════════════════
   // ⏳ LOADING STATE (RETRO STYLE)
   // ═══════════════════════════════════════════════════════════
-  if (isLoading && !isFetching) {
+  if (isPending && !isFetching) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center bg-retro-grid">
         <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
@@ -710,9 +720,13 @@ export default function ClassManagement() {
             <div className="px-4 py-3 border-t-4 border-base-black bg-retro-yellow/10 flex justify-between items-center text-xs font-retro-mono">
               <span>Showing <strong>{meta.from || 0}</strong>-<strong>{meta.to || 0}</strong> of <strong>{meta.total || 0}</strong></span>
               <div className="flex gap-1">
-                <button className="px-3 py-1 retro-btn retro-btn-sm retro-btn-outline" disabled>← Prev</button>
-                <button className="px-3 py-1 retro-btn retro-btn-sm bg-retro-orange text-base-white border-retro-orange shadow-[2px_2px_0px_0px_#111111]">1</button>
-                <button className="px-3 py-1 retro-btn retro-btn-sm retro-btn-outline" disabled>Next →</button>
+                {[...Array(Math.min(5, (meta.last_page || 1)))].map((_, i) => {
+                  const currentPage = meta.current_page || 1;
+                  const lastPage = meta.last_page || 1;
+                  const pageNum = currentPage <= 3 ? i+1 : currentPage >= lastPage-2 ? lastPage-4+i : currentPage-2+i;
+                  if (pageNum < 1 || pageNum > lastPage) return null;
+                  return <button key={pageNum} onClick={() => setPage(pageNum)} className={`px-3 py-1.5 retro-btn retro-btn-sm ${pageNum === currentPage ? 'bg-retro-orange text-base-white border-retro-orange shadow-[2px_2px_0px_0px_#111111]' : 'retro-btn-outline'}`}>{pageNum}</button>;
+                })}
               </div>
             </div>
           </motion.div>
@@ -777,11 +791,25 @@ export default function ClassManagement() {
               <p className="text-[10px] font-retro-mono text-base-black/50">💡 First teacher selected will be the homeroom teacher.</p>
             </div>
 
-            {/* Action Buttons */}
-            <div className="pt-4 flex justify-end gap-3 border-t-4 border-base-black sticky bottom-0 bg-base-cream py-4">
-              <button type="button" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }} className="retro-btn retro-btn-outline">Cancel</button>
-              <button type="submit" className="retro-btn" disabled={createClassMutation.isLoading || updateClassMutation.isLoading}>
-                {isCreateOpen ? '💾 Create Class' : '✏️ Update Class'}
+            <div className="pt-4 flex justify-end gap-3 border-t-4 border-base-black sticky bottom-0 bg-base-cream py-4 z-10 mt-6">
+              <button 
+                type="button" 
+                onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }} 
+                className="retro-btn retro-btn-outline"
+              >
+                CANCEL
+              </button>
+              <button 
+                type="submit" 
+                className="retro-btn flex items-center gap-2" 
+                disabled={createClassMutation.isPending || updateClassMutation.isPending}
+              >
+                {(createClassMutation.isPending || updateClassMutation.isPending) ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Rocket className="w-4 h-4" />
+                )}
+                {isCreateOpen ? 'CREATE CLASS' : 'SAVE CHANGES'}
               </button>
             </div>
           </form>

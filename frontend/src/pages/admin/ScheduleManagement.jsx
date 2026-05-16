@@ -775,12 +775,22 @@ export default function ScheduleManagement() {
                 </div>
               )}
 
-              {/* Action Buttons (ORIGINAL PRESERVED + RETRO STYLING) */}
-              <div className="pt-4 flex justify-end gap-3 border-t-4 border-base-black sticky bottom-0 bg-base-cream py-4">
-                <button type="button" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }} className="retro-btn retro-btn-outline">Batal</button>
-                <button type="submit" className="retro-btn" disabled={createScheduleMutation.isLoading || updateScheduleMutation.isLoading}>
-                  {isCreateOpen ? '💾 Simpan Jadwal' : '✏️ Update Jadwal'}
-                </button>
+              <div className="pt-6 flex justify-end gap-3 border-t-4 border-base-black sticky bottom-0 bg-base-cream py-4 z-10 mt-6">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }}
+                >
+                  BATAL
+                </Button>
+                <Button 
+                  type="submit" 
+                  loading={createScheduleMutation.isPending || updateScheduleMutation.isPending}
+                  className="flex items-center gap-2"
+                >
+                  <Rocket className="w-4 h-4" />
+                  {isCreateOpen ? 'SIMPAN JADWAL' : 'UPDATE JADWAL'}
+                </Button>
               </div>
             </form>
           </Modal>

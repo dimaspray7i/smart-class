@@ -448,7 +448,7 @@ export default function Sidebar({ isOpen, onClose }) {
             animate="visible"
             exit="exit"
             className={`
-              fixed top-0 left-0 z-50 h-screen w-64 
+              fixed top-0 left-0 z-[60] h-screen w-64 
               bg-base-cream retro-grid-bg border-r-4 border-base-black
               lg:static lg:z-auto lg:translate-x-0
               ${isOpen ? 'translate-x-0' : '-translate-x-full'}
