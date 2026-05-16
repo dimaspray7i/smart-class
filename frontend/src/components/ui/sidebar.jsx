@@ -332,7 +332,7 @@ const staggerContainer = {
 // ═══════════════════════════════════════════════════════════
 // 🎯 MAIN RETRO SIDEBAR COMPONENT
 // ═══════════════════════════════════════════════════════════
-export default function Sidebar({ isOpen, onClose }) {
+export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [showKeyboardHint, setShowKeyboardHint] = useState(false);
@@ -368,6 +368,8 @@ export default function Sidebar({ isOpen, onClose }) {
         { icon: GraduationCap, label: 'Kelas', href: '/dashboard/admin/classes', shortcut: 'c', description: 'Class management' },
         { icon: BookOpen, label: 'Mapel', href: '/dashboard/admin/subjects', shortcut: 'm', description: 'Subjects' },
         { icon: CalendarCheck, label: 'Jadwal', href: '/dashboard/admin/schedules', shortcut: 'j', description: 'Schedules' },
+        { icon: Clock, label: 'Absensi', href: '/dashboard/admin/attendance', shortcut: 'a', description: 'Realtime attendance' },
+        { icon: Briefcase, label: 'PKL', href: '/dashboard/admin/pkl', shortcut: 'p', description: 'Internships' },
         { icon: Settings, label: 'Settings', href: '/dashboard/admin/settings', shortcut: 't', description: 'System config' },
       ];
     }
@@ -376,30 +378,26 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const menuItems = getMenuItems();
 
-  // Keyboard shortcuts support — MUST be before any early return
+  // Keyboard shortcuts support
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Only if sidebar is open and no input is focused
-      if (!isOpen || document.activeElement?.tagName === 'INPUT') return;
+      if ((!isOpen && window.innerWidth < 1024) || document.activeElement?.tagName === 'INPUT') return;
       
-      // Escape to close sidebar
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && window.innerWidth < 1024) {
         onClose();
         return;
       }
       
-      // Show/hide keyboard hint
       if (e.key === '?') {
         e.preventDefault();
         setShowKeyboardHint(prev => !prev);
         return;
       }
       
-      // Navigate by shortcut key
       const item = menuItems.find(i => i.shortcut && e.key && i.shortcut === e.key.toLowerCase());
       if (item) {
         e.preventDefault();
-        onClose();
+        if (window.innerWidth < 1024) onClose();
         window.location.href = item.href;
       }
     };
@@ -408,20 +406,15 @@ export default function Sidebar({ isOpen, onClose }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose, menuItems]);
 
-  // Handle logout with confirmation
   const handleLogout = () => {
     if (window.confirm('Apakah Anda yakin ingin logout?')) {
       logout();
-      onClose();
+      if (window.innerWidth < 1024) onClose();
     }
   };
 
-  // Don't render if no user and not open (AFTER all hooks)
-  if (!user && !isOpen) return null;
+  if (!user && !isOpen && window.innerWidth < 1024) return null;
 
-  // ═══════════════════════════════════════════════════════════
-  // 🎨 MAIN RENDER - RETRO FUTURISTIC SIDEBAR
-  // ═══════════════════════════════════════════════════════════
   return (
     <>
       {/* Mobile Overlay - Retro Style */}
@@ -431,7 +424,7 @@ export default function Sidebar({ isOpen, onClose }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-base-black/60 backdrop-blur-sm z-40 lg:hidden" 
+            className="fixed inset-0 bg-base-black/70 backdrop-blur-md z-[100] lg:hidden" 
             onClick={onClose}
             aria-hidden="true"
           />
@@ -439,154 +432,176 @@ export default function Sidebar({ isOpen, onClose }) {
       </AnimatePresence>
 
       {/* Sidebar Panel - Retro Style */}
-      <AnimatePresence mode="wait">
-        {(isOpen || window.innerWidth >= 1024) && (
-          <motion.aside
-            key="sidebar"
-            variants={sidebarVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className={`
-              fixed top-0 left-0 z-[60] h-screen w-64 
-              bg-base-cream retro-grid-bg border-r-4 border-base-black
-              lg:static lg:z-auto lg:translate-x-0
-              ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-            `}
-          >
-            {/* Decorative Elements */}
-            <SidebarDecorations />
+      <motion.aside
+        key="sidebar"
+        initial={false}
+        animate={{ 
+          x: (window.innerWidth < 1024 && !isOpen) ? '-100%' : 0,
+          width: isCollapsed ? 80 : 256
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className={`
+          fixed top-0 left-0 z-[110] h-screen
+          bg-base-cream retro-grid-bg border-r-4 border-base-black
+          flex flex-col shadow-[4px_0px_0px_0px_rgba(17,17,17,0.1)]
+        `}
+      >
+        {/* Decorative Elements */}
+        <SidebarDecorations />
+        
+        <div className="flex flex-col h-full relative overflow-hidden">
+          
+          {/* Sidebar Header - Retro Style */}
+          <div className={`h-20 flex items-center border-b-4 border-base-black bg-base-white px-4 shrink-0 overflow-hidden ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+            {!isCollapsed && (
+              <Link to="/" onClick={() => window.innerWidth < 1024 && onClose()} className="flex items-center gap-2 group whitespace-nowrap">
+                <motion.div 
+                  whileHover={{ rotate: 360 }}
+                  transition={{ duration: 0.5 }}
+                  className="w-9 h-9 retro-card bg-retro-orange border-2 border-base-black flex items-center justify-center shrink-0"
+                >
+                  <Rocket className="w-5 h-5 text-base-white" />
+                </motion.div>
+                <span className="font-retro-display font-black text-base-black text-xl group-hover:text-retro-orange transition-colors">
+                  RPL SMART
+                </span>
+              </Link>
+            )}
             
-            <div className="flex flex-col h-full relative">
-              
-              {/* Sidebar Header - Retro Style */}
-              <motion.div 
-                variants={cardVariants}
-                className="h-16 flex items-center justify-between px-4 border-b-4 border-base-black bg-base-white"
+            {isCollapsed && (
+              <Link to="/" onClick={() => window.innerWidth < 1024 && onClose()}>
+                <motion.div 
+                  whileHover={{ rotate: 360 }}
+                  className="w-10 h-10 retro-card bg-retro-orange border-2 border-base-black flex items-center justify-center"
+                >
+                  <Rocket className="w-6 h-6 text-base-white" />
+                </motion.div>
+              </Link>
+            )}
+
+            {!isCollapsed && window.innerWidth < 1024 && (
+              <motion.button 
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onClose} 
+                className="p-2 retro-btn retro-btn-sm"
               >
-                <Link to="/" onClick={onClose} className="flex items-center gap-2 group">
-                  <motion.div 
-                    whileHover={{ rotate: 360 }}
-                    transition={{ duration: 0.5 }}
-                    className="w-8 h-8 retro-card bg-retro-orange border-2 border-base-black flex items-center justify-center"
-                  >
-                    <Rocket className="w-5 h-5 text-base-white" />
-                  </motion.div>
-                  <span className="font-retro-display font-black text-base-black text-lg group-hover:text-retro-orange transition-colors">
-                    RPL SMART
-                  </span>
-                </Link>
-                
-                <div className="flex items-center gap-1">
-                  {/* Theme Toggle - Retro Styled */}
-                  <div className="scale-75 origin-right">
-                    <ThemeToggle size="sm" showTooltip={false} />
+                <X className="w-5 h-5" />
+              </motion.button>
+            )}
+          </div>
+
+          {/* Navigation Menu */}
+          <nav className="flex-1 px-3 py-6 space-y-3 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-retro-orange scrollbar-track-transparent">
+            {menuItems.map((item, index) => {
+              const isActive = location.pathname === item.href;
+              const Icon = item.icon;
+              
+              const roleColors = {
+                siswa: 'border-retro-purple bg-retro-purple/10 text-retro-purple',
+                guru: 'border-retro-blue bg-retro-blue/10 text-retro-blue',
+                admin: 'border-retro-orange bg-retro-orange/10 text-retro-orange',
+                public: 'border-retro-yellow bg-retro-yellow/10 text-retro-yellow'
+              };
+              
+              const getRole = (href) => {
+                if (href.includes('/student')) return 'siswa';
+                if (href.includes('/teacher')) return 'guru';
+                if (href.includes('/admin')) return 'admin';
+                return 'public';
+              };
+              
+              const colors = roleColors[getRole(item.href)];
+
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  onClick={() => window.innerWidth < 1024 && onClose()}
+                  className={`
+                    relative flex items-center gap-3 px-3 py-3 rounded-retro border-2 border-base-black transition-all duration-200 group
+                    ${isActive ? `${colors} shadow-[3px_3px_0px_0px_#111111]` : 'bg-base-white hover:bg-retro-orange/5 text-base-black/70'}
+                    ${isCollapsed ? 'justify-center' : ''}
+                  `}
+                >
+                  <div className={`p-2 rounded-retro shrink-0 ${isActive ? 'bg-base-black' : 'bg-base-gray group-hover:bg-retro-orange/20'}`}>
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-base-white' : 'text-base-black group-hover:text-retro-orange'}`} />
                   </div>
                   
-                  {/* Close button for mobile - Retro Style */}
-                  <motion.button 
-                    whileHover={{ scale: 1.1, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={onClose} 
-                    className="lg:hidden p-2 retro-btn retro-btn-sm"
-                    aria-label="Close menu"
-                  >
-                    <X className="w-4 h-4" />
-                  </motion.button>
-                </div>
-                
-                {/* Decorative sticker */}
-                <motion.div 
-                  variants={stickerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="absolute -top-2 -right-2"
-                >
-                  <div className="retro-sticker bg-retro-yellow text-base-black text-[8px] px-2 py-0.5">
-                    v2.0 ✨
-                  </div>
-                </motion.div>
-              </motion.div>
-
-              {/* Navigation Menu - Retro Style */}
-              <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto scrollbar-thin">
-                <motion.div variants={staggerContainer} initial="hidden" animate="visible">
-                  {menuItems.map((item, index) => {
-                    const isActive = location.pathname === item.href;
-                    return (
-                      <RetroMenuItem 
-                        key={item.href} 
-                        item={item} 
-                        isActive={isActive} 
-                        index={index} 
-                        onClick={onClose} 
-                      />
-                    );
-                  })}
-                </motion.div>
-                
-                {/* Keyboard Shortcut Hint */}
-                <AnimatePresence>
-                  {showKeyboardHint && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="mt-4 p-3 retro-card bg-retro-yellow/10 border-retro-yellow"
-                    >
-                      <p className="font-retro-mono text-[9px] text-base-black/70 mb-2 flex items-center gap-1">
-                        <Keyboard className="w-3 h-3" />
-                        Keyboard Shortcuts
-                      </p>
-                      <div className="space-y-1">
-                        {menuItems.map(item => item.shortcut && (
-                          <div key={item.href} className="flex items-center justify-between text-[9px]">
-                            <span className="font-retro-mono text-base-black/60">{item.label}</span>
-                            <kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black font-retro-mono text-[8px]">
-                              {item.shortcut}
-                            </kbd>
-                          </div>
-                        ))}
-                      </div>
-                      <p className="font-retro-mono text-[8px] text-base-black/40 mt-2">
-                        Press <kbd className="px-1 py-0.5 rounded-sm bg-base-gray border border-base-black/30">?</kbd> to toggle hints
-                      </p>
-                    </motion.div>
+                  {!isCollapsed && (
+                    <span className={`font-retro-display font-black text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ${isActive ? 'text-base-black' : ''}`}>
+                      {item.label}
+                    </span>
                   )}
-                </AnimatePresence>
-              </nav>
 
-              {/* User Info / Login Section - Retro Style */}
-              <div className="p-4 border-t-4 border-base-black bg-base-white">
-                {user ? (
-                  <RetroUserProfile user={user} onLogout={handleLogout} />
-                ) : (
-                  <RetroPublicLogin onClose={onClose} />
-                )}
-                
-                {/* Version Info - Retro Badge */}
-                <div className="mt-4 text-center">
-                  <span className="retro-badge retro-badge-blue text-[9px] px-3 py-1">
-                    RPL Smart v2.0 RETRO
-                  </span>
-                </div>
-              </div>
-              
-              {/* Decorative Bottom Sticker */}
-              <motion.div 
-                variants={stickerVariants}
-                initial="hidden"
-                animate="visible"
-                className="absolute bottom-4 left-4"
+                  {isActive && !isCollapsed && (
+                    <ChevronRight className="w-4 h-4 ml-auto text-retro-orange" />
+                  )}
+
+                  {isCollapsed && (
+                    <div className="absolute left-full ml-4 px-3 py-1.5 bg-base-black text-base-white text-[10px] font-retro-mono rounded-retro opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50 whitespace-nowrap shadow-retro">
+                      {item.label}
+                      <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-base-black rotate-45" />
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Footer Toggle & User Profile */}
+          <div className="p-4 border-t-4 border-base-black bg-base-white shrink-0">
+            {/* Collapse Toggle Desktop */}
+            <div className="hidden lg:flex justify-center mb-4">
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: isCollapsed ? 180 : 0 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onToggleCollapse}
+                className="p-2.5 retro-btn retro-btn-sm w-full flex items-center justify-center"
               >
-                <div className="retro-sticker bg-retro-pink text-base-white text-[8px] px-2 py-0.5">
-                  MADE WITH ❤️
-                </div>
-              </motion.div>
+                {isCollapsed ? <ArrowRight className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </motion.button>
             </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
+
+            {user ? (
+              <div className={`flex flex-col gap-3 ${isCollapsed ? 'items-center' : ''}`}>
+                <div className={`flex items-center gap-3 overflow-hidden ${isCollapsed ? 'justify-center' : ''}`}>
+                  <div className="w-10 h-10 rounded-retro bg-retro-orange/20 border-2 border-retro-orange flex items-center justify-center shrink-0">
+                    <span className="font-retro-display font-black text-retro-orange">{user.name?.charAt(0).toUpperCase()}</span>
+                  </div>
+                  {!isCollapsed && (
+                    <div className="min-w-0">
+                      <p className="font-retro-display font-black text-xs truncate">{user.name}</p>
+                      <span className="retro-badge text-[8px] py-0.5">{user.role}</span>
+                    </div>
+                  )}
+                </div>
+                
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleLogout}
+                  className={`retro-btn retro-btn-sm bg-danger text-base-white flex items-center justify-center gap-2 ${isCollapsed ? 'px-0 w-10 h-10' : 'w-full'}`}
+                >
+                  <LogOut className="w-4 h-4" />
+                  {!isCollapsed && <span className="font-retro-mono text-[10px]">LOGOUT</span>}
+                </motion.button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className={`retro-btn retro-btn-sm w-full flex items-center justify-center gap-2 ${isCollapsed ? 'px-0 w-10 h-10' : ''}`}
+              >
+                <Shield className="w-4 h-4" />
+                {!isCollapsed && <span className="font-retro-mono text-[10px]">LOGIN</span>}
+              </Link>
+            )}
+          </div>
+          
+          {/* Decorative Corner */}
+          <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-retro-blue pointer-events-none" />
+        </div>
+      </motion.aside>
     </>
   );
 }

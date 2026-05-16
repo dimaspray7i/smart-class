@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Plus, Search, Edit2, Trash2, X, Loader2, Calendar, Clock, Users, BookOpen,
@@ -8,14 +8,19 @@ import {
   Menu, Star, Sparkles, Smile, FileText, Rocket, Settings, CalendarDays, Target, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '../../api';
+import { adminAPI } from '../../api';
+
+// 🏛️ CENTRALIZED UI COMPONENTS
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
 import Toast from '../../components/ui/Toast';
+import RetroTable, { TableActions } from '../../components/ui/RetroTable';
+import { PageHeader, RetroSection, StatGrid, RetroCard, RetroStatWidget } from '../../components/ui/RetroLayouts';
+import { twMerge } from 'tailwind-merge';
 
-// ═══════════════════════════════════════════════════════════
-// ANIMATION VARIANTS (ORIGINAL PRESERVED)
-// ═══════════════════════════════════════════════════════════
+// 🎨 ANIMATION VARIANTS
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
@@ -26,9 +31,6 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
 };
 
-// ═══════════════════════════════════════════════════════════
-// 🎨 RETRO ANIMATION VARIANTS (ADDED)
-// ═══════════════════════════════════════════════════════════
 const retroCardVariants = {
   hidden: { opacity: 0, y: 30, rotate: -1 },
   visible: { opacity: 1, y: 0, rotate: 0, transition: { type: "spring", stiffness: 100, damping: 15, mass: 0.1 } }
@@ -39,7 +41,7 @@ const floatVariants = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// DEBOUNCE HOOK (ORIGINAL PRESERVED)
+// DEBOUNCE HOOK
 // ═══════════════════════════════════════════════════════════
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -51,117 +53,7 @@ function useDebounce(value, delay) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// INPUT FIELD COMPONENT (ORIGINAL PRESERVED + RETRO STYLING)
-// ═══════════════════════════════════════════════════════════
-function InputField({ label, name, type = "text", value, onChange, error, required, disabled, placeholder, icon: Icon, helperText, ...props }) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-black uppercase tracking-wider text-base-black">
-        <span className="flex items-center gap-1.5">
-          {Icon && <Icon className="w-4 h-4" />}
-          {label}
-          {required && <span className="text-retro-orange">*</span>}
-        </span>
-      </label>
-      <div className="relative">
-        <input
-          type={type}
-          name={name}
-          value={value || ''}
-          onChange={(e) => onChange(prev => ({ ...prev, [name]: e.target.value }))}
-          className="retro-input w-full"
-          required={required}
-          disabled={disabled}
-          placeholder={placeholder}
-          {...props}
-        />
-        {error && <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-danger" />}
-      </div>
-      {helperText && <p className="text-[10px] font-retro-mono text-base-black/50">{helperText}</p>}
-      {error && <p className="text-danger text-[10px] font-retro-mono mt-0.5">{Array.isArray(error) ? error[0] : error}</p>}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// SELECT FIELD COMPONENT (ORIGINAL PRESERVED + RETRO STYLING)
-// ═══════════════════════════════════════════════════════════
-function SelectField({ label, name, value, onChange, options, error, required, disabled, icon: Icon, placeholder }) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-black uppercase tracking-wider text-base-black">
-        <span className="flex items-center gap-1.5">
-          {Icon && <Icon className="w-4 h-4" />}
-          {label}
-          {required && <span className="text-retro-orange">*</span>}
-        </span>
-      </label>
-      <select
-        name={name}
-        value={value || ''}
-        onChange={(e) => onChange(prev => ({ ...prev, [name]: e.target.value }))}
-        className="retro-input w-full appearance-none cursor-pointer"
-        required={required}
-        disabled={disabled}
-      >
-        {placeholder && <option value="">{placeholder}</option>}
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value} className="bg-base-cream text-base-black">{opt.label}</option>
-        ))}
-      </select>
-      {error && <p className="text-danger text-[10px] font-retro-mono mt-0.5">{Array.isArray(error) ? error[0] : error}</p>}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// CONFIRMATION MODAL (ORIGINAL PRESERVED + RETRO STYLING)
-// ═══════════════════════════════════════════════════════════
-function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText = "Ya, Lanjutkan", cancelText = "Batal", variant = "danger" }) {
-  if (!isOpen) return null;
-  const variants = {
-    danger: { icon: AlertCircle, color: 'text-danger', bg: 'bg-danger/10', border: 'border-danger/30' },
-    warning: { icon: AlertCircle, color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/30' },
-    success: { icon: CheckCircle2, color: 'text-success', bg: 'bg-success/10', border: 'border-success/30' },
-  };
-  const config = variants[variant];
-  const Icon = config.icon;
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="md">
-      <div className="text-center">
-        <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, -5, 5, 0] }} transition={{ duration: 0.5, repeat: Infinity }}
-          className={`w-16 h-16 mx-auto mb-4 border-4 border-base-black rounded-retro-lg flex items-center justify-center ${config.bg}`}>
-          <Icon className={`w-8 h-8 ${config.color}`} />
-        </motion.div>
-        <p className="font-retro-mono text-sm text-base-black/70 mb-6">{message}</p>
-        <div className="flex gap-3 justify-center">
-          <button onClick={onClose} className="retro-btn retro-btn-outline">{cancelText}</button>
-          <button onClick={onConfirm} className={`retro-btn ${variant === 'danger' ? 'bg-danger hover:bg-danger/90' : variant === 'warning' ? 'bg-warning hover:bg-warning/90 text-base-black' : 'bg-success hover:bg-success/90'} text-base-white`}>{confirmText}</button>
-        </div>
-        <div className="absolute -top-3 -right-3 retro-sticker bg-retro-yellow text-base-black text-[10px] px-2 py-0.5">CONFIRM</div>
-      </div>
-    </Modal>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// DETAIL ITEM HELPER (ORIGINAL PRESERVED + RETRO STYLING)
-// ═══════════════════════════════════════════════════════════
-function DetailItem({ icon: Icon, label, value, valueClass = '' }) {
-  return (
-    <div className="flex items-start gap-3">
-      {Icon && <Icon className="w-4 h-4 mt-0.5" />}
-      <div>
-        <p className="text-[10px] font-black uppercase tracking-wider text-base-black/50">{label}</p>
-        <p className={`text-sm font-retro-display font-black text-base-black ${valueClass}`}>{value}</p>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// DAY OPTIONS (ORIGINAL PRESERVED)
+// DAY OPTIONS
 // ═══════════════════════════════════════════════════════════
 const dayOptions = [
   { value: 'senin', label: 'Senin' },
@@ -172,9 +64,7 @@ const dayOptions = [
   { value: 'sabtu', label: 'Sabtu' },
 ];
 
-// ═══════════════════════════════════════════════════════════
-// 🆕 QUICK TIME TEMPLATES (ADDED FEATURE)
-// ═══════════════════════════════════════════════════════════
+// 🆕 QUICK TIME TEMPLATES
 const quickTimeTemplates = [
   { label: 'Pagi (07:00-08:30)', start: '07:00', end: '08:30' },
   { label: 'Siang (10:00-11:30)', start: '10:00', end: '11:30' },
@@ -211,7 +101,10 @@ export default function ScheduleManagement() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState({
+    class_id: '', subject_id: '', teacher_id: '', day: 'senin', 
+    start_time: '07:00', end_time: '08:30', room: '', is_active: true
+  });
   const [errors, setErrors] = useState({});
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -229,9 +122,9 @@ export default function ScheduleManagement() {
   // Fetch dependencies for forms (ORIGINAL PRESERVED)
   useEffect(() => {
     Promise.all([
-      api.get('/admin/classes', { params: { is_active: true, all: true } }),
-      api.get('/admin/subjects', { params: { is_active: true, all: true } }),
-      api.get('/admin/users', { params: { role: 'guru', is_active: true, all: true } })
+      adminAPI.getClasses({ is_active: true, all: true }),
+      adminAPI.getSubjects({ is_active: true, all: true }),
+      adminAPI.getUsers({ role: 'guru', is_active: true, all: true })
     ]).then(([classesRes, subjectsRes, teachersRes]) => {
       setClasses(classesRes.data?.data || []);
       setSubjects(subjectsRes.data?.data || []);
@@ -242,21 +135,35 @@ export default function ScheduleManagement() {
   // Fetch schedules with filters (ORIGINAL PRESERVED)
   const { data, isLoading, isError, isFetching } = useQuery({
     queryKey: ['admin-schedules', debouncedSearch, classFilter, dayFilter, teacherFilter],
-    queryFn: () => api.get('/admin/schedules', {
-      params: {
+    queryFn: () => adminAPI.getSchedules({
         page: 1,
         search: debouncedSearch || undefined,
         class_id: classFilter === 'all' ? undefined : classFilter,
         day: dayFilter === 'all' ? undefined : dayFilter,
         teacher_id: teacherFilter === 'all' ? undefined : teacherFilter,
-      }
     }),
     placeholderData: (prev) => prev,
     staleTime: 30000,
   });
 
-  const schedules = data?.data?.data || [];
-  const meta = data?.data?.meta || {};
+  const schedules = data?.data || [];
+  const meta = data?.meta || {};
+
+  // 📊 QUICK STATS CALCULATION
+  const stats = useMemo(() => {
+    return {
+      total: meta.total || 0,
+      active: schedules.length,
+      byDay: {
+        senin: schedules.filter(s => s.day === 'senin').length,
+        selasa: schedules.filter(s => s.day === 'selasa').length,
+        rabu: schedules.filter(s => s.day === 'rabu').length,
+        kamis: schedules.filter(s => s.day === 'kamis').length,
+        jumat: schedules.filter(s => s.day === 'jumat').length,
+        sabtu: schedules.filter(s => s.day === 'sabtu').length,
+      }
+    };
+  }, [schedules, meta]);
 
   // Show toast notification (ORIGINAL PRESERVED)
   const showToast = useCallback((message, type = 'success') => {
@@ -268,7 +175,7 @@ export default function ScheduleManagement() {
   // MUTATIONS (ORIGINAL PRESERVED)
   // ═══════════════════════════════════════════════════════════
   const createScheduleMutation = useMutation({
-    mutationFn: (newSchedule) => api.post('/admin/schedules', newSchedule),
+    mutationFn: (newSchedule) => adminAPI.createSchedule(newSchedule),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-schedules'] });
       setIsCreateOpen(false);
@@ -288,7 +195,7 @@ export default function ScheduleManagement() {
   });
 
   const updateScheduleMutation = useMutation({
-    mutationFn: ({ id, ...updatedData }) => api.put(`/admin/schedules/${id}`, updatedData),
+    mutationFn: ({ id, ...updatedData }) => adminAPI.updateSchedule(id, updatedData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-schedules'] });
       setIsEditOpen(false);
@@ -309,7 +216,7 @@ export default function ScheduleManagement() {
   });
 
   const deleteScheduleMutation = useMutation({
-    mutationFn: (id) => api.delete(`/admin/schedules/${id}`),
+    mutationFn: (id) => adminAPI.deleteSchedule(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-schedules'] });
       showToast('✅ Jadwal berhasil dihapus!', 'success');
@@ -321,7 +228,7 @@ export default function ScheduleManagement() {
   });
 
   const bulkDeleteMutation = useMutation({
-    mutationFn: (ids) => Promise.all(ids.map(id => api.delete(`/admin/schedules/${id}`))),
+    mutationFn: (ids) => adminAPI.bulkDeleteSchedules(ids),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-schedules'] });
       setSelectedIds([]);
@@ -334,7 +241,7 @@ export default function ScheduleManagement() {
   });
 
   const exportSchedulesMutation = useMutation({
-    mutationFn: (filters) => api.get('/admin/schedules/export', { params: filters, responseType: 'blob' }),
+    mutationFn: (filters) => adminAPI.exportSchedules('csv', filters),
     onSuccess: (blob) => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -407,455 +314,642 @@ export default function ScheduleManagement() {
   // RENDER (ORIGINAL PRESERVED 100% + RETRO UPGRADE + NEW FEATURES)
   // ═══════════════════════════════════════════════════════════
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="relative min-h-screen bg-base-cream retro-grid-bg">
-      
-      {/* 🆕 Decorative floating elements */}
-      <ScheduleDecorations />
-
-      {/* Toast Notification (ORIGINAL PRESERVED + RETRO POSITION) */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed top-24 right-6 z-50">
-            <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* HEADER (ORIGINAL PRESERVED + RETRO STYLING) */}
-      <motion.div variants={itemVariants} className="sticky top-4 z-30 px-4 md:px-6">
-        <div className="retro-card max-w-5xl mx-auto p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="retro-heading retro-heading-xl text-retro-orange mb-2 flex items-center gap-3">
-              <span className="inline-block animate-wobble">🗓️</span>
-              MANAJEMEN JADWAL
-              <span className="inline-block animate-bounce-retro">✨</span>
-            </h1>
-            <p className="font-retro-mono text-base-black/70 flex items-center gap-2">
-              <span className="retro-badge retro-badge-blue text-[10px]">Admin</span>
-              <span className="font-bold">{schedules.length} jadwal</span>
-              <span className="text-base-black/40">•</span>
-              <span>{meta.total || 0} total</span>
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {selectedIds.length > 0 && (
-              <button onClick={handleBulkDelete} className="retro-btn retro-btn-sm bg-danger hover:bg-danger/90 text-base-white flex items-center gap-1.5">
-                <Trash2 className="w-4 h-4" /> Hapus ({selectedIds.length})
-              </button>
-            )}
-            <button onClick={handleExport} disabled={exportSchedulesMutation.isLoading} className="retro-btn retro-btn-sm retro-btn-outline flex items-center gap-1.5">
-              <Download className="w-4 h-4" /> {exportSchedulesMutation.isLoading ? 'Exporting...' : 'Export'}
-            </button>
-            
-            {/* View Mode Toggle (ORIGINAL PRESERVED + RETRO STYLING) */}
-            <div className="flex bg-base-white border-2 border-base-black rounded-retro p-1">
-              <button onClick={() => setViewMode('list')} className={`p-2 rounded-sm transition-colors ${viewMode === 'list' ? 'bg-retro-orange text-base-white' : 'hover:bg-retro-yellow'}`} title="List View"><ListIcon className="w-4 h-4" /></button>
-              <button onClick={() => setViewMode('grid')} className={`p-2 rounded-sm transition-colors ${viewMode === 'grid' ? 'bg-retro-blue text-base-white' : 'hover:bg-retro-yellow'}`} title="Grid View"><LayoutGrid className="w-4 h-4" /></button>
-              {/* 🆕 Weekly View Toggle */}
-              <button onClick={() => setViewMode('weekly')} className={`p-2 rounded-sm transition-colors ${viewMode === 'weekly' ? 'bg-retro-purple text-base-white' : 'hover:bg-retro-yellow'}`} title="Weekly View"><CalendarDays className="w-4 h-4" /></button>
-            </div>
-
-            <button onClick={() => { setFormData({ day: 'senin', start_time: '07:00', end_time: '08:30', is_active: true }); setErrors({}); setIsCreateOpen(true); }} 
-              className="retro-btn retro-btn-sm flex items-center gap-1.5" disabled={createScheduleMutation.isLoading}>
-              <Plus className="w-4 h-4" /> {createScheduleMutation.isLoading ? 'Menyimpan...' : 'Tambah Jadwal'}
-            </button>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Main Content Area */}
-      <div className="px-4 md:px-6 py-6 max-w-7xl mx-auto">
-        
-        {/* FILTERS (ORIGINAL PRESERVED + RETRO STYLING) */}
-        <motion.div variants={itemVariants} className="retro-card p-4 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4 items-end lg:items-center justify-between">
-            <div className="flex-1 w-full">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" />
-                <input type="text" placeholder="Cari kelas, mapel, atau guru..." value={search}
-                  onChange={(e) => setSearch(e.target.value)} className="retro-input pl-10 pr-10 w-full" />
-                {search && (
-                  <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 hover:text-danger">
-                    <X className="w-4 h-4" />
-                  </button>
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-6"
+    >
+      {/* 🏛️ PAGE HEADER */}
+      <PageHeader 
+        title="Schedule Management"
+        icon={Calendar}
+        description="Plan and organize class timetables, subject distributions, and room allocations."
+        breadcrumbs={[{ label: 'Schedules', path: '/admin/schedules' }]}
+        actions={
+          <div className="flex gap-2">
+            <div className="flex p-1 bg-base-gray/20 rounded-retro-sm">
+              <button 
+                onClick={() => setViewMode('list')}
+                className={twMerge(
+                  "p-2 rounded-retro-sm transition-all",
+                  viewMode === 'list' ? "bg-base-black text-base-white shadow-hard-sm" : "hover:bg-base-black/10 text-base-black"
                 )}
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={() => setShowFilters(!showFilters)} className="retro-btn retro-btn-sm retro-btn-outline flex items-center gap-1.5">
-                <Filter className="w-4 h-4" /> Filter {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              >
+                <ListIcon className="w-4 h-4" />
               </button>
-              <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="retro-input w-36 appearance-none">
-                <option value="all">Semua Kelas</option>
-                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <select value={dayFilter} onChange={(e) => setDayFilter(e.target.value)} className="retro-input w-32 appearance-none">
-                <option value="all">Semua Hari</option>
-                {dayOptions.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-              </select>
-              <select value={teacherFilter} onChange={(e) => setTeacherFilter(e.target.value)} className="retro-input w-36 appearance-none">
-                <option value="all">Semua Guru</option>
-                {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
+              <button 
+                onClick={() => setViewMode('grid')}
+                className={twMerge(
+                  "p-2 rounded-retro-sm transition-all",
+                  viewMode === 'grid' ? "bg-base-black text-base-white shadow-hard-sm" : "hover:bg-base-black/10 text-base-black"
+                )}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => setViewMode('weekly')}
+                className={twMerge(
+                  "p-2 rounded-retro-sm transition-all",
+                  viewMode === 'weekly' ? "bg-base-black text-base-white shadow-hard-sm" : "hover:bg-base-black/10 text-base-black"
+                )}
+              >
+                <CalendarDays className="w-4 h-4" />
+              </button>
+            </div>
+            <Button 
+              variant="primary" 
+              onClick={() => { setFormData({ day: 'senin', start_time: '07:00', end_time: '08:30', is_active: true }); setErrors({}); setIsCreateOpen(true); }}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Schedule
+            </Button>
+          </div>
+        }
+      />
+
+      {/* 📊 QUICK STATS */}
+      <StatGrid>
+        <RetroStatWidget
+          title="Total Schedules"
+          value={meta.total || 0}
+          icon={Calendar}
+          color="orange"
+        />
+        <RetroStatWidget
+          title="Classes Assigned"
+          value={classes.length}
+          icon={School}
+          color="blue"
+        />
+        <RetroStatWidget
+          title="Active Subjects"
+          value={subjects.length}
+          icon={BookOpen}
+          color="purple"
+        />
+        <RetroStatWidget
+          title="Teachers"
+          value={teachers.length}
+          icon={Users}
+          color="lime"
+        />
+      </StatGrid>
+
+      {/* 🔍 SEARCH & FILTERS */}
+      <RetroSection>
+        <RetroCard className="p-4">
+          <div className="flex flex-col md:flex-row gap-4 items-end">
+            <div className="flex-1 w-full">
+              <Input 
+                label="Search Schedule"
+                placeholder="Search subject or teacher..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                prefix={<Search className="w-4 h-4" />}
+                suffix={search && <X className="w-4 h-4 cursor-pointer" onClick={() => setSearch('')} />}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2"
+              >
+                <Filter className="w-4 h-4" />
+                {showFilters ? 'Hide' : 'Show'} Filters
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => { setSearch(''); setClassFilter('all'); setDayFilter('all'); setTeacherFilter('all'); }}
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
             </div>
           </div>
-          
-          {/* Extended Filters (ORIGINAL PRESERVED + RETRO STYLING) */}
+
           <AnimatePresence>
             {showFilters && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} 
-                exit={{ height: 0, opacity: 0 }} className="mt-4 pt-4 border-t-2 border-base-black/10">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <InputField label="Waktu Mulai" name="time_start_filter" type="time" value="" onChange={() => {}} />
-                  <InputField label="Waktu Selesai" name="time_end_filter" type="time" value="" onChange={() => {}} />
-                  <SelectField label="Ruang" name="room_filter" value="" onChange={() => {}} options={[{value:'',label:'Semua Ruang'}]} />
-                  <button className="retro-btn retro-btn-sm retro-btn-outline w-full mt-5" onClick={() => { setSearch(''); setClassFilter('all'); setDayFilter('all'); setTeacherFilter('all'); }}>Reset Filter</button>
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden pt-4 mt-4 border-t-2 border-base-black/10"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Select 
+                    label="Filter by Class"
+                    value={classFilter}
+                    onChange={(e) => setClassFilter(e.target.value)}
+                    options={[
+                      { value: 'all', label: 'All Classes' },
+                      ...classes.map(c => ({ value: c.id, label: c.name }))
+                    ]}
+                  />
+                  <Select 
+                    label="Filter by Day"
+                    value={dayFilter}
+                    onChange={(e) => setDayFilter(e.target.value)}
+                    options={[
+                      { value: 'all', label: 'All Days' },
+                      ...dayOptions
+                    ]}
+                  />
+                  <Select 
+                    label="Filter by Teacher"
+                    value={teacherFilter}
+                    onChange={(e) => setTeacherFilter(e.target.value)}
+                    options={[
+                      { value: 'all', label: 'All Teachers' },
+                      ...teachers.map(t => ({ value: t.id, label: t.name }))
+                    ]}
+                  />
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
+        </RetroCard>
+      </RetroSection>
+
+      {/* Bulk Actions Bar */}
+      {selectedIds.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} 
+          className="retro-card p-3 bg-retro-orange/10 border-retro-orange flex items-center justify-between">
+          <span className="text-xs font-black uppercase tracking-wide text-base-black">
+            {selectedIds.length} jadwal terpilih
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setSelectedIds([])}>Batal</Button>
+            <Button variant="primary" size="sm" onClick={handleBulkDelete} className="bg-danger border-danger">Hapus Terpilih</Button>
+          </div>
         </motion.div>
+      )}
 
-        {/* BULK ACTIONS BAR (ORIGINAL PRESERVED + RETRO STYLING) */}
-        {selectedIds.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} 
-            className="retro-card p-3 mb-4 bg-retro-orange/10 border-retro-orange flex items-center justify-between">
-            <span className="text-xs font-black uppercase tracking-wide text-base-black">
-              {selectedIds.length} jadwal terpilih
-            </span>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setSelectedIds([])} className="retro-btn retro-btn-sm retro-btn-outline">Batal</button>
-              <button onClick={handleBulkDelete} className="retro-btn retro-btn-sm bg-danger hover:bg-danger/90 text-base-white">Hapus Terpilih</button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ═══════════════════════════════════════════════════
-            CONTENT BASED ON VIEW MODE (ORIGINAL PRESERVED + RETRO + 🆕 WEEKLY)
-            ═══════════════════════════════════════════════════ */}
+      {/* 📋 DATA PRESENTATION */}
+      <RetroSection>
         {viewMode === 'list' ? (
-          /* LIST VIEW (TABLE) - ORIGINAL PRESERVED + RETRO STYLING */
-          <motion.div variants={itemVariants} className="retro-card overflow-hidden p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full font-retro-mono text-sm">
-                <thead className="bg-retro-blue text-base-white border-b-4 border-base-black">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-black uppercase tracking-wide text-xs">
-                      <input type="checkbox" checked={schedules.length > 0 && selectedIds.length === schedules.length} 
-                        onChange={toggleSelectAll} className="w-4 h-4 accent-retro-orange border-2 border-base-black" />
-                    </th>
-                    <th className="px-4 py-3 text-left font-black uppercase tracking-wide text-xs">Kelas</th>
-                    <th className="px-4 py-3 text-left font-black uppercase tracking-wide text-xs hidden md:table-cell">Mapel</th>
-                    <th className="px-4 py-3 text-left font-black uppercase tracking-wide text-xs hidden lg:table-cell">Guru</th>
-                    <th className="px-4 py-3 text-left font-black uppercase tracking-wide text-xs">Hari & Waktu</th>
-                    <th className="px-4 py-3 text-left font-black uppercase tracking-wide text-xs hidden xl:table-cell">Ruang</th>
-                    <th className="px-4 py-3 text-left font-black uppercase tracking-wide text-xs">Status</th>
-                    <th className="px-4 py-3 text-right font-black uppercase tracking-wide text-xs">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y-2 divide-base-black/10">
-                  {schedules.map((schedule, index) => (
-                    <motion.tr key={schedule.id} variants={itemVariants} style={{transitionDelay:`${index*30}ms`}}
-                      whileHover={{ backgroundColor: 'rgba(255,201,40,0.2)' }} className={`transition-colors ${selectedIds.includes(schedule.id) ? 'bg-retro-yellow/20' : ''}`}>
-                      <td className="px-4 py-4">
-                        <input type="checkbox" checked={selectedIds.includes(schedule.id)} onChange={() => toggleSelect(schedule.id)} 
-                          className="w-4 h-4 accent-retro-orange border-2 border-base-black" />
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <School className="w-4 h-4 text-retro-orange" />
-                          <span className="font-retro-display font-black text-base-black text-sm">{getClassName(schedule.class_id)}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 hidden md:table-cell">
-                        <div className="flex items-center gap-2">
-                          <BookOpen className="w-4 h-4 text-retro-purple" />
-                          <span className="text-base-black/80">{getSubjectName(schedule.subject_id)}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 hidden lg:table-cell">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-retro-blue" />
-                          <span className="text-base-black/80">{getTeacherName(schedule.teacher_id)}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex flex-col">
-                          <span className="font-black text-base-black capitalize">{schedule.day}</span>
-                          <span className="text-[10px] text-base-black/60 flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> {schedule.start_time} - {schedule.end_time}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-base-black/70 hidden xl:table-cell">
-                        {schedule.room || '-'}
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className={`retro-badge text-[10px] ${schedule.is_active ? 'retro-badge-green' : 'retro-badge-red'}`}>
-                          {schedule.is_active ? 'AKTIF' : 'NON-AKTIF'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openViewModal(schedule)} title="Lihat Detail" 
-                            className="p-2 retro-btn retro-btn-sm retro-btn-outline hover:bg-retro-yellow">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => openEditModal(schedule)} title="Edit" 
-                            className="p-2 retro-btn retro-btn-sm retro-btn-outline hover:bg-retro-yellow">
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleDelete(schedule.id)} title="Hapus" 
-                            className="p-2 retro-btn retro-btn-sm bg-danger hover:bg-danger/90 text-base-white">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                  {schedules.length === 0 && (
-                    <tr><td colSpan="8" className="text-center py-12"><div className="text-base-black/30 mb-2">📭</div>
-                      <p className="font-retro-mono text-sm text-base-black/50">{search || classFilter !== 'all' ? 'Tidak ada jadwal yang cocok.' : 'Belum ada data jadwal.'}</p></td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {/* Pagination (ORIGINAL PRESERVED + RETRO STYLING) */}
-            <div className="px-4 py-3 border-t-4 border-base-black bg-retro-yellow/10 flex justify-between items-center text-xs font-retro-mono">
-              <span>Menampilkan <strong>{meta.from || 0}</strong> - <strong>{meta.to || 0}</strong> dari <strong>{meta.total || 0}</strong> data</span>
-              <div className="flex gap-1">
-                <button className="px-3 py-1 retro-btn retro-btn-sm retro-btn-outline" disabled><ChevronLeft className="w-4 h-4" /></button>
-                <button className="px-3 py-1 retro-btn retro-btn-sm bg-retro-orange text-base-white border-retro-orange shadow-[2px_2px_0px_0px_#111111]">1</button>
-                <button className="px-3 py-1 retro-btn retro-btn-sm retro-btn-outline" disabled><ChevronRight className="w-4 h-4" /></button>
-              </div>
-            </div>
-          </motion.div>
+          <RetroTable 
+            isLoading={isLoading}
+            data={schedules}
+            columns={[
+              {
+                header: 'Class',
+                key: 'class_id',
+                render: (id) => (
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-retro-sm bg-retro-orange/20 border-2 border-retro-orange flex items-center justify-center">
+                      <School className="w-4 h-4 text-retro-orange" />
+                    </div>
+                    <span className="font-retro-display font-black text-base-black text-sm">{getClassName(id)}</span>
+                  </div>
+                )
+              },
+              {
+                header: 'Subject & Teacher',
+                key: 'subject_id',
+                render: (sid, item) => (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="w-3.5 h-3.5 text-retro-purple" />
+                      <span className="text-base-black font-black text-sm">{getSubjectName(sid)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-base-black/50">
+                      <Users className="w-3 h-3" />
+                      <span className="text-[10px] font-retro-mono">{getTeacherName(item.teacher_id)}</span>
+                    </div>
+                  </div>
+                )
+              },
+              {
+                header: 'Schedule',
+                key: 'day',
+                render: (day, item) => (
+                  <div className="flex flex-col">
+                    <span className="font-black text-base-black uppercase tracking-wider text-xs">{day}</span>
+                    <span className="text-[10px] text-base-black/60 flex items-center gap-1 font-retro-mono">
+                      <Clock className="w-3 h-3" /> {item.start_time} - {item.end_time}
+                    </span>
+                  </div>
+                )
+              },
+              {
+                header: 'Room',
+                key: 'room',
+                render: (room) => (
+                  <div className="flex items-center gap-1.5 text-base-black/70">
+                    <MapPin className="w-3.5 h-3.5 text-retro-orange" />
+                    <span className="text-xs font-retro-mono">{room || '-'}</span>
+                  </div>
+                )
+              },
+              {
+                header: 'Status',
+                key: 'is_active',
+                render: (active) => (
+                  <span className={`retro-badge text-[10px] ${active ? 'retro-badge-green' : 'retro-badge-red'}`}>
+                    {active ? 'AKTIF' : 'NON-AKTIF'}
+                  </span>
+                )
+              }
+            ]}
+            onEdit={openEditModal}
+            onDelete={handleDelete}
+            onView={openViewModal}
+            selectedIds={selectedIds}
+            onSelect={toggleSelect}
+            onSelectAll={toggleSelectAll}
+            pagination={{
+              currentPage: meta.current_page || 1,
+              totalPages: meta.last_page || 1,
+              totalItems: meta.total || 0,
+              onPageChange: (p) => { /* Implement pagination if needed */ }
+            }}
+          />
         ) : viewMode === 'grid' ? (
-          /* GRID VIEW (CARDS) - ORIGINAL PRESERVED + RETRO STYLING */
+          /* GRID VIEW (CARDS) */
           <motion.div variants={containerVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {schedules.map((schedule) => (
-              <motion.div key={schedule.id} variants={itemVariants} whileHover={{ y: -4, rotate: 1 }}
-                className={`retro-card relative group p-4 ${selectedIds.includes(schedule.id) ? 'ring-4 ring-retro-orange' : ''}`}>
-                <div className="absolute top-3 right-3">
-                  <input type="checkbox" checked={selectedIds.includes(schedule.id)} onChange={() => toggleSelect(schedule.id)} 
-                    className="w-4 h-4 accent-retro-orange border-2 border-base-black" />
+              <motion.div 
+                key={schedule.id} 
+                variants={itemVariants} 
+                whileHover={{ y: -4, rotate: 1 }}
+                className={twMerge(
+                  "retro-card relative group p-4 bg-base-white",
+                  selectedIds.includes(schedule.id) && "ring-4 ring-retro-orange shadow-hard"
+                )}
+              >
+                <div className="absolute top-3 right-3 z-10">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedIds.includes(schedule.id)} 
+                    onChange={() => toggleSelect(schedule.id)} 
+                    className="w-4 h-4 accent-retro-orange border-2 border-base-black cursor-pointer" 
+                  />
                 </div>
                 
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 retro-card bg-retro-orange/20 border-retro-orange flex items-center justify-center">
                     <Calendar className="w-6 h-6 text-retro-orange" />
                   </div>
-                  <div>
-                    <h4 className="font-retro-display font-black text-base-black text-sm">{getClassName(schedule.class_id)}</h4>
+                  <div className="min-w-0">
+                    <h4 className="font-retro-display font-black text-base-black text-sm truncate">{getClassName(schedule.class_id)}</h4>
                     <p className="text-[10px] font-retro-mono text-base-black/60 capitalize">{schedule.day}</p>
                   </div>
                 </div>
 
                 <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-xs"><BookOpen className="w-4 h-4 text-retro-purple" /><span className="text-base-black/80">{getSubjectName(schedule.subject_id)}</span></div>
-                  <div className="flex items-center gap-2 text-xs"><Users className="w-4 h-4 text-retro-blue" /><span className="text-base-black/80">{getTeacherName(schedule.teacher_id)}</span></div>
-                  <div className="flex items-center gap-2 text-xs"><Clock className="w-4 h-4 text-retro-lime" /><span className="text-base-black/80">{schedule.start_time} - {schedule.end_time}</span></div>
-                  {schedule.room && <div className="flex items-center gap-2 text-xs"><MapPin className="w-4 h-4 text-retro-yellow" /><span className="text-base-black/80">Ruang {schedule.room}</span></div>}
+                  <div className="flex items-center gap-2 text-xs">
+                    <BookOpen className="w-4 h-4 text-retro-purple" />
+                    <span className="text-base-black/80 truncate">{getSubjectName(schedule.subject_id)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <Users className="w-4 h-4 text-retro-blue" />
+                    <span className="text-base-black/80 truncate">{getTeacherName(schedule.teacher_id)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <Clock className="w-4 h-4 text-retro-lime" />
+                    <span className="text-base-black/80">{schedule.start_time} - {schedule.end_time}</span>
+                  </div>
+                  {schedule.room && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <MapPin className="w-4 h-4 text-retro-yellow" />
+                      <span className="text-base-black/80 truncate">Ruang {schedule.room}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-3 border-t-2 border-base-black/10 flex justify-between items-center">
                   <span className={`retro-badge text-[10px] ${schedule.is_active ? 'retro-badge-green' : 'retro-badge-red'}`}>
                     {schedule.is_active ? 'AKTIF' : 'NON-AKTIF'}
                   </span>
-                  <div className="flex gap-1">
-                    <button onClick={() => openEditModal(schedule)} className="p-1.5 retro-btn retro-btn-sm retro-btn-outline hover:bg-retro-yellow"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(schedule.id)} className="p-1.5 retro-btn retro-btn-sm bg-danger hover:bg-danger/90 text-base-white"><Trash2 className="w-4 h-4" /></button>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => openEditModal(schedule)} className="p-1.5 retro-btn retro-btn-sm retro-btn-outline"><Edit2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => handleDelete(schedule.id)} className="p-1.5 retro-btn retro-btn-sm bg-danger text-base-white border-danger"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 </div>
               </motion.div>
             ))}
-            {schedules.length === 0 && (
-              <div className="col-span-full text-center py-12">
-                <div className="text-base-black/30 mb-2">📭</div>
-                <p className="font-retro-mono text-sm text-base-black/50">Tidak ada jadwal untuk ditampilkan.</p>
-              </div>
-            )}
           </motion.div>
         ) : (
-          /* 🆕 WEEKLY VIEW (ADDED FEATURE) */
-          <motion.div variants={itemVariants} className="retro-card p-6 overflow-x-auto">
-            <h3 className="retro-heading retro-heading-sm text-retro-purple mb-4 flex items-center gap-2"><CalendarDays className="w-5 h-5" /> TAMPILAN MINGGUAN</h3>
-            <div className="min-w-[800px] grid grid-cols-6 gap-2">
-              <div className="font-black text-xs uppercase text-base-black/50 p-2">Waktu</div>
-              {dayOptions.map(d => <div key={d.value} className="retro-card bg-retro-blue/10 border-retro-blue p-2 text-center font-black text-xs uppercase text-base-black">{d.label}</div>)}
-              {['07:00','08:30','10:00','11:30','13:00','14:30'].map(time => (
-                <>
-                  <div className="p-2 font-retro-mono text-xs text-base-black/70 border-b-2 border-base-black/10">{time}</div>
-                  {dayOptions.map(d => {
-                    const slot = schedules.find(s => s.day === d.value && s.start_time === time && s.is_active);
-                    return (
-                      <div key={`${d.value}-${time}`} className={`p-2 border-b-2 border-base-black/10 min-h-[60px] ${slot ? 'bg-retro-yellow/20 border-retro-yellow' : ''}`}>
-                        {slot && <div className="text-[10px] font-black text-base-black leading-tight">{getSubjectName(slot.subject_id)}<br/><span className="font-retro-mono text-base-black/60">{getClassName(slot.class_id)}</span></div>}
-                      </div>
-                    );
-                  })}
-                </>
-              ))}
+          /* WEEKLY VIEW (CALENDAR STYLE) */
+          <motion.div variants={itemVariants} className="retro-card bg-base-white overflow-hidden p-6">
+            <div className="overflow-x-auto">
+              <div className="min-w-[800px] grid grid-cols-6 gap-3">
+                <div className="font-black text-[10px] uppercase tracking-widest text-base-black/40 p-2 text-center flex items-center justify-center border-2 border-dashed border-base-black/10 rounded-retro-sm">Waktu</div>
+                {dayOptions.map(d => (
+                  <div key={d.value} className="retro-card bg-retro-blue text-base-white border-2 border-base-black p-3 text-center font-black text-xs uppercase tracking-tight shadow-hard-sm">
+                    {d.label}
+                  </div>
+                ))}
+                
+                {['07:00','08:30','10:00','11:30','13:00','14:30'].map(time => (
+                  <React.Fragment key={time}>
+                    <div className="p-2 flex items-center justify-center font-retro-mono text-xs font-black text-base-black/60 bg-base-gray/10 rounded-retro-sm border-2 border-base-black/5">
+                      {time}
+                    </div>
+                    {dayOptions.map(d => {
+                      const slot = schedules.find(s => s.day === d.value && s.start_time === time && s.is_active);
+                      return (
+                        <motion.div 
+                          key={`${d.value}-${time}`} 
+                          whileHover={slot ? { scale: 1.02, y: -2 } : {}}
+                          className={twMerge(
+                            "p-3 border-2 rounded-retro-sm min-h-[80px] transition-all",
+                            slot 
+                              ? "bg-retro-yellow/20 border-retro-yellow shadow-hard-sm cursor-pointer" 
+                              : "bg-base-gray/5 border-base-black/5 border-dashed"
+                          )}
+                          onClick={() => slot && openViewModal(slot)}
+                        >
+                          {slot ? (
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-black text-base-black leading-tight uppercase truncate">{getSubjectName(slot.subject_id)}</p>
+                              <div className="flex items-center gap-1">
+                                <School className="w-2.5 h-2.5 text-retro-orange" />
+                                <span className="font-retro-mono text-[9px] font-bold text-base-black/60 truncate">{getClassName(slot.class_id)}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-2.5 h-2.5 text-retro-purple" />
+                                <span className="font-retro-mono text-[9px] text-base-black/40 truncate">{slot.room || '-'}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                              <Plus className="w-4 h-4 text-base-black/20" />
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
+              </div>
             </div>
-            <p className="text-[10px] font-retro-mono text-base-black/50 mt-4 text-center">💡 Klik "Tambah Jadwal" untuk mengisi slot kosong. Tampilan mingguan hanya menampilkan jadwal aktif.</p>
+            <div className="mt-8 flex items-center justify-center gap-4 py-4 bg-base-gray/5 border-2 border-dashed border-base-black/10 rounded-retro-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-retro-yellow/20 border-2 border-retro-yellow rounded-sm" />
+                <span className="text-[10px] font-retro-mono font-bold text-base-black/60 uppercase">Jadwal Aktif</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-base-gray/5 border-2 border-dashed border-base-black/10 rounded-sm" />
+                <span className="text-[10px] font-retro-mono font-bold text-base-black/60 uppercase">Slot Kosong</span>
+              </div>
+              <p className="text-[10px] font-retro-mono text-base-black/40 italic ml-4">
+                💡 Tampilan mingguan hanya menampilkan jadwal aktif.
+              </p>
+            </div>
           </motion.div>
         )}
+      </RetroSection>
 
         {/* ═══════════════════════════════════════════════════════════
             MODAL: CREATE / EDIT SCHEDULE (ORIGINAL PRESERVED + RETRO + 🆕 QUICK TEMPLATES)
             ═══════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════════
+          MODALS: CREATE / EDIT (REFACTORED WITH STANDARDIZED UI)
+          ═══════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
         {(isCreateOpen || isEditOpen) && (
-          <Modal isOpen={isCreateOpen || isEditOpen} onClose={() => { setIsCreateOpen(false); setIsEditOpen(false); }} 
-            title={isCreateOpen ? "✨ Tambah Jadwal Baru" : "✏️ Edit Jadwal"} size="2xl">
-            <form onSubmit={isCreateOpen ? handleCreateSubmit : handleEditSubmit} className="space-y-6 max-h-[75vh] overflow-y-auto pr-2">
-              
-              {/* Section 1: Basic Info (ORIGINAL PRESERVED + RETRO STYLING) */}
-              <div className="space-y-4">
-                <h3 className="retro-heading retro-heading-sm text-retro-blue flex items-center gap-2">
-                  <Calendar className="w-5 h-5" /> Informasi Jadwal
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <SelectField label="Kelas" name="class_id" value={formData.class_id} onChange={setFormData} 
-                    options={classes.map(c => ({ value: c.id, label: c.name }))} 
-                    error={errors.class_id} required icon={School} placeholder="Pilih Kelas" />
-                  
-                  <SelectField label="Mata Pelajaran" name="subject_id" value={formData.subject_id} onChange={setFormData} 
-                    options={subjects.map(s => ({ value: s.id, label: `${s.code} - ${s.name}` }))} 
-                    error={errors.subject_id} required icon={BookOpen} placeholder="Pilih Mapel" />
+          <Modal 
+            isOpen={isCreateOpen || isEditOpen} 
+            onClose={() => { setIsCreateOpen(false); setIsEditOpen(false); }} 
+            title={isCreateOpen ? "Create New Schedule" : "Edit Schedule Entry"} 
+            size="2xl"
+          >
+            <form onSubmit={isCreateOpen ? handleCreateSubmit : handleEditSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
+                  <Select 
+                    label="Target Class"
+                    value={formData.class_id}
+                    onChange={(e) => setFormData({...formData, class_id: e.target.value})}
+                    options={[
+                      { value: '', label: 'Select Class' },
+                      ...classes.map(c => ({ value: c.id, label: c.name }))
+                    ]}
+                    required
+                    error={errors.class_id}
+                  />
+                  <Select 
+                    label="Subject"
+                    value={formData.subject_id}
+                    onChange={(e) => setFormData({...formData, subject_id: e.target.value})}
+                    options={[
+                      { value: '', label: 'Select Subject' },
+                      ...subjects.map(s => ({ value: s.id, label: `${s.code} - ${s.name}` }))
+                    ]}
+                    required
+                    error={errors.subject_id}
+                  />
+                  <Select 
+                    label="Teacher"
+                    value={formData.teacher_id}
+                    onChange={(e) => setFormData({...formData, teacher_id: e.target.value})}
+                    options={[
+                      { value: '', label: 'Select Teacher' },
+                      ...teachers.map(t => ({ value: t.id, label: t.name }))
+                    ]}
+                    required
+                    error={errors.teacher_id}
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <SelectField label="Guru Pengajar" name="teacher_id" value={formData.teacher_id} onChange={setFormData} 
-                    options={teachers.map(t => ({ value: t.id, label: t.name }))} 
-                    error={errors.teacher_id} required icon={Users} placeholder="Pilih Guru" />
-                  
-                  <SelectField label="Hari" name="day" value={formData.day} onChange={setFormData} 
-                    options={dayOptions} 
-                    error={errors.day} required icon={Calendar} />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <InputField label="Waktu Mulai" name="start_time" type="time" value={formData.start_time} onChange={setFormData} 
-                    error={errors.start_time} required icon={Clock} />
-                  
-                  <InputField label="Waktu Selesai" name="end_time" type="time" value={formData.end_time} onChange={setFormData} 
-                    error={errors.end_time} required icon={Clock} helperText="Harus setelah waktu mulai" />
-                </div>
-
-                <InputField label="Ruang Kelas" name="room" value={formData.room} onChange={setFormData} 
-                  error={errors.room} placeholder="Contoh: Lab Komputer 1" icon={MapPin} />
-
-                {/* 🆕 Quick Time Templates */}
-                <div className="p-3 retro-card bg-retro-yellow/10 border-retro-yellow">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-base-black/70 mb-2">⚡ Template Waktu Cepat</p>
-                  <div className="flex flex-wrap gap-2">
-                    {quickTimeTemplates.map(t => (
-                      <button type="button" key={t.label} onClick={() => setFormData({...formData, start_time: t.start, end_time: t.end})} className="retro-btn retro-btn-sm retro-btn-outline text-[10px]">{t.label}</button>
-                    ))}
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Select 
+                      label="Day"
+                      value={formData.day}
+                      onChange={(e) => setFormData({...formData, day: e.target.value})}
+                      options={dayOptions}
+                      required
+                    />
+                    <Input 
+                      label="Room"
+                      placeholder="e.g. LAB-01"
+                      value={formData.room}
+                      onChange={(e) => setFormData({...formData, room: e.target.value})}
+                    />
                   </div>
-                </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input 
+                      label="Start Time"
+                      type="time"
+                      value={formData.start_time}
+                      onChange={(e) => setFormData({...formData, start_time: e.target.value})}
+                      required
+                    />
+                    <Input 
+                      label="End Time"
+                      type="time"
+                      value={formData.end_time}
+                      onChange={(e) => setFormData({...formData, end_time: e.target.value})}
+                      required
+                    />
+                  </div>
 
-                <div className="flex items-center gap-2 pt-2">
-                  <input type="checkbox" id="is_active" checked={formData.is_active !== false} 
-                    onChange={(e) => setFormData({...formData, is_active: e.target.checked})} className="w-4 h-4 accent-retro-orange border-2 border-base-black" />
-                  <label htmlFor="is_active" className="text-xs font-retro-mono text-base-black/70 cursor-pointer">Jadwal Aktif</label>
+                  <div className="p-3 retro-card bg-retro-yellow/5 border-retro-yellow/20">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-base-black/40 mb-3 flex items-center gap-2">
+                      <Clock className="w-3 h-3" /> Quick Templates
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {quickTimeTemplates.map(t => (
+                        <button 
+                          type="button" 
+                          key={t.label} 
+                          onClick={() => setFormData({...formData, start_time: t.start, end_time: t.end})} 
+                          className="px-2 py-1 bg-base-white border-2 border-base-black rounded-retro-sm text-[9px] font-black hover:bg-retro-yellow transition-colors"
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-base-gray/5 rounded-retro-sm">
+                    <input 
+                      type="checkbox" 
+                      id="is_active_check"
+                      checked={formData.is_active !== false} 
+                      onChange={(e) => setFormData({...formData, is_active: e.target.checked})} 
+                      className="w-4 h-4 accent-retro-orange border-2 border-base-black rounded-sm"
+                    />
+                    <label htmlFor="is_active_check" className="text-xs font-black uppercase tracking-tight text-base-black/60 cursor-pointer">
+                      Activate Schedule
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              {/* Conflict Warning Placeholder (ORIGINAL PRESERVED + RETRO STYLING) */}
               {errors.non_field_errors && (
-                <div className="p-4 retro-card bg-danger/10 border-danger flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
+                <div className="p-4 retro-card bg-danger/10 border-danger border-2 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-danger" />
                   <div>
-                    <p className="font-black text-danger text-sm uppercase">Konflik Jadwal Terdeteksi!</p>
-                    <p className="font-retro-mono text-xs text-base-black/70 mt-1">{Array.isArray(errors.non_field_errors) ? errors.non_field_errors[0] : errors.non_field_errors}</p>
+                    <p className="text-xs font-black uppercase text-danger">Schedule Conflict!</p>
+                    <p className="text-[10px] font-retro-mono text-base-black/70 mt-1">{Array.isArray(errors.non_field_errors) ? errors.non_field_errors[0] : errors.non_field_errors}</p>
                   </div>
                 </div>
               )}
 
-              <div className="pt-6 flex justify-end gap-3 border-t-4 border-base-black sticky bottom-0 bg-base-cream py-4 z-10 mt-6">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }}
-                >
-                  BATAL
-                </Button>
-                <Button 
-                  type="submit" 
-                  loading={createScheduleMutation.isPending || updateScheduleMutation.isPending}
-                  className="flex items-center gap-2"
-                >
-                  <Rocket className="w-4 h-4" />
-                  {isCreateOpen ? 'SIMPAN JADWAL' : 'UPDATE JADWAL'}
+              <div className="flex justify-end gap-3 pt-6 border-t-4 border-base-black">
+                <Button variant="outline" type="button" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }}>Cancel</Button>
+                <Button variant="primary" type="submit" loading={createScheduleMutation.isPending || updateScheduleMutation.isPending}>
+                  {isCreateOpen ? 'Create Schedule' : 'Update Changes'}
                 </Button>
               </div>
             </form>
           </Modal>
         )}
+      </AnimatePresence>
 
-        {/* ═══════════════════════════════════════════════════════════
-            MODAL: VIEW SCHEDULE DETAIL (ORIGINAL PRESERVED + RETRO STYLING)
-            ═══════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════════
+          MODAL: VIEW DETAILS
+          ═══════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
         {isViewOpen && selectedSchedule && (
-          <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="📅 Detail Jadwal" size="lg">
-            <div className="space-y-6">
-              {/* Header */}
-              <div className="flex items-center gap-4 pb-4 border-b-4 border-base-black">
-                <motion.div whileHover={{ scale: 1.05, rotate: 3 }} className="w-20 h-20 retro-card bg-retro-orange/20 border-retro-orange flex items-center justify-center">
-                  <Calendar className="w-10 h-10 text-retro-orange" />
-                </motion.div>
-                <div>
-                  <h3 className="retro-heading retro-heading-lg text-base-black">{getClassName(selectedSchedule.class_id)}</h3>
-                  <p className="font-retro-mono text-sm text-base-black/70 capitalize">{selectedSchedule.day} • {selectedSchedule.start_time} - {selectedSchedule.end_time}</p>
-                  <div className="flex gap-2 mt-2">
-                    <span className={`retro-badge text-[10px] ${selectedSchedule.is_active ? 'retro-badge-green' : 'retro-badge-red'}`}>
-                      {selectedSchedule.is_active ? 'AKTIF' : 'NON-AKTIF'}
-                    </span>
+          <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="Schedule Details" size="lg">
+            <div className="space-y-8">
+              <div className="flex items-center gap-6 p-4 bg-retro-orange/5 border-2 border-retro-orange rounded-retro">
+                <div className="w-20 h-20 retro-card bg-retro-orange border-4 border-base-black flex items-center justify-center flex-shrink-0 shadow-hard">
+                  <Calendar className="w-10 h-10 text-base-white" />
+                </div>
+                <div className="min-w-0">
+                  <span className="retro-badge retro-badge-orange text-[9px] mb-2 inline-block">CLASS SESSION</span>
+                  <h3 className="retro-heading text-2xl text-base-black truncate">{getClassName(selectedSchedule.class_id)}</h3>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="font-retro-display font-black text-retro-orange uppercase text-xs">{selectedSchedule.day}</span>
+                    <span className="text-base-black/30 font-black">•</span>
+                    <span className="font-retro-mono text-xs text-base-black/60">{selectedSchedule.start_time} - {selectedSchedule.end_time}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <DetailItem icon={BookOpen} label="Mata Pelajaran" value={getSubjectName(selectedSchedule.subject_id)} valueClass="text-retro-purple" />
-                  <DetailItem icon={Users} label="Guru Pengajar" value={getTeacherName(selectedSchedule.teacher_id)} valueClass="text-retro-blue" />
-                  <DetailItem icon={Clock} label="Durasi" value={`${selectedSchedule.duration_minutes || 90} Menit`} />
-                </div>
-                <div className="space-y-4">
-                  <DetailItem icon={MapPin} label="Ruang" value={selectedSchedule.room || 'Tidak ditentukan'} />
-                  <DetailItem icon={Calendar} label="Dibuat Pada" value={new Date(selectedSchedule.created_at).toLocaleDateString('id-ID')} />
-                  <DetailItem icon={RefreshCw} label="Terakhir Update" value={new Date(selectedSchedule.updated_at).toLocaleDateString('id-ID')} />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <RetroCard variant="purple" className="p-4 border-2">
+                  <div className="flex items-center gap-3 mb-3">
+                    <BookOpen className="w-5 h-5 text-retro-purple" />
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-base-black/50">Subject</h4>
+                  </div>
+                  <p className="font-retro-display font-black text-base-black text-lg truncate">
+                    {getSubjectName(selectedSchedule.subject_id)}
+                  </p>
+                </RetroCard>
+
+                <RetroCard variant="blue" className="p-4 border-2">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Users className="w-5 h-5 text-retro-blue" />
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-base-black/50">Teacher</h4>
+                  </div>
+                  <p className="font-retro-display font-black text-base-black text-lg truncate">
+                    {getTeacherName(selectedSchedule.teacher_id)}
+                  </p>
+                </RetroCard>
+
+                <RetroCard variant="white" className="p-4 border-2">
+                  <div className="flex items-center gap-3 mb-3">
+                    <MapPin className="w-5 h-5 text-retro-orange" />
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-base-black/50">Location</h4>
+                  </div>
+                  <p className="font-retro-display font-black text-base-black text-lg">
+                    {selectedSchedule.room || 'Not Assigned'}
+                  </p>
+                </RetroCard>
+
+                <RetroCard variant="lime" className="p-4 border-2">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Clock className="w-5 h-5 text-retro-lime" />
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-base-black/50">Status</h4>
+                  </div>
+                  <span className={twMerge(
+                    "retro-badge text-xs px-4",
+                    selectedSchedule.is_active ? "retro-badge-green" : "retro-badge-red"
+                  )}>
+                    {selectedSchedule.is_active ? 'ACTIVE SESSION' : 'INACTIVE'}
+                  </span>
+                </RetroCard>
               </div>
 
-              {/* Actions */}
-              <div className="pt-4 border-t-4 border-base-black flex justify-end gap-2">
-                <button onClick={() => { setIsViewOpen(false); openEditModal(selectedSchedule); }} className="retro-btn retro-btn-outline">
-                  <Edit2 className="w-4 h-4 mr-1" /> Edit
-                </button>
-                <button onClick={() => { setIsViewOpen(false); /* Navigate to schedule */ }} className="retro-btn retro-btn-secondary">
-                  <Calendar className="w-4 h-4 mr-1" /> Lihat Jadwal
-                </button>
-                <button onClick={() => { setIsViewOpen(false); handleDelete(selectedSchedule.id); }} className="retro-btn bg-danger hover:bg-danger/90 text-base-white">
-                  <Trash2 className="w-4 h-4 mr-1" /> Hapus
-                </button>
+              <div className="flex justify-end gap-3 pt-6 border-t-4 border-base-black">
+                <Button variant="outline" onClick={() => setIsViewOpen(false)}>Close</Button>
+                <Button variant="primary" onClick={() => { setIsViewOpen(false); openEditModal(selectedSchedule); }}>Edit Entry</Button>
               </div>
             </div>
           </Modal>
         )}
+      </AnimatePresence>
 
-        {/* Confirmation Modals (ORIGINAL PRESERVED + RETRO STYLING) */}
-        <ConfirmModal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={confirmDeleteAction}
-          title="Hapus Jadwal?" message="Apakah Anda yakin ingin menghapus jadwal ini? Slot waktu ini akan menjadi kosong." />
-        
-        <ConfirmModal isOpen={confirmBulkDelete} onClose={() => setConfirmBulkDelete(false)} onConfirm={confirmBulkDeleteAction}
-          title={`Hapus ${selectedIds.length} Jadwal?`} message="Apakah Anda yakin ingin menghapus jadwal yang terpilih? Tindakan ini tidak dapat dibatalkan." />
+      {/* Confirmation Modals */}
+      <Modal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Confirm Deletion" size="md">
+        <div className="text-center p-4">
+          <div className="w-20 h-20 bg-danger/10 border-4 border-danger rounded-retro mx-auto mb-6 flex items-center justify-center">
+            <Trash2 className="w-10 h-10 text-danger" />
+          </div>
+          <h3 className="retro-heading text-xl mb-3">Delete this schedule?</h3>
+          <p className="text-sm font-retro-mono text-base-black/60 mb-8">
+            This action will permanently remove this class session. This cannot be undone.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button variant="outline" className="flex-1" onClick={() => setConfirmDelete(null)}>Keep it</Button>
+            <Button variant="primary" className="bg-danger border-danger flex-1" onClick={confirmDeleteAction}>Yes, Delete</Button>
+          </div>
+        </div>
+      </Modal>
 
-      </div>
+      <Modal isOpen={confirmBulkDelete} onClose={() => setConfirmBulkDelete(false)} title="Bulk Deletion" size="md">
+        <div className="text-center p-4">
+          <div className="w-20 h-20 bg-danger/10 border-4 border-danger rounded-retro mx-auto mb-6 flex items-center justify-center">
+            <Trash2 className="w-10 h-10 text-danger" />
+          </div>
+          <h3 className="retro-heading text-xl mb-3">Delete {selectedIds.length} items?</h3>
+          <p className="text-sm font-retro-mono text-base-black/60 mb-8">
+            You are about to remove multiple schedule entries. This action is final.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button variant="outline" className="flex-1" onClick={() => setConfirmBulkDelete(false)}>Cancel</Button>
+            <Button variant="primary" className="bg-danger border-danger flex-1" onClick={confirmBulkDeleteAction}>Delete All</Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* 🆕 Floating Action Button */}
       <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}

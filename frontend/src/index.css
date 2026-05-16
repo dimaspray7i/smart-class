@@ -30,15 +30,9 @@
     --danger: #f43f5e;
     --info: #3b82f6;
     
-    /* Dark mode overrides */
-    --dark-bg: #0f0f1a;
-    --dark-card: #1a1a2e;
-    --dark-border: #2d2d44;
-    --dark-muted: #8888aa;
-    --dark-text: #f0f0f0;
-    
     /* Shadows */
     --shadow-color: #111111;
+    --retro-grid-color: rgba(17, 17, 17, 0.08);
   }
 
   /* HTML & Body */
@@ -58,6 +52,7 @@
     --base-black: #f0f0f0;
     --base-gray: #2d2d44;
     --shadow-color: rgba(0, 0, 0, 0.8);
+    --retro-grid-color: rgba(255, 255, 255, 0.05);
   }
 
   html.dark body {
@@ -96,8 +91,8 @@
     content: '';
     @apply fixed inset-0 pointer-events-none z-[-2];
     background-image: 
-      linear-gradient(rgba(17,17,17,0.08) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(17,17,17,0.08) 1px, transparent 1px);
+      linear-gradient(var(--retro-grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--retro-grid-color) 1px, transparent 1px);
     background-size: 32px 32px;
   }
 
@@ -176,7 +171,10 @@
     box-shadow: 2px 2px 0px 0px var(--shadow-color), 4px 4px 0px 0px #FF5C00;
   }
   
-  .retro-card-glass { @apply bg-base-white/90 backdrop-blur-sm; }
+  .retro-card-glass { 
+    @apply backdrop-blur-sm; 
+    background-color: color-mix(in srgb, var(--base-white), transparent 10%);
+  }
   .retro-card-orange { @apply bg-retro-orange/10 border-retro-orange; }
   .retro-card-blue { @apply bg-retro-blue/10 border-retro-blue; }
 
@@ -244,7 +242,9 @@
     @apply w-full px-4 py-3 font-retro-mono text-base-black;
     @apply bg-base-white border-4 border-base-black rounded-retro;
     @apply focus:outline-none focus:ring-4 focus:ring-retro-orange/50 focus:border-retro-orange;
-    @apply placeholder:text-base-black/50;
+    &::placeholder {
+      @apply text-base-black opacity-50;
+    }
     @apply disabled:opacity-60 disabled:cursor-not-allowed;
     box-shadow: 2px 2px 0px 0px var(--shadow-color);
   }
@@ -310,7 +310,8 @@
   .retro-nav {
     @apply fixed top-4 left-1/2 -translate-x-1/2 z-50;
     @apply flex items-center gap-1 px-3 py-2;
-    @apply bg-base-white/95 backdrop-blur-md border-4 border-base-black rounded-full;
+    @apply backdrop-blur-md border-4 border-base-black rounded-full;
+    background-color: color-mix(in srgb, var(--base-white), transparent 5%);
     box-shadow: 6px 6px 0px 0px #111111;
   }
   
@@ -384,7 +385,11 @@
   }
   
   .retro-table-row {
-    @apply border-b-2 border-base-black/20 hover:bg-retro-yellow/20;
+    @apply border-b-2;
+    border-color: color-mix(in srgb, var(--base-black), transparent 80%);
+  }
+  .retro-table-row:hover {
+    @apply bg-retro-yellow/20;
   }
   
   .retro-table-cell {
@@ -475,94 +480,26 @@
 
 /* ═══════════════════════════════════════════════════════════
    🌙 DARK MODE SUPPORT
-   Full override using direct CSS properties (Tailwind @apply
-   uses compile-time values, so CSS vars won't work there)
    ═══════════════════════════════════════════════════════════ */
 
 /* Dark mode background & text for key semantic elements */
 html.dark body,
 html.dark .retro-grid-bg {
-  background-color: #0f0f1a;
-  color: #f0f0f0;
-}
-
-/* Cards → dark surface */
-html.dark .retro-card {
-  background-color: #1a1a2e;
-  border-color: #9D4EDD;
-  box-shadow: 4px 4px 0px 0px #9D4EDD;
-  color: #f0f0f0;
-}
-html.dark .retro-card:hover {
-  box-shadow: 6px 6px 0px 0px #9D4EDD;
-}
-
-/* Inputs → dark surface */
-html.dark .retro-input {
-  background-color: #1a1a2e;
-  color: #f0f0f0;
-  border-color: #9D4EDD;
-}
-html.dark .retro-input:focus {
-  border-color: #FF5C00;
-  box-shadow: 0 0 0 3px rgba(255,92,0,0.25);
-}
-html.dark .retro-input::placeholder {
-  color: #8888aa;
-}
-
-/* Labels */
-html.dark .retro-label {
-  color: #f0f0f0;
-}
-
-/* Buttons stay mostly the same — just adjust outline variant */
-html.dark .retro-btn-outline {
-  background-color: transparent;
-  color: #f0f0f0;
-  border-color: #f0f0f0;
-}
-html.dark .retro-btn-outline:hover {
-  background-color: #FF5C00;
-  color: #ffffff;
-  border-color: #FF5C00;
-}
-
-/* Badges */
-html.dark .retro-badge {
-  border-color: #f0f0f0;
-  color: #f0f0f0;
-}
-
-/* Navigation links */
-html.dark .retro-nav-link {
-  color: #f0f0f0;
-}
-html.dark .retro-nav-link:hover {
-  color: #FF5C00;
-}
-
-/* Headings */
-html.dark .retro-heading {
-  color: #f0f0f0;
-  filter: drop-shadow(2px 2px 0px #9D4EDD);
-}
-
-/* Sidebar & Layout panels */
-html.dark aside,
-html.dark header,
-html.dark nav {
-  background-color: #1a1a2e;
-  border-color: #2d2d44;
+  background-color: var(--base-cream);
+  color: var(--base-black);
 }
 
 /* Scrollbar in dark mode */
 html.dark ::-webkit-scrollbar-track {
-  background-color: #1a1a2e;
+  background-color: var(--base-white);
 }
 html.dark ::-webkit-scrollbar-thumb {
-  background-color: #FF5C00;
+  background-color: var(--retro-orange);
 }
+
+/* We removed many manual overrides here because they are now handled by 
+   Tailwind's use of CSS variables (e.g., .retro-card background and border 
+   will automatically follow var(--base-white) and var(--base-black)) */
 
 /* ═══════════════════════════════════════════════════════════
    ♿ ACCESSIBILITY & PREFERENCES

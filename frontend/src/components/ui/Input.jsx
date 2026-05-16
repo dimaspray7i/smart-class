@@ -76,18 +76,34 @@ const Input = forwardRef(({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           className={twMerge(
-            'w-full px-4 py-3 rounded-retro bg-base-white border-2 border-base-black text-base-black placeholder-base-black/40 focus:outline-none font-retro-mono text-sm transition-all duration-200',
-            error && 'border-danger',
+            'w-full py-3 rounded-retro bg-base-white border-2 border-base-black text-base-black placeholder-base-black/40 focus:outline-none font-retro-mono text-sm transition-all duration-200',
+            props.prefix ? 'pl-10' : 'px-4',
+            props.suffix || showToggle || error ? 'pr-10' : 'px-4',
+            error && 'border-danger shadow-[4px_4px_0px_0px_#FF1744]',
             !error && isFocused && 'border-retro-orange shadow-[4px_4px_0px_0px_#FF5C00]',
             props.disabled && 'opacity-50 cursor-not-allowed bg-base-gray',
-            showToggle && 'pr-10',
             className
           )}
           variants={inputVariants}
           animate={error ? 'error' : isFocused ? 'focus' : 'blur'}
           {...props}
+          value={props.value ?? ''}
         />
         
+        {/* Prefix */}
+        {props.prefix && (
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-base-black/40">
+            {props.prefix}
+          </div>
+        )}
+        
+        {/* Suffix */}
+        {props.suffix && !error && !showToggle && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-base-black/40">
+            {props.suffix}
+          </div>
+        )}
+
         {/* Error Icon */}
         {error && (
           <motion.div 

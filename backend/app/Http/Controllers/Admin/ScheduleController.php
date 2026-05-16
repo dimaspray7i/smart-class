@@ -24,24 +24,30 @@ class ScheduleController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $schedules = $this->scheduleService->all(
-            $request->only(['class_id', 'teacher_id', 'day', 'search', 'is_active'])
-        );
+        $filters = $request->only(['class_id', 'teacher_id', 'day', 'search', 'is_active', 'all']);
+        $schedules = $this->scheduleService->all($filters);
 
-        return response()->json([
+        $isAll = $request->has('all') && filter_var($request->input('all'), FILTER_VALIDATE_BOOLEAN);
+
+        $responseData = [
             'status' => 'success',
             'message' => 'Jadwal berhasil diambil.',
             'code' => 'SCHEDULES_SUCCESS',
-            'data' => $schedules->items(),
-            'meta' => [
+            'data' => $isAll ? $schedules : $schedules->items(),
+        ];
+
+        if (!$isAll) {
+            $responseData['meta'] = [
                 'current_page' => $schedules->currentPage(),
                 'per_page' => $schedules->perPage(),
                 'total' => $schedules->total(),
                 'last_page' => $schedules->lastPage(),
                 'from' => $schedules->firstItem(),
                 'to' => $schedules->lastItem(),
-            ],
-        ], 200);
+            ];
+        }
+
+        return response()->json($responseData, 200);
     }
 
     /**
@@ -182,7 +188,7 @@ class ScheduleController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function destroyBulk(Request $request): JsonResponse
+    public function bulkDelete(Request $request): JsonResponse
     {
         $ids = $request->input('ids', []);
         
