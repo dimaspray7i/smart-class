@@ -8,7 +8,7 @@ import {
   FileText, Copy, RefreshCw, Tag, Star, Award, TrendingUp, ChartBar as BarChart3,
   Globe2 as Globe, Smartphone, Monitor, Tablet, Wifi, Zap, MessageSquare, Bookmark,
   GitBranch, GitCommitHorizontal as GitCommit, GitPullRequest, RefreshCw as History, LogOut, Shield, Key,
-  UserCheck, UserX, Users as Users2, UserPlus, FolderOpen, Package, Layers, Menu, GraduationCap, BookOpen, Smile, Sparkles
+  UserCheck, UserX, Users as Users2, UserPlus, FolderOpen, Package, Layers, Menu, GraduationCap, BookOpen, Smile, Sparkles, Rocket
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../api';
@@ -479,7 +479,15 @@ export default function UserManagement() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
 
-  const debouncedSearch = useMemo(() => { const t = setTimeout(() => {}, 500); return () => clearTimeout(t); }, []);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // Reset to page 1 on new search
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   // ═════════════════════════════════════════════════════════
   // KEYBOARD SHORTCUTS (NEW FEATURE)
@@ -501,11 +509,26 @@ export default function UserManagement() {
   // ═════════════════════════════════════════════════════════
   // DATA FETCHING (EXPANDED)
   // ═════════════════════════════════════════════════════════
-  const { data, isLoading, isError, isFetching, refetch } = useQuery({
-    queryKey: ['admin-users', search, advancedFilters, page, perPage, sortBy, sortOrder],
-    queryFn: () => api.get('/admin/users', {
-      params: { page, per_page: perPage, search: search || undefined, ...advancedFilters, sort_by: sortBy, sort_order: sortOrder }
-    }),
+  const { data, isPending, isError, isFetching, refetch } = useQuery({
+    queryKey: ['admin-users', debouncedSearch, advancedFilters, page, perPage, sortBy, sortOrder],
+    queryFn: () => {
+      // Clean filters: convert 'all' to undefined so they aren't sent to API
+      const cleanFilters = Object.entries(advancedFilters).reduce((acc, [key, value]) => {
+        acc[key] = value === 'all' ? undefined : value;
+        return acc;
+      }, {});
+
+      return api.get('/admin/users', {
+        params: { 
+          page, 
+          per_page: perPage, 
+          search: debouncedSearch || undefined, 
+          ...cleanFilters, 
+          sort_by: sortBy, 
+          sort_order: sortOrder 
+        }
+      });
+    },
     placeholderData: (prev) => prev,
     staleTime: 30000,
   });
@@ -623,7 +646,7 @@ export default function UserManagement() {
   // ═════════════════════════════════════════════════════════
   // ⏳ LOADING STATE (RETRO STYLE - EXPANDED)
   // ═════════════════════════════════════════════════════════
-  if (isLoading && !isFetching) {
+  if (isPending && !isFetching) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center bg-retro-grid">
         <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
@@ -939,9 +962,11 @@ export default function UserManagement() {
             <span>Showing <strong>{meta.from || 0}</strong>-<strong>{meta.to || 0}</strong> of <strong>{meta.total || 0}</strong></span>
             <div className="flex items-center gap-1">
               <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={!meta.prev_page_url} className="px-3 py-1.5 retro-btn retro-btn-sm retro-btn-outline disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
-              {[...Array(Math.min(5, meta.last_page || 1))].map((_, i) => {
-                const pageNum = meta.current_page <= 3 ? i+1 : meta.current_page >= meta.last_page-2 ? meta.last_page-4+i : meta.current_page-2+i;
-                if (pageNum < 1 || pageNum > (meta.last_page || 1)) return null;
+              {[...Array(Math.min(5, (meta.last_page || 1)))].map((_, i) => {
+                const currentPage = meta.current_page || 1;
+                const lastPage = meta.last_page || 1;
+                const pageNum = currentPage <= 3 ? i+1 : currentPage >= lastPage-2 ? lastPage-4+i : currentPage-2+i;
+                if (pageNum < 1 || pageNum > lastPage) return null;
                 return <button key={pageNum} onClick={() => setPage(pageNum)} className={`px-3 py-1.5 retro-btn retro-btn-sm ${page === pageNum ? 'bg-retro-orange text-base-white border-retro-orange shadow-[2px_2px_0px_0px_#111111]' : 'retro-btn-outline'}`}>{pageNum}</button>;
               })}
               <button onClick={() => setPage(p => Math.min(meta.last_page || 1, p+1))} disabled={!meta.next_page_url} className="px-3 py-1.5 retro-btn retro-btn-sm retro-btn-outline disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
@@ -1032,9 +1057,26 @@ export default function UserManagement() {
             </details>
 
             {/* Action Buttons */}
-            <div className="pt-4 flex justify-end gap-3 border-t-4 border-base-black sticky bottom-0 bg-base-cream py-4">
-              <button type="button" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }} className="retro-btn retro-btn-outline">Cancel</button>
-              <button type="submit" className="retro-btn" disabled={createUserMutation.isLoading || updateUserMutation.isLoading}>{isCreateOpen ? '💾 Create User' : '✏️ Update User'}</button>
+            <div className="pt-6 flex justify-end gap-3 border-t-4 border-base-black sticky bottom-0 bg-base-cream py-4 z-10 mt-6">
+              <button 
+                type="button" 
+                onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }} 
+                className="retro-btn retro-btn-outline"
+              >
+                CANCEL
+              </button>
+              <button 
+                type="submit" 
+                className="retro-btn flex items-center gap-2" 
+                disabled={createUserMutation.isPending || updateUserMutation.isPending}
+              >
+                {(createUserMutation.isPending || updateUserMutation.isPending) ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Rocket className="w-4 h-4" />
+                )}
+                {isCreateOpen ? 'CREATE USER' : 'SAVE CHANGES'}
+              </button>
             </div>
           </form>
         </Modal>

@@ -333,6 +333,7 @@ export default function SubjectManagement() {
   
   // State Management
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -347,19 +348,19 @@ export default function SubjectManagement() {
   const [activeView, setActiveView] = useState('list');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Debounced search
-  const debouncedSearch = useMemo(() => {
-    const handler = setTimeout(() => setSearch(search), 500);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
     return () => clearTimeout(handler);
   }, [search]);
 
   // Fetch subjects
-  const { data, isLoading, isError, isFetching } = useQuery({
-    queryKey: ['admin-subjects', search, categoryFilter],
+  const { data, isLoading: isPending, isError, isFetching } = useQuery({
+    queryKey: ['admin-subjects', debouncedSearch, categoryFilter],
     queryFn: () => api.get('/admin/subjects', {
       params: {
-        page: 1,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         category: categoryFilter === 'all' ? undefined : categoryFilter,
       }
     }),
@@ -526,7 +527,7 @@ export default function SubjectManagement() {
   // ═══════════════════════════════════════════════════════════
   // ⏳ LOADING & ERROR STATES
   // ═══════════════════════════════════════════════════════════
-  if (isLoading && !isFetching) {
+  if (isPending && !isFetching) {
     return (
       <div className="flex items-center justify-center min-h-[400px] bg-base-cream retro-grid-bg">
         <motion.div 
@@ -637,9 +638,9 @@ export default function SubjectManagement() {
                 setIsCreateOpen(true); 
               }} 
               className="flex items-center gap-1.5" 
-              disabled={createSubjectMutation.isLoading}
+              disabled={createSubjectMutation.isPending}
             >
-              <Plus className="w-4 h-4" /> {createSubjectMutation.isLoading ? 'Menyimpan...' : 'Tambah Mapel'}
+              <Plus className="w-4 h-4" /> {createSubjectMutation.isPending ? 'Menyimpan...' : 'Tambah Mapel'}
             </Button>
           </div>
         </div>
@@ -719,7 +720,7 @@ export default function SubjectManagement() {
           className="retro-card bg-retro-orange/10 border-4 border-retro-orange p-3 mb-6 flex items-center justify-between"
         >
           <span className="font-retro-mono text-sm text-base-black font-black">
-            {selectedIds} mata pelajaran terpilih
+            {selectedIds.length} mata pelajaran terpilih
           </span>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={() => setSelectedIds([])}>Batal</Button>
@@ -849,15 +850,13 @@ export default function SubjectManagement() {
               Menampilkan <strong>{meta.from || 0}</strong> - <strong>{meta.to || 0}</strong> dari <strong>{meta.total || 0}</strong> data
             </span>
             <div className="flex gap-1">
-              <button className="px-3 py-1.5 rounded-retro border-2 border-base-black text-base-black disabled:opacity-50 hover:bg-retro-yellow/20 transition-colors" disabled>
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button className="px-3 py-1.5 rounded-retro border-2 border-retro-orange bg-retro-orange text-base-white font-black">
-                1
-              </button>
-              <button className="px-3 py-1.5 rounded-retro border-2 border-base-black text-base-black disabled:opacity-50 hover:bg-retro-yellow/20 transition-colors" disabled>
-                <ChevronRight className="w-4 h-4" />
-              </button>
+              {[...Array(Math.min(5, (meta.last_page || 1)))].map((_, i) => {
+                const currentPage = meta.current_page || 1;
+                const lastPage = meta.last_page || 1;
+                const pageNum = currentPage <= 3 ? i+1 : currentPage >= lastPage-2 ? lastPage-4+i : currentPage-2+i;
+                if (pageNum < 1 || pageNum > lastPage) return null;
+                return <button key={pageNum} className={`px-3 py-1.5 retro-btn retro-btn-sm ${pageNum === currentPage ? 'bg-retro-orange text-base-white border-retro-orange shadow-[2px_2px_0px_0px_#111111]' : 'retro-btn-outline'}`}>{pageNum}</button>;
+              })}
             </div>
           </div>
         </motion.div>
@@ -1061,20 +1060,21 @@ export default function SubjectManagement() {
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="pt-4 flex justify-end gap-3 border-t-2 border-base-black/20 sticky bottom-0 bg-base-white py-4">
+            <div className="pt-6 flex justify-end gap-3 border-t-4 border-base-black sticky bottom-0 bg-base-cream py-4 z-10 mt-6">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }}
               >
-                Batal
+                BATAL
               </Button>
               <Button 
                 type="submit" 
-                loading={createSubjectMutation.isLoading || updateSubjectMutation.isLoading}
+                loading={createSubjectMutation.isPending || updateSubjectMutation.isPending}
+                className="flex items-center gap-2"
               >
-                {isCreateOpen ? '💾 Simpan Mapel' : '✏️ Update Mapel'}
+                <Rocket className="w-4 h-4" />
+                {isCreateOpen ? 'SIMPAN MAPEL' : 'UPDATE MAPEL'}
               </Button>
             </div>
           </form>

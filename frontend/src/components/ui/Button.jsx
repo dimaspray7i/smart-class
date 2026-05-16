@@ -133,11 +133,11 @@ export default function Button({
   
   // Retro color variants with brutalist styling
   const variants = {
-    primary: 'bg-retro-orange hover:bg-retro-orange/90 text-base-white shadow-[4px_4px_0px_0px_#111111] hover:shadow-[6px_6px_0px_0px_#FF5C00] active:shadow-[2px_2px_0px_0px_#111111]',
-    secondary: 'bg-retro-blue hover:bg-retro-blue/90 text-base-white shadow-[4px_4px_0px_0px_#111111] hover:shadow-[6px_6px_0px_0px_#2E2BBF] active:shadow-[2px_2px_0px_0px_#111111]',
+    primary: 'bg-retro-orange hover:bg-retro-orange/90 text-white shadow-[4px_4px_0px_0px_#111111] hover:shadow-[6px_6px_0px_0px_#FF5C00] active:shadow-[2px_2px_0px_0px_#111111]',
+    secondary: 'bg-retro-blue hover:bg-retro-blue/90 text-white shadow-[4px_4px_0px_0px_#111111] hover:shadow-[6px_6px_0px_0px_#2E2BBF] active:shadow-[2px_2px_0px_0px_#111111]',
     outline: 'bg-base-white hover:bg-retro-yellow/20 text-base-black shadow-[4px_4px_0px_0px_#111111] hover:shadow-[6px_6px_0px_0px_#FFC928] active:shadow-[2px_2px_0px_0px_#111111]',
-    danger: 'bg-danger hover:bg-danger/90 text-base-white shadow-[4px_4px_0px_0px_#111111] hover:shadow-[6px_6px_0px_0px_#FF1744] active:shadow-[2px_2px_0px_0px_#111111]',
-    success: 'bg-success hover:bg-success/90 text-base-white shadow-[4px_4px_0px_0px_#111111] hover:shadow-[6px_6px_0px_0px_#10b981] active:shadow-[2px_2px_0px_0px_#111111]',
+    danger: 'bg-danger hover:bg-danger/90 text-white shadow-[4px_4px_0px_0px_#111111] hover:shadow-[6px_6px_0px_0px_#FF1744] active:shadow-[2px_2px_0px_0px_#111111]',
+    success: 'bg-success hover:bg-success/90 text-white shadow-[4px_4px_0px_0px_#111111] hover:shadow-[6px_6px_0px_0px_#10b981] active:shadow-[2px_2px_0px_0px_#111111]',
     warning: 'bg-warning hover:bg-warning/90 text-base-black shadow-[4px_4px_0px_0px_#111111] hover:shadow-[6px_6px_0px_0px_#f59e0b] active:shadow-[2px_2px_0px_0px_#111111]',
     ghost: 'bg-transparent hover:bg-retro-yellow/10 text-base-black border-2 border-base-black shadow-none hover:shadow-[4px_4px_0px_0px_#FFC928] active:shadow-[2px_2px_0px_0px_#111111]',
   };

@@ -181,7 +181,9 @@ const DialogContent = React.forwardRef(({ className, children, showSticker = tru
           
           {children}
           
-          <RetroCloseButton />
+          <DialogClose asChild>
+            <RetroCloseButton />
+          </DialogClose>
           
           {/* Decorative Sticker Badge */}
           {showSticker && (

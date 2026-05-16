@@ -36,6 +36,9 @@
     --dark-border: #2d2d44;
     --dark-muted: #8888aa;
     --dark-text: #f0f0f0;
+    
+    /* Shadows */
+    --shadow-color: #111111;
   }
 
   /* HTML & Body */
@@ -54,6 +57,7 @@
     --base-white: #1a1a2e;
     --base-black: #f0f0f0;
     --base-gray: #2d2d44;
+    --shadow-color: rgba(0, 0, 0, 0.8);
   }
 
   html.dark body {
@@ -156,20 +160,20 @@
   .retro-card {
     @apply relative border-4 border-base-black rounded-retro-lg bg-base-white;
     @apply transition-all duration-200;
-    box-shadow: 4px 4px 0px 0px #111111;
+    box-shadow: 4px 4px 0px 0px var(--shadow-color);
   }
   
   .retro-card:hover {
     @apply translate-x-[-2px] translate-y-[-2px];
-    box-shadow: 6px 6px 0px 0px #111111;
+    box-shadow: 6px 6px 0px 0px var(--shadow-color);
   }
   
   .retro-card-sticker {
     @apply retro-card;
-    box-shadow: 3px 3px 0px 0px #111111, 6px 6px 0px 0px #FF5C00;
+    box-shadow: 3px 3px 0px 0px var(--shadow-color), 6px 6px 0px 0px #FF5C00;
   }
   .retro-card-sticker:hover {
-    box-shadow: 2px 2px 0px 0px #111111, 4px 4px 0px 0px #FF5C00;
+    box-shadow: 2px 2px 0px 0px var(--shadow-color), 4px 4px 0px 0px #FF5C00;
   }
   
   .retro-card-glass { @apply bg-base-white/90 backdrop-blur-sm; }
@@ -182,35 +186,35 @@
   .retro-btn {
     @apply relative inline-flex items-center justify-center gap-2;
     @apply px-6 py-3 font-retro-display font-black uppercase tracking-wide text-sm;
-    @apply bg-retro-orange text-base-white border-4 border-base-black rounded-retro;
+    @apply bg-retro-orange text-[#FFFFFF] border-4 border-base-black rounded-retro;
     @apply transition-all duration-150 cursor-pointer;
     @apply focus:outline-none focus:ring-4 focus:ring-retro-yellow/50;
-    box-shadow: 4px 4px 0px 0px #111111;
+    box-shadow: 4px 4px 0px 0px var(--shadow-color);
   }
   
   .retro-btn:hover {
     @apply bg-retro-blue translate-x-[-2px] translate-y-[-2px];
-    box-shadow: 6px 6px 0px 0px #111111;
+    box-shadow: 6px 6px 0px 0px var(--shadow-color);
   }
   
   .retro-btn:active {
     @apply translate-x-[4px] translate-y-[4px];
-    box-shadow: 2px 2px 0px 0px #111111;
+    box-shadow: 2px 2px 0px 0px var(--shadow-color);
   }
   
   .retro-btn:disabled {
     @apply opacity-60 cursor-not-allowed;
-    box-shadow: 2px 2px 0px 0px #111111;
+    box-shadow: 2px 2px 0px 0px var(--shadow-color);
   }
   
-  .retro-btn-secondary { @apply retro-btn bg-retro-blue text-base-white; }
+  .retro-btn-secondary { @apply retro-btn bg-retro-blue text-[#FFFFFF]; }
   .retro-btn-secondary:hover { @apply bg-retro-purple; }
   
   .retro-btn-outline {
     @apply retro-btn bg-base-white text-base-black shadow-none;
   }
   .retro-btn-outline:hover {
-    box-shadow: 4px 4px 0px 0px #111111;
+    box-shadow: 4px 4px 0px 0px var(--shadow-color);
   }
   
   .retro-btn-sticker {
@@ -242,7 +246,7 @@
     @apply focus:outline-none focus:ring-4 focus:ring-retro-orange/50 focus:border-retro-orange;
     @apply placeholder:text-base-black/50;
     @apply disabled:opacity-60 disabled:cursor-not-allowed;
-    box-shadow: 2px 2px 0px 0px #111111;
+    box-shadow: 2px 2px 0px 0px var(--shadow-color);
   }
   
   .retro-input-label {
@@ -265,13 +269,13 @@
      ──────────────────────────────────────────────────────── */
   .retro-heading {
     @apply font-retro-display font-black uppercase tracking-tight text-base-black leading-none;
-    filter: drop-shadow(2px 2px 0px #111111);
+    filter: drop-shadow(2px 2px 0px var(--shadow-color));
   }
   
   .retro-heading-orange { @apply text-retro-orange; }
   .retro-heading-blue { @apply text-retro-blue; }
   .retro-heading-stroke {
-    -webkit-text-stroke: 2px #111111;
+    -webkit-text-stroke: 2px var(--shadow-color);
   }
   
   .retro-heading-xl { @apply text-4xl md:text-6xl lg:text-8xl; }
@@ -285,7 +289,7 @@
   .retro-badge {
     @apply inline-flex items-center gap-1 px-3 py-1 font-retro-mono font-black text-xs uppercase tracking-wider;
     @apply border-2 border-base-black rounded-full;
-    box-shadow: 2px 2px 0px 0px #111111;
+    box-shadow: 2px 2px 0px 0px var(--shadow-color);
   }
   
   .retro-badge-orange { @apply bg-retro-orange text-base-white; }
@@ -297,7 +301,7 @@
   .retro-sticker {
     @apply retro-badge rounded-sticker rotate-[-3deg];
     @apply hover:rotate-0 transition-transform duration-200;
-    box-shadow: 3px 3px 0px 0px #111111, 6px 6px 0px 0px #FF5C00;
+    box-shadow: 3px 3px 0px 0px var(--shadow-color), 6px 6px 0px 0px #FF5C00;
   }
 
   /* ────────────────────────────────────────────────────────
