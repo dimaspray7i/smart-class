@@ -29,6 +29,12 @@ export const ID = {
     messages: "Pesan",
     reports: "Laporan & Analitik",
     profile: "Profil Saya",
+    teachers: "Data Guru",
+    students_admin: "Data Siswa",
+    permissions_admin: "Manajemen Izin",
+    announcements_admin: "Pengumuman & Notifikasi",
+    reports_admin: "Laporan & Analitik",
+    security: "Keamanan Sistem",
   },
   button: {
     save: "Simpan",

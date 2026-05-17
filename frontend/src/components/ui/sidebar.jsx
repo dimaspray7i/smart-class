@@ -6,7 +6,8 @@ import {
   Users, BookOpen, Settings, LogOut, Rocket, Shield, School,
   Sparkles, Star, Zap, ChevronRight, ArrowRight, Palette,
   Menu, Home, Briefcase, Award, Target, Clock, CheckCircle2,
-  BarChart3, Megaphone, MessageSquare, User, FileText
+  BarChart3, Megaphone, MessageSquare, User, FileText,
+  Bell, ShieldAlert, TrendingUp, UserCheck, UserCog
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
@@ -373,14 +374,20 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       ];
     } else if (user.role === 'admin') {
       return [
-        { icon: LayoutDashboard, label: ID.nav.dashboard, href: '/dashboard/admin', shortcut: 'd', description: 'Ikhtisar sistem' },
-        { icon: Users, label: ID.nav.users, href: '/dashboard/admin/users', shortcut: 'u', description: 'Kelola akun pengguna' },
-        { icon: GraduationCap, label: ID.nav.classes, href: '/dashboard/admin/classes', shortcut: 'c', description: 'Kelola data kelas' },
-        { icon: BookOpen, label: ID.nav.subjects, href: '/dashboard/admin/subjects', shortcut: 'm', description: 'Mata pelajaran' },
-        { icon: CalendarCheck, label: ID.nav.schedules, href: '/dashboard/admin/schedules', shortcut: 'j', description: 'Jadwal pelajaran' },
-        { icon: Clock, label: ID.nav.attendance, href: '/dashboard/admin/attendance', shortcut: 'a', description: 'Presensi waktu nyata' },
-        { icon: Briefcase, label: ID.nav.pkl, href: '/dashboard/admin/pkl', shortcut: 'p', description: 'Praktik Kerja Lapangan' },
-        { icon: Settings, label: ID.nav.settings, href: '/dashboard/admin/settings', shortcut: 't', description: 'Pengaturan sistem' },
+        { icon: LayoutDashboard, label: ID.nav.dashboard,          href: '/dashboard/admin',              shortcut: 'd', description: 'Ikhtisar sistem' },
+        { icon: Users,           label: ID.nav.users,              href: '/dashboard/admin/users',        shortcut: 'u', description: 'Kelola akun pengguna' },
+        { icon: UserCheck,       label: ID.nav.teachers,           href: '/dashboard/admin/teachers',     shortcut: 'g', description: 'Data & performa guru' },
+        { icon: GraduationCap,   label: ID.nav.students_admin,     href: '/dashboard/admin/students',     shortcut: 'i', description: 'Data siswa lengkap' },
+        { icon: School,          label: ID.nav.classes,            href: '/dashboard/admin/classes',      shortcut: 'c', description: 'Kelola data kelas' },
+        { icon: BookOpen,        label: ID.nav.subjects,           href: '/dashboard/admin/subjects',     shortcut: 'm', description: 'Mata pelajaran' },
+        { icon: CalendarCheck,   label: ID.nav.schedules,          href: '/dashboard/admin/schedules',    shortcut: 'j', description: 'Jadwal pelajaran' },
+        { icon: Clock,           label: ID.nav.attendance,         href: '/dashboard/admin/attendance',   shortcut: 'a', description: 'Presensi waktu nyata' },
+        { icon: Briefcase,       label: ID.nav.pkl,                href: '/dashboard/admin/pkl',          shortcut: 'p', description: 'Praktik Kerja Lapangan' },
+        { icon: Bell,            label: ID.nav.permissions_admin,  href: '/dashboard/admin/permissions',  shortcut: 'z', description: 'Kelola izin siswa & guru' },
+        { icon: Megaphone,       label: ID.nav.announcements_admin,href: '/dashboard/admin/announcements',shortcut: 'n', description: 'Broadcast pengumuman' },
+        { icon: TrendingUp,      label: ID.nav.reports_admin,      href: '/dashboard/admin/reports',      shortcut: 'r', description: 'Laporan & analitik' },
+        { icon: ShieldAlert,     label: ID.nav.security,           href: '/dashboard/admin/security',     shortcut: 'e', description: 'Keamanan & audit log' },
+        { icon: Settings,        label: ID.nav.settings,           href: '/dashboard/admin/settings',     shortcut: 't', description: 'Pengaturan sistem' },
       ];
     }
     return [];
