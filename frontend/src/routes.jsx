@@ -487,9 +487,9 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <TeacherDashboard /> },
-          { path: 'attendance', element: <ComingSoon title="Attendance Control" icon="📊" /> },
-          { path: 'students', element: <ComingSoon title="Student Management" icon="👥" /> },
-          { path: 'permissions', element: <ComingSoon title="Permission Requests" icon="📋" /> },
+          { path: 'attendance', element: <TeacherDashboard /> },
+          { path: 'students', element: <TeacherDashboard /> },
+          { path: 'permissions', element: <TeacherDashboard /> },
         ],
       },
       

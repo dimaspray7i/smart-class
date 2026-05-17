@@ -11,7 +11,81 @@ use Exception;
 class PermissionService
 {
     /**
-     * Get pending permissions for teacher
+     * Get permissions for teacher with filters (Added to fix "Call to undefined method" error)
+     */
+    public function getPermissions(int $teacherId, array $filters = [], int $perPage = 15): array
+    {
+        try {
+            // Get classes taught by this teacher to ensure they only see their students' permissions
+            $classIds = DB::table('class_user')
+                ->where('user_id', $teacherId)
+                ->whereIn('role_in_class', ['wali_kelas', 'guru_pengampu'])
+                ->where('is_active', true)
+                ->pluck('class_id');
+
+            if ($classIds->isEmpty()) {
+                return [
+                    'success' => true,
+                    'data' => [],
+                    'meta' => ['current_page' => 1, 'per_page' => $perPage, 'total' => 0, 'last_page' => 1],
+                ];
+            }
+
+            // Get student IDs from those classes
+            $studentIds = DB::table('class_user')
+                ->whereIn('class_id', $classIds)
+                ->where('role_in_class', 'siswa')
+                ->where('is_active', true)
+                ->pluck('user_id');
+
+            $query = Permission::whereIn('user_id', $studentIds)
+                ->with(['student.user:id,name,email,avatar_url']);
+
+            // Apply Filters
+            if (!empty($filters['status'])) {
+                $query->where('status', $filters['status']);
+            }
+            if (!empty($filters['type'])) {
+                $query->where('type', $filters['type']);
+            }
+            if (!empty($filters['class_id'])) {
+                // Filter by specific class if provided
+                $specificStudentIds = DB::table('class_user')
+                    ->where('class_id', $filters['class_id'])
+                    ->where('role_in_class', 'siswa')
+                    ->pluck('user_id');
+                $query->whereIn('user_id', $specificStudentIds);
+            }
+
+            $permissions = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+            return [
+                'success' => true,
+                'data' => $permissions->items(),
+                'meta' => [
+                    'current_page' => $permissions->currentPage(),
+                    'per_page' => $permissions->perPage(),
+                    'total' => $permissions->total(),
+                    'last_page' => $permissions->lastPage(),
+                ],
+            ];
+
+        } catch (Exception $e) {
+            Log::error('PermissionService::getPermissions failed', [
+                'teacher_id' => $teacherId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Gagal memuat data izin.',
+                'code' => 'SERVER_ERROR',
+            ];
+        }
+    }
+
+    /**
+     * Get pending permissions for teacher (Legacy/Specific use case)
      */
     public function getPending(int $teacherId, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
@@ -34,7 +108,10 @@ class PermissionService
         try {
             // Get student's class and wali kelas
             $user = User::find($userId);
-            $currentClass = $user->getCurrentClass();
+            
+            // Assuming User model has a method to get current active class relationship
+            // If not, adjust logic to find the active class via pivot table
+            $currentClass = $user->classes()->wherePivot('is_active', true)->first();
 
             if (!$currentClass) {
                 return [
@@ -44,12 +121,21 @@ class PermissionService
                 ];
             }
 
-            $waliKelas = $currentClass->waliKelasRelation()->first();
+            // Find the teacher assigned as 'wali_kelas' or primary teacher for this class/student
+            // Adjust logic based on your specific role_in_class structure
+            $waliKelas = $currentClass->teachers()
+                ->wherePivot('role_in_class', 'wali_kelas')
+                ->first();
+            
+            // Fallback: If no specific wali_kelas, take the first teacher of the class
+            if (!$waliKelas) {
+                 $waliKelas = $currentClass->teachers()->first();
+            }
 
             if (!$waliKelas) {
                 return [
                     'success' => false,
-                    'message' => 'Kelas Anda belum memiliki wali kelas.',
+                    'message' => 'Kelas Anda belum memiliki wali kelas atau pengajar.',
                     'code' => 'NO_WALI_KELAS',
                 ];
             }
@@ -101,7 +187,12 @@ class PermissionService
                 ];
             }
 
-            if ($permission->teacher_id !== $teacherId) {
+            // Security check: Ensure the teacher is authorized to approve this
+            // Either they are the target teacher OR they teach the student's class
+            $isAuthorized = $permission->teacher_id === $teacherId || 
+                            $this->isTeacherOfStudent($teacherId, $permission->user_id);
+
+            if (!$isAuthorized) {
                 return [
                     'success' => false,
                     'message' => 'Tidak memiliki akses untuk approve permohonan ini.',
@@ -109,15 +200,20 @@ class PermissionService
                 ];
             }
 
-            if (!$permission->canBeProcessed()) {
+            if ($permission->status !== 'pending') {
                 return [
                     'success' => false,
-                    'message' => 'Permohonan sudah diproses.',
+                    'message' => 'Permohonan sudah diproses sebelumnya.',
                     'code' => 'ALREADY_PROCESSED',
                 ];
             }
 
-            $permission->approve($teacherId, $note);
+            $permission->update([
+                'status' => 'approved',
+                'approved_by' => $teacherId,
+                'approved_at' => now(),
+                'note' => $note,
+            ]);
 
             return [
                 'success' => true,
@@ -155,7 +251,11 @@ class PermissionService
                 ];
             }
 
-            if ($permission->teacher_id !== $teacherId) {
+             // Security check
+             $isAuthorized = $permission->teacher_id === $teacherId || 
+                             $this->isTeacherOfStudent($teacherId, $permission->user_id);
+
+            if (!$isAuthorized) {
                 return [
                     'success' => false,
                     'message' => 'Tidak memiliki akses untuk reject permohonan ini.',
@@ -163,15 +263,20 @@ class PermissionService
                 ];
             }
 
-            if (!$permission->canBeProcessed()) {
+            if ($permission->status !== 'pending') {
                 return [
                     'success' => false,
-                    'message' => 'Permohonan sudah diproses.',
+                    'message' => 'Permohonan sudah diproses sebelumnya.',
                     'code' => 'ALREADY_PROCESSED',
                 ];
             }
 
-            $permission->reject($teacherId, $reason);
+            $permission->update([
+                'status' => 'rejected',
+                'approved_by' => $teacherId, // Using approved_by field to track who processed it
+                'approved_at' => now(),
+                'note' => $reason,
+            ]);
 
             return [
                 'success' => true,
@@ -205,17 +310,54 @@ class PermissionService
                 return [
                     'id' => $permission->id,
                     'type' => $permission->type,
-                    'type_label' => $permission->type_label,
-                    'date_range' => $permission->date_range,
-                    'duration_days' => $permission->duration_days,
+                    'type_label' => $permission->type_label ?? $permission->type,
+                    'date_range' => $permission->date_from . ' - ' . $permission->date_to,
+                    'duration_days' => \Carbon\Carbon::parse($permission->date_from)->diffInDays(\Carbon\Carbon::parse($permission->date_to)) + 1,
                     'reason' => $permission->reason,
                     'status' => $permission->status,
-                    'status_color' => $permission->status_color,
+                    'status_color' => $this->getStatusColor($permission->status),
                     'note' => $permission->note,
-                    'is_active' => $permission->is_active,
+                    'is_active' => $permission->status === 'approved' && \Carbon\Carbon::today()->between($permission->date_from, $permission->date_to),
                     'created_at' => $permission->created_at->diffForHumans(),
                 ];
             })
             ->toArray();
+    }
+
+    /**
+     * Helper: Check if teacher teaches the student
+     */
+    private function isTeacherOfStudent(int $teacherId, int $studentId): bool
+    {
+        $classIds = DB::table('class_user')
+            ->where('user_id', $teacherId)
+            ->whereIn('role_in_class', ['wali_kelas', 'guru_pengampu'])
+            ->where('is_active', true)
+            ->pluck('class_id')
+            ->toArray();
+
+        if (empty($classIds)) {
+            return false;
+        }
+
+        return DB::table('class_user')
+            ->whereIn('class_id', $classIds)
+            ->where('user_id', $studentId)
+            ->where('role_in_class', 'siswa')
+            ->where('is_active', true)
+            ->exists();
+    }
+
+    /**
+     * Helper: Get status color for UI
+     */
+    private function getStatusColor(string $status): string
+    {
+        return match ($status) {
+            'approved' => 'green',
+            'rejected' => 'red',
+            'pending' => 'yellow',
+            default => 'gray',
+        };
     }
 }

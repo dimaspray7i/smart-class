@@ -597,15 +597,33 @@ class AttendanceService
      */
     public function getTeacherHistory(int $teacherId, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        // Get all students taught by this teacher
-        $studentIds = DB::table('class_user')
-            ->where('teacher_id', $teacherId)
-            ->where('role_in_class', 'siswa')
+        // Get classes taught by this teacher
+        $teacherClasses = DB::table('class_user')
+            ->where('user_id', $teacherId)
+            ->whereIn('role_in_class', ['wali_kelas', 'guru_pengampu'])
             ->where('is_active', true)
-            ->when(!empty($filters['class_id']), function ($q) use ($filters) {
-                return $q->where('class_id', $filters['class_id']);
-            })
-            ->pluck('user_id');
+            ->pluck('class_id')
+            ->toArray();
+
+        if (empty($teacherClasses)) {
+            $studentIds = collect([]);
+        } else {
+            // Filter by class_id if provided and teacher is assigned to it
+            $classFilter = !empty($filters['class_id']) ? (int)$filters['class_id'] : null;
+            if ($classFilter && !in_array($classFilter, $teacherClasses)) {
+                $studentIds = collect([]);
+            } else {
+                $studentIds = DB::table('class_user')
+                    ->where('role_in_class', 'siswa')
+                    ->where('is_active', true)
+                    ->when($classFilter, function ($q) use ($classFilter) {
+                        return $q->where('class_id', $classFilter);
+                    }, function ($q) use ($teacherClasses) {
+                        return $q->whereIn('class_id', $teacherClasses);
+                    })
+                    ->pluck('user_id');
+            }
+        }
 
         $query = Attendance::whereIn('user_id', $studentIds)
             ->with(['user:id,name,avatar_url', 'pklLocation:id,company_name'])
@@ -644,12 +662,23 @@ class AttendanceService
                 ];
             }
 
-            // Verify teacher has access to this student
-            $isAuthorized = DB::table('class_user')
-                ->where('teacher_id', $teacherId)
-                ->where('user_id', $attendance->user_id)
+            // Verify teacher has access to this student (shares at least one active class)
+            $teacherClasses = DB::table('class_user')
+                ->where('user_id', $teacherId)
+                ->whereIn('role_in_class', ['wali_kelas', 'guru_pengampu'])
                 ->where('is_active', true)
-                ->exists();
+                ->pluck('class_id')
+                ->toArray();
+
+            $isAuthorized = false;
+            if (!empty($teacherClasses)) {
+                $isAuthorized = DB::table('class_user')
+                    ->whereIn('class_id', $teacherClasses)
+                    ->where('user_id', $attendance->user_id)
+                    ->where('role_in_class', 'siswa')
+                    ->where('is_active', true)
+                    ->exists();
+            }
 
             if (!$isAuthorized) {
                 return [
@@ -751,13 +780,57 @@ class AttendanceService
     public function getAssignedClasses(int $teacherId): array
     {
         $classes = DB::table('class_user')
-            ->where('teacher_id', $teacherId)
-            ->where('is_active', true)
+            ->where('user_id', $teacherId)
+            ->whereIn('role_in_class', ['wali_kelas', 'guru_pengampu'])
+            ->where('class_user.is_active', true)
             ->join('classes', 'class_user.class_id', '=', 'classes.id')
             ->select('classes.*', 'class_user.role_in_class', 'class_user.academic_year')
             ->get();
 
         return $classes->toArray();
+    }
+
+    /**
+     * Get attendance sessions created by a teacher
+     */
+    public function getSessions(int $teacherId, array $filters = [], int $perPage = 15): array
+    {
+        try {
+            $query = \App\Models\AttendanceSession::where('generated_by', $teacherId)
+                ->with(['class:id,name']);
+
+            // Apply Filters
+            if (isset($filters['is_active'])) {
+                $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
+            }
+            if (!empty($filters['class_id'])) {
+                $query->where('class_id', $filters['class_id']);
+            }
+
+            $sessions = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+            return [
+                'success' => true,
+                'data' => $sessions->items(),
+                'meta' => [
+                    'current_page' => $sessions->currentPage(),
+                    'per_page' => $sessions->perPage(),
+                    'total' => $sessions->total(),
+                    'last_page' => $sessions->lastPage(),
+                ],
+            ];
+        } catch (\Exception $e) {
+            Log::error('AttendanceService::getSessions failed', [
+                'teacher_id' => $teacherId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Gagal memuat data sesi absensi.',
+                'code' => 'SERVER_ERROR',
+            ];
+        }
     }
 
     /**
