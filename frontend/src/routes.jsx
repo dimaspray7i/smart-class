@@ -408,10 +408,17 @@ import AttendancePage from './pages/dashboard/AttendancePage';
 // 👨‍🏫 TEACHER PAGE IMPORTS
 // ═══════════════════════════════════════════════════════════
 import TeacherDashboard from './pages/dashboard/TeacherDashboard';
-// Note: Other teacher pages would be imported here when created
-// import TeacherAttendance from './pages/teacher/Attendance';
-// import TeacherStudents from './pages/teacher/Students';
-// import TeacherPermissions from './pages/teacher/Permissions';
+import TeacherAttendance from './pages/teacher/TeacherAttendance';
+import TeacherStudents from './pages/teacher/TeacherStudents';
+import TeacherPermissions from './pages/teacher/TeacherPermissions';
+import TeacherSchedules from './pages/teacher/TeacherSchedules';
+import TeacherGrades from './pages/teacher/TeacherGrades';
+import TeacherMaterials from './pages/teacher/TeacherMaterials';
+import TeacherAnnouncements from './pages/teacher/TeacherAnnouncements';
+import TeacherMessages from './pages/teacher/TeacherMessages';
+import TeacherReports from './pages/teacher/TeacherReports';
+import TeacherProfile from './pages/teacher/TeacherProfile';
+import TeacherSettings from './pages/teacher/TeacherSettings';
 
 // ═══════════════════════════════════════════════════════════
 // 🛡️ ADMIN PAGE IMPORTS (LIVE FEATURES!)
@@ -487,9 +494,17 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <TeacherDashboard /> },
-          { path: 'attendance', element: <TeacherDashboard /> },
-          { path: 'students', element: <TeacherDashboard /> },
-          { path: 'permissions', element: <TeacherDashboard /> },
+          { path: 'attendance', element: <TeacherAttendance /> },
+          { path: 'students', element: <TeacherStudents /> },
+          { path: 'permissions', element: <TeacherPermissions /> },
+          { path: 'schedules', element: <TeacherSchedules /> },
+          { path: 'grades', element: <TeacherGrades /> },
+          { path: 'materials', element: <TeacherMaterials /> },
+          { path: 'announcements', element: <TeacherAnnouncements /> },
+          { path: 'messages', element: <TeacherMessages /> },
+          { path: 'reports', element: <TeacherReports /> },
+          { path: 'profile', element: <TeacherProfile /> },
+          { path: 'settings', element: <TeacherSettings /> },
         ],
       },
       
