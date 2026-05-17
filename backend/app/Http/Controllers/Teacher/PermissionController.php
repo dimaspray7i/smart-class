@@ -6,43 +6,72 @@ use App\Http\Controllers\Controller;
 use App\Services\PermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class PermissionController extends Controller
 {
+    /**
+     * Constructor dengan Dependency Injection
+     */
     public function __construct(protected PermissionService $permissionService)
     {
-        //
+        // Middleware handled at route level
     }
 
     /**
-     * Get pending permissions
+     * 📋 Get pending permissions with filters
      * 
      * @param Request $request
      * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
-        $permissions = $this->permissionService->getPending(
-            $request->user()->id,
-            $request->only(['type'])
-        );
+        try {
+            $teacherId = $request->user()->id;
+            $filters = $request->only(['type', 'status', 'class_id', 'date_from', 'date_to', 'search']);
+            $perPage = $request->integer('per_page', 15);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Permohonan izin berhasil diambil.',
-            'code' => 'PERMISSIONS_SUCCESS',
-            'data' => $permissions,
-            'meta' => [
-                'current_page' => $permissions->currentPage(),
-                'per_page' => $permissions->perPage(),
-                'total' => $permissions->total(),
-                'last_page' => $permissions->lastPage(),
-            ],
-        ], 200);
+            $result = $this->permissionService->getPermissions($teacherId, $filters, $perPage);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'PERMISSIONS_FAILED',
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Permohonan izin berhasil diambil.',
+                'code' => 'PERMISSIONS_SUCCESS',
+                'data' => $result['data'],
+                'meta' => [
+                    'current_page' => $result['meta']['current_page'],
+                    'per_page' => $result['meta']['per_page'],
+                    'total' => $result['meta']['total'],
+                    'last_page' => $result['meta']['last_page'],
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('PermissionController::index failed', [
+                'teacher_id' => $request->user()?->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memuat permohonan izin.',
+                'code' => 'PERMISSIONS_ERROR',
+            ], 500);
+        }
     }
 
     /**
-     * Approve permission
+     * ✅ Approve permission request
      * 
      * @param Request $request
      * @param int $id
@@ -50,30 +79,60 @@ class PermissionController extends Controller
      */
     public function approve(Request $request, int $id): JsonResponse
     {
-        $result = $this->permissionService->approve(
-            $id,
-            $request->user()->id,
-            $request->input('note')
-        );
+        try {
+            $teacherId = $request->user()->id;
+            
+            $validated = $request->validate([
+                'note' => 'nullable|string|max:500',
+                'notify_student' => 'nullable|boolean',
+                'auto_update_attendance' => 'nullable|boolean',
+            ]);
 
-        if (!$result['success']) {
+            $result = $this->permissionService->approve($id, $teacherId, $validated);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'APPROVE_FAILED',
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $result['message'],
+                'code' => 'APPROVE_SUCCESS',
+                'data' => $result['permission'],
+                'retro' => [
+                    'badge' => 'APPROVED',
+                    'sparkle' => true,
+                ],
+            ], 200);
+
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => $result['message'],
-                'code' => $result['code'] ?? 'APPROVE_FAILED',
-            ], 400);
-        }
+                'message' => 'Validasi gagal.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('PermissionController::approve failed', [
+                'teacher_id' => $request->user()?->id,
+                'permission_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => $result['message'],
-            'code' => 'APPROVE_SUCCESS',
-            'data' => $result['permission'],
-        ], 200);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menyetujui izin.',
+                'code' => 'APPROVE_ERROR',
+            ], 500);
+        }
     }
 
     /**
-     * Reject permission
+     * ❌ Reject permission request
      * 
      * @param Request $request
      * @param int $id
@@ -81,78 +140,328 @@ class PermissionController extends Controller
      */
     public function reject(Request $request, int $id): JsonResponse
     {
-        $result = $this->permissionService->reject(
-            $id,
-            $request->user()->id,
-            $request->input('reason')
-        );
+        try {
+            $teacherId = $request->user()->id;
+            
+            $validated = $request->validate([
+                'reason' => 'required|string|max:500',
+                'notify_student' => 'nullable|boolean',
+            ]);
 
-        if (!$result['success']) {
+            $result = $this->permissionService->reject($id, $teacherId, $validated);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'REJECT_FAILED',
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $result['message'],
+                'code' => 'REJECT_SUCCESS',
+                'data' => $result['permission'],
+            ], 200);
+
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => $result['message'],
-                'code' => $result['code'] ?? 'REJECT_FAILED',
-            ], 400);
-        }
+                'message' => 'Validasi gagal.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('PermissionController::reject failed', [
+                'teacher_id' => $request->user()?->id,
+                'permission_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => $result['message'],
-            'code' => 'REJECT_SUCCESS',
-            'data' => $result['permission'],
-        ], 200);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menolak izin.',
+                'code' => 'REJECT_ERROR',
+            ], 500);
+        }
     }
 
     /**
-     * Submit permission request (for students)
+     * 🔄 Bulk process permissions (approve/reject multiple)
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function bulkProcess(Request $request): JsonResponse
+    {
+        try {
+            $teacherId = $request->user()->id;
+            
+            $validated = $request->validate([
+                'permission_ids' => 'required|array|min:1',
+                'permission_ids.*' => 'required|integer|exists:permissions,id',
+                'action' => 'required|in:approve,reject',
+                'note' => 'nullable|string|max:500',
+                'reason' => 'nullable|string|max:500|required_if:action,reject',
+                'notify_students' => 'nullable|boolean',
+            ]);
+
+            $result = $this->permissionService->bulkProcess($teacherId, $validated);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'BULK_PROCESS_FAILED',
+                    'details' => $result['details'] ?? null,
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $result['message'],
+                'code' => 'BULK_PROCESS_SUCCESS',
+                'data' => [
+                    'processed' => $result['processed'],
+                    'failed' => $result['failed'],
+                    'errors' => $result['errors'] ?? [],
+                ],
+            ], 200);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validasi gagal.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('PermissionController::bulkProcess failed', [
+                'teacher_id' => $request->user()?->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memproses izin secara massal.',
+                'code' => 'BULK_PROCESS_ERROR',
+            ], 500);
+        }
+    }
+
+    /**
+     * 📝 Submit permission request (for students - via teacher proxy)
      * 
      * @param Request $request
      * @return JsonResponse
      */
     public function store(Request $request): JsonResponse
     {
-        $result = $this->permissionService->submit(
-            $request->user()->id,
-            $request->validate([
+        try {
+            $teacherId = $request->user()->id;
+            
+            $validated = $request->validate([
+                'student_id' => 'required|exists:users,id',
                 'date_from' => 'required|date|after_or_equal:today',
                 'date_to' => 'required|date|after_or_equal:date_from',
                 'type' => 'required|in:Izin,Sakit',
                 'reason' => 'required|string|max:1000',
                 'attachment_url' => 'nullable|string|max:500',
-            ])
-        );
+                'attachment_file' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+                'notify_parent' => 'nullable|boolean',
+            ]);
 
-        if (!$result['success']) {
+            // Handle file upload if present
+            if ($request->hasFile('attachment_file')) {
+                $validated['attachment_file'] = $request->file('attachment_file');
+            }
+
+            $result = $this->permissionService->submit($teacherId, $validated);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'SUBMIT_FAILED',
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $result['message'],
+                'code' => 'SUBMIT_SUCCESS',
+                'data' => $result['permission'],
+            ], 201);
+
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => $result['message'],
-                'code' => $result['code'] ?? 'SUBMIT_FAILED',
-            ], 400);
-        }
+                'message' => 'Validasi gagal.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('PermissionController::store failed', [
+                'teacher_id' => $request->user()?->id,
+                'error' => $e->getMessage(),
+            ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => $result['message'],
-            'code' => 'SUBMIT_SUCCESS',
-            'data' => $result['permission'],
-        ], 201);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengajukan permohonan izin.',
+                'code' => 'SUBMIT_ERROR',
+            ], 500);
+        }
     }
 
     /**
-     * Get student's permission history
+     * 📚 Get permission history for teacher's students
      * 
      * @param Request $request
      * @return JsonResponse
      */
     public function history(Request $request): JsonResponse
     {
-        $history = $this->permissionService->getStudentHistory($request->user()->id);
+        try {
+            $teacherId = $request->user()->id;
+            $filters = $request->only(['student_id', 'status', 'type', 'date_from', 'date_to']);
+            $perPage = $request->integer('per_page', 20);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Riwayat izin berhasil diambil.',
-            'code' => 'HISTORY_SUCCESS',
-            'data' => $history,
-        ], 200);
+            $result = $this->permissionService->getHistory($teacherId, $filters, $perPage);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'HISTORY_FAILED',
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Riwayat izin berhasil diambil.',
+                'code' => 'HISTORY_SUCCESS',
+                'data' => $result['data'],
+                'meta' => [
+                    'current_page' => $result['meta']['current_page'],
+                    'per_page' => $result['meta']['per_page'],
+                    'total' => $result['meta']['total'],
+                    'last_page' => $result['meta']['last_page'],
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('PermissionController::history failed', [
+                'teacher_id' => $request->user()?->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memuat riwayat izin.',
+                'code' => 'HISTORY_ERROR',
+            ], 500);
+        }
+    }
+
+    /**
+     * 📊 Get permission statistics/analytics
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function analytics(Request $request): JsonResponse
+    {
+        try {
+            $teacherId = $request->user()->id;
+            $period = $request->query('period', 'monthly');
+
+            $result = $this->permissionService->getAnalytics($teacherId, $period);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Statistik izin berhasil diambil.',
+                'code' => 'ANALYTICS_SUCCESS',
+                'data' => $result,
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('PermissionController::analytics failed', [
+                'teacher_id' => $request->user()?->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memuat statistik izin.',
+                'code' => 'ANALYTICS_ERROR',
+            ], 500);
+        }
+    }
+
+    /**
+     * 📤 Export permissions data
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\Response|JsonResponse
+     */
+    public function export(Request $request)
+    {
+        try {
+            $teacherId = $request->user()->id;
+            $validated = $request->validate([
+                'format' => 'required|in:csv,json,xlsx',
+                'status' => 'nullable|in:pending,approved,rejected,all',
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+                'class_id' => 'nullable|exists:classes,id',
+            ]);
+
+            $result = $this->permissionService->exportData($teacherId, $validated);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'EXPORT_FAILED',
+                ], 400);
+            }
+
+            if ($validated['format'] === 'json') {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Data berhasil diexport.',
+                    'code' => 'EXPORT_SUCCESS',
+                    'data' => $result['data'],
+                ], 200);
+            }
+
+            return response()->streamDownload(function () use ($result) {
+                echo $result['file_content'];
+            }, $result['filename'], [
+                'Content-Type' => $result['content_type'],
+                'Content-Disposition' => "attachment; filename=\"{$result['filename']}\"",
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validasi parameter export gagal.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('PermissionController::export failed', [
+                'teacher_id' => $request->user()?->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal export data izin.',
+                'code' => 'EXPORT_ERROR',
+            ], 500);
+        }
     }
 }

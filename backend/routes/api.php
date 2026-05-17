@@ -221,12 +221,18 @@ Route::middleware('api')->group(function () {
             Route::get('/dashboard/retro', [TeacherDashboard::class, 'retroDashboard']);
             Route::get('/dashboard/classes', [TeacherDashboard::class, 'myClasses']);
             Route::get('/dashboard/subjects', [TeacherDashboard::class, 'mySubjects']);
+            Route::get('/classes', [TeacherDashboard::class, 'myClasses']);
+            Route::get('/subjects', [TeacherDashboard::class, 'mySubjects']);
+            Route::get('/schedule/today', [TeacherDashboard::class, 'todaySchedule']);
             
             // Attendance Control - Retro Features
             Route::prefix('attendance')->group(function () {
+                Route::get('/sessions', [TeacherAttendance::class, 'sessions']);
                 Route::post('/session/create', [TeacherAttendance::class, 'createSession']);
                 Route::post('/session/retro-create', [TeacherAttendance::class, 'retroCreateSession']);
                 Route::post('/session/{id}/generate-code', [TeacherAttendance::class, 'generateCode']);
+                Route::post('/sessions', [TeacherAttendance::class, 'createSession']);
+                Route::post('/sessions/{id}/generate-code', [TeacherAttendance::class, 'generateCode']);
                 Route::post('/session/{id}/generate-retro-qr', [TeacherAttendance::class, 'generateRetroQR']);
                 Route::post('/session/{id}/close', [TeacherAttendance::class, 'closeSession']);
                 Route::get('/session/{id}/monitor', [TeacherAttendance::class, 'monitor']);
