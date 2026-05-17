@@ -27,6 +27,8 @@ class AttendanceSession extends Model
     protected $fillable = [
         'code',
         'class_id',
+        'schedule_id',
+        'subject_id',
         'generated_by',
         'valid_from',
         'valid_until',
@@ -117,6 +119,22 @@ class AttendanceSession extends Model
     public function class(): BelongsTo
     {
         return $this->belongsTo(ClassModel::class, 'class_id');
+    }
+
+    /**
+     * Session belongs to a schedule
+     */
+    public function schedule(): BelongsTo
+    {
+        return $this->belongsTo(Schedule::class, 'schedule_id');
+    }
+
+    /**
+     * Session belongs to a subject
+     */
+    public function subject(): BelongsTo
+    {
+        return $this->belongsTo(Subject::class, 'subject_id');
     }
 
     /**

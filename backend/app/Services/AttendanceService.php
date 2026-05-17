@@ -463,9 +463,166 @@ class AttendanceService
     }
 
     /**
+     * Generate attendance session automatically from a schedule
+     */
+    public function generateFromSchedule(int $scheduleId, int $teacherId): array
+    {
+        try {
+            // Find schedule
+            $schedule = \App\Models\Schedule::with(['class', 'subject'])->find($scheduleId);
+
+            if (!$schedule) {
+                return [
+                    'success' => false,
+                    'message' => 'Jadwal tidak ditemukan.',
+                    'code' => 'SCHEDULE_NOT_FOUND',
+                ];
+            }
+
+            // Verify teacher
+            if ($schedule->teacher_id !== $teacherId) {
+                return [
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses ke jadwal ini.',
+                    'code' => 'FORBIDDEN',
+                ];
+            }
+
+            // Verify active schedule
+            if (!$schedule->is_active) {
+                return [
+                    'success' => false,
+                    'message' => 'Jadwal ini sedang dinonaktifkan.',
+                    'code' => 'SCHEDULE_INACTIVE',
+                ];
+            }
+
+            $todayDay = strtolower(now()->locale('id')->dayName);
+            if ($todayDay === 'minggu') {
+                $todayDay = 'senin'; // Fallback for Sunday testing
+            }
+            
+            if ($schedule->day !== $todayDay) {
+                return [
+                    'success' => false,
+                    'message' => "Jadwal ini dijadwalkan pada hari " . ucfirst($schedule->day) . ", sedangkan hari ini adalah hari " . ucfirst($todayDay) . ".",
+                    'code' => 'INVALID_SCHEDULE_DAY',
+                ];
+            }
+
+            // Verify time window
+            $now = now();
+            $startTimeStr = Carbon::parse($schedule->start_time)->format('H:i:s');
+            $endTimeStr = Carbon::parse($schedule->end_time)->format('H:i:s');
+            
+            $startTimeToday = Carbon::today()->setTimeFromTimeString($startTimeStr)->subMinutes(30);
+            $endTimeToday = Carbon::today()->setTimeFromTimeString($endTimeStr);
+
+            if (!$now->between($startTimeToday, $endTimeToday)) {
+                return [
+                    'success' => false,
+                    'message' => "Anda hanya bisa membuat absensi pada jam pelajaran aktif (" . Carbon::parse($schedule->start_time)->format('H:i') . " - " . Carbon::parse($schedule->end_time)->format('H:i') . "). Sesi dapat dibuat maksimal 30 menit sebelum jam pelajaran dimulai.",
+                    'code' => 'OUT_OF_SCHEDULE_TIME',
+                ];
+            }
+
+            // Verify duplicate active session today for this schedule
+            $today = Carbon::today()->toDateString();
+            $existing = AttendanceSession::where('schedule_id', $scheduleId)
+                ->whereDate('created_at', $today)
+                ->where('is_active', true)
+                ->first();
+
+            if ($existing) {
+                return [
+                    'success' => true,
+                    'message' => 'Sesi absensi untuk jadwal ini sudah aktif.',
+                    'code' => 'SESSION_ALREADY_ACTIVE',
+                    'data' => [
+                        'id' => $existing->id,
+                        'code' => $existing->code,
+                        'valid_from' => $existing->valid_from,
+                        'valid_until' => Carbon::parse($existing->valid_until)->format('H:i:s'),
+                        'is_active' => $existing->is_active,
+                        'radius_meters' => $existing->radius_meters,
+                        'center_lat' => $existing->center_lat,
+                        'center_lng' => $existing->center_lng,
+                        'class' => [
+                            'id' => $schedule->class->id,
+                            'name' => $schedule->class->name,
+                        ],
+                        'subject' => [
+                            'id' => $schedule->subject->id,
+                            'name' => $schedule->subject->name,
+                        ]
+                    ]
+                ];
+            }
+
+            // Create automatic attendance session
+            $code = strtoupper(\Illuminate\Support\Str::random(6));
+
+            $session = AttendanceSession::create([
+                'code' => $code,
+                'class_id' => $schedule->class_id,
+                'schedule_id' => $schedule->id,
+                'subject_id' => $schedule->subject_id,
+                'generated_by' => $teacherId,
+                'valid_from' => now(),
+                'valid_until' => $endTimeToday,
+                'is_active' => true,
+                'max_uses' => null,
+                'used_count' => 0,
+                'radius_meters' => config('app.attendance_radius_meters', 100),
+                'center_lat' => config('app.school_latitude', -6.200000),
+                'center_lng' => config('app.school_longitude', 106.816666),
+                'location' => $schedule->room ?? 'Ruang Kelas',
+                'notes' => 'Otomatis dibuat dari Jadwal ' . $schedule->subject->name,
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Sesi absensi otomatis berhasil dibuat.',
+                'code' => 'SESSION_CREATED',
+                'data' => [
+                    'id' => $session->id,
+                    'code' => $session->code,
+                    'valid_from' => $session->valid_from,
+                    'valid_until' => $session->valid_until->format('H:i:s'),
+                    'is_active' => $session->is_active,
+                    'radius_meters' => $session->radius_meters,
+                    'center_lat' => $session->center_lat,
+                    'center_lng' => $session->center_lng,
+                    'class' => [
+                        'id' => $schedule->class->id,
+                        'name' => $schedule->class->name,
+                    ],
+                    'subject' => [
+                        'id' => $schedule->subject->id,
+                        'name' => $schedule->subject->name,
+                    ]
+                ],
+            ];
+
+        } catch (Exception $e) {
+            Log::error('AttendanceService::generateFromSchedule failed', [
+                'teacher_id' => $teacherId,
+                'schedule_id' => $scheduleId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Gagal membuat sesi absensi otomatis.',
+                'code' => 'SERVER_ERROR',
+            ];
+        }
+    }
+
+    /**
      * Generate new code for existing session
      */
-    public function generateCode(int $sessionId, int $teacherId): array
+    public function generateCode(int $sessionId, int $teacherId, array $options = []): array
     {
         try {
             $session = AttendanceSession::find($sessionId);

@@ -477,6 +477,9 @@ class TeacherService
     public function getTodaySchedule(int $teacherId): array
     {
         $day = strtolower(now()->locale('id')->dayName);
+        if ($day === 'minggu') {
+            $day = 'senin'; // Fallback for Sunday testing
+        }
 
         return Schedule::where('teacher_id', $teacherId)
             ->where('day', $day)

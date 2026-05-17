@@ -304,7 +304,7 @@ function RetroPermissionItem({ permission, onApprove, onReject }) {
 }
 
 // Retro Schedule Item
-function RetroScheduleItem({ schedule, isActive }) {
+function RetroScheduleItem({ schedule, isActive, onGenerate, isGenerating }) {
   const timeConfig = {
     pagi: { label: 'Pagi', color: 'bg-retro-lime/20 text-retro-lime' },
     siang: { label: 'Siang', color: 'bg-retro-yellow/20 text-retro-yellow' },
@@ -330,12 +330,27 @@ function RetroScheduleItem({ schedule, isActive }) {
           {schedule.start_time} - {schedule.end_time}
         </span>
       </div>
-      <p className="font-retro-display font-black text-base-black text-sm mb-1">
-        {schedule.subject?.name}
-      </p>
-      <p className="font-retro-mono text-[10px] text-base-black/50">
-        {schedule.class?.name} • {schedule.room}
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1">
+          <p className="font-retro-display font-black text-base-black text-sm mb-1 leading-tight">
+            {schedule.subject?.name}
+          </p>
+          <p className="font-retro-mono text-[10px] text-base-black/50">
+            {schedule.class?.name} • {schedule.room}
+          </p>
+        </div>
+        {onGenerate && (
+          <Button
+            size="xs"
+            onClick={() => onGenerate(schedule.id)}
+            disabled={isGenerating}
+            className="flex-shrink-0 font-retro-display text-[9px] uppercase tracking-wider py-1 px-2 border-2 border-base-black shadow-[1px_1px_0px_0px_#111111] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[0px_0px_0px_0px_#111111]"
+          >
+            <Sparkles className="w-3 h-3 mr-0.5" />
+            Gen QR
+          </Button>
+        )}
+      </div>
     </motion.div>
   );
 }
@@ -430,6 +445,7 @@ export default function TeacherDashboard() {
   const [searchPermission, setSearchPermission] = useState('');
   const [filterClass, setFilterClass] = useState('all');
   const [isCreateSessionOpen, setIsCreateSessionOpen] = useState(false);
+  const [creationMode, setCreationMode] = useState('schedule');
   const [isViewPermissionOpen, setIsViewPermissionOpen] = useState(false);
   const [selectedPermission, setSelectedPermission] = useState(null);
   const [sessionForm, setSessionForm] = useState({
@@ -520,6 +536,26 @@ export default function TeacherDashboard() {
     },
     onError: (err) => {
       showToast(`❌ ${err.message || 'Gagal membuat sesi absensi'}`, 'error');
+    }
+  });
+
+  // Generate Session from Schedule
+  const generateFromScheduleMutation = useMutation({
+    mutationFn: (scheduleId) => api.post(`/teacher/attendance/generate/${scheduleId}`),
+    onSuccess: (res) => {
+      if (res?.data?.code) {
+        setQrCode(res.data.code);
+        setIsQRModalOpen(true);
+        queryClient.invalidateQueries({ queryKey: ['teacher-dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['teacher-schedule', 'today'] });
+        queryClient.invalidateQueries({ queryKey: ['teacher-attendance-sessions'] });
+        showToast('✅ Sesi absensi berhasil dibuat otomatis dari jadwal!', 'success');
+      } else {
+        showToast('❌ Gagal membuat sesi absensi otomatis', 'error');
+      }
+    },
+    onError: (err) => {
+      showToast(`❌ Gagal: ${err.response?.data?.message || err.message || 'Server error'}`, 'error');
     }
   });
 
@@ -1045,6 +1081,8 @@ export default function TeacherDashboard() {
                       key={sched.id} 
                       schedule={sched} 
                       isActive={idx === 0}
+                      onGenerate={(id) => generateFromScheduleMutation.mutate(id)}
+                      isGenerating={generateFromScheduleMutation.isLoading}
                     />
                   ))
                 ) : (
@@ -1219,126 +1257,204 @@ export default function TeacherDashboard() {
         title="✨ Buat Sesi Absensi Baru" 
         size="lg"
       >
-        <form onSubmit={handleCreateSession} className="space-y-6">
-          
-          {/* Class & Subject Selection */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="block text-xs font-black uppercase tracking-wider text-base-black">
-                <span className="flex items-center gap-1.5">
-                  <BookOpen className="w-4 h-4" /> Kelas <span className="text-retro-orange">*</span>
-                </span>
-              </label>
-              <select
-                value={sessionForm.class_id}
-                onChange={(e) => setSessionForm({...sessionForm, class_id: e.target.value})}
-                className="retro-input w-full"
-                required
-              >
-                <option value="">Pilih Kelas</option>
-                {classList.map(cls => (
-                  <option key={cls.id} value={cls.id}>{cls.name}</option>
+        <div className="flex border-b-2 border-base-black mb-6">
+          <button
+            type="button"
+            onClick={() => setCreationMode('schedule')}
+            className={`flex-1 py-3 text-center font-retro-display font-black text-sm uppercase tracking-wide border-r-2 border-base-black transition-all ${
+              creationMode === 'schedule' 
+                ? 'bg-retro-orange text-base-white' 
+                : 'bg-base-white text-base-black hover:bg-retro-orange/10'
+            }`}
+          >
+            🗓️ Jadwal Hari Ini
+          </button>
+          <button
+            type="button"
+            onClick={() => setCreationMode('manual')}
+            className={`flex-1 py-3 text-center font-retro-display font-black text-sm uppercase tracking-wide transition-all ${
+              creationMode === 'manual' 
+                ? 'bg-retro-orange text-base-white' 
+                : 'bg-base-white text-base-black hover:bg-retro-orange/10'
+            }`}
+          >
+            ✍️ Buat Manual (Fallback)
+          </button>
+        </div>
+
+        {creationMode === 'schedule' ? (
+          <div className="space-y-4">
+            <p className="font-retro-mono text-xs text-base-black/70 mb-4">
+              Pilih jadwal aktif Anda hari ini untuk membuat sesi absensi secara otomatis tanpa mengetik manual.
+            </p>
+            {todaySchedule?.data?.length > 0 ? (
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                {todaySchedule.data.map((sched, idx) => (
+                  <div 
+                    key={sched.id}
+                    className="p-4 rounded-retro border-2 border-base-black bg-base-white flex items-center justify-between gap-4 shadow-[2px_2px_0px_0px_#111111]"
+                  >
+                    <div>
+                      <span className="font-retro-mono text-[10px] text-retro-orange font-bold uppercase">
+                        {sched.start_time} - {sched.end_time}
+                      </span>
+                      <h4 className="font-retro-display font-black text-base-black text-base mt-0.5 leading-tight">
+                        {sched.subject?.name}
+                      </h4>
+                      <p className="font-retro-mono text-xs text-base-black/60 mt-0.5">
+                        {sched.class?.name} • {sched.room}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        generateFromScheduleMutation.mutate(sched.id);
+                        setIsCreateSessionOpen(false);
+                      }}
+                      disabled={generateFromScheduleMutation.isLoading}
+                      className="font-retro-display text-xs"
+                    >
+                      <Sparkles className="w-4 h-4 mr-1.5" />
+                      Generate Absensi
+                    </Button>
+                  </div>
                 ))}
-              </select>
-            </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 retro-card bg-base-gray border-2 border-base-black">
+                <p className="font-retro-mono text-sm text-base-black/50">📭 Tidak ada jadwal pelajaran hari ini.</p>
+                <p className="font-retro-mono text-[10px] text-base-black/40 mt-1">Silakan gunakan tab "Buat Manual" di atas untuk membuat sesi absensi secara manual.</p>
+              </div>
+            )}
             
-            <div className="space-y-1.5">
-              <label className="block text-xs font-black uppercase tracking-wider text-base-black">
-                <span className="flex items-center gap-1.5">
-                  <BookOpen className="w-4 h-4" /> Mapel <span className="text-retro-orange">*</span>
-                </span>
-              </label>
-              <select
-                value={sessionForm.subject_id}
-                onChange={(e) => setSessionForm({...sessionForm, subject_id: e.target.value})}
-                className="retro-input w-full"
-                required
-              >
-                <option value="">Pilih Mapel</option>
-                {subjectList.map(subj => (
-                  <option key={subj.id} value={subj.id}>{subj.name}</option>
-                ))}
-              </select>
+            <div className="pt-4 flex justify-end border-t-2 border-base-black/20">
+              <Button variant="outline" onClick={() => setIsCreateSessionOpen(false)}>
+                Tutup
+              </Button>
             </div>
           </div>
-
-          {/* Date & Time */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input 
-              label="Tanggal" 
-              name="date" 
-              type="date"
-              value={sessionForm.date}
-              onChange={(e) => setSessionForm(prev => ({...prev, date: e.target.value}))}
-              required
-            />
-            <Input 
-              label="Mulai" 
-              name="start_time" 
-              type="time"
-              value={sessionForm.start_time}
-              onChange={(e) => setSessionForm(prev => ({...prev, start_time: e.target.value}))}
-              required
-            />
-            <Input 
-              label="Selesai" 
-              name="end_time" 
-              type="time"
-              value={sessionForm.end_time}
-              onChange={(e) => setSessionForm(prev => ({...prev, end_time: e.target.value}))}
-              required
-            />
-          </div>
-
-          {/* Location & Notes */}
-          <Input 
-            label="Lokasi / Ruang" 
-            name="location" 
-            value={sessionForm.location}
-            onChange={(e) => setSessionForm(prev => ({...prev, location: e.target.value}))}
-            placeholder="Contoh: Ruang RPL-1, Lab Komputer"
-            icon={MapPin}
-          />
-          
-          <RetroTextArea 
-            label="Catatan" 
-            name="notes" 
-            value={sessionForm.notes}
-            onChange={(e) => setSessionForm(prev => ({...prev, notes: e.target.value}))}
-            placeholder="Catatan tambahan untuk sesi ini..."
-            rows={2}
-          />
-
-          {/* QR Code Option */}
-          <div className="p-4 retro-card bg-retro-yellow/10 border-2 border-retro-yellow">
-            <div className="flex items-center gap-3">
-              <QrCode className="w-5 h-5 text-retro-orange" />
-              <div>
-                <p className="font-retro-display font-black text-base-black text-sm">Generate QR Code</p>
-                <p className="font-retro-mono text-[10px] text-base-black/60">
-                  QR code akan dibuat otomatis setelah sesi disimpan
-                </p>
+        ) : (
+          <form onSubmit={handleCreateSession} className="space-y-6">
+            
+            {/* Class & Subject Selection */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black uppercase tracking-wider text-base-black">
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4" /> Kelas <span className="text-retro-orange">*</span>
+                  </span>
+                </label>
+                <select
+                  value={sessionForm.class_id}
+                  onChange={(e) => setSessionForm({...sessionForm, class_id: e.target.value})}
+                  className="retro-input w-full"
+                  required
+                >
+                  <option value="">Pilih Kelas</option>
+                  {classList.map(cls => (
+                    <option key={cls.id} value={cls.id}>{cls.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black uppercase tracking-wider text-base-black">
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4" /> Mapel <span className="text-retro-orange">*</span>
+                  </span>
+                </label>
+                <select
+                  value={sessionForm.subject_id}
+                  onChange={(e) => setSessionForm({...sessionForm, subject_id: e.target.value})}
+                  className="retro-input w-full"
+                  required
+                >
+                  <option value="">Pilih Mapel</option>
+                  {subjectList.map(subj => (
+                    <option key={subj.id} value={subj.id}>{subj.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
-          </div>
 
-          {/* Action Buttons */}
-          <div className="pt-4 flex justify-end gap-3 border-t-2 border-base-black/20">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setIsCreateSessionOpen(false)}
-            >
-              Batal
-            </Button>
-            <Button 
-              type="submit" 
-              loading={createSessionMutation.isLoading}
-            >
-              💾 Buat Sesi
-            </Button>
-          </div>
-        </form>
+            {/* Date & Time */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input 
+                label="Tanggal" 
+                name="date" 
+                type="date"
+                value={sessionForm.date}
+                onChange={(e) => setSessionForm(prev => ({...prev, date: e.target.value}))}
+                required
+              />
+              <Input 
+                label="Mulai" 
+                name="start_time" 
+                type="time"
+                value={sessionForm.start_time}
+                onChange={(e) => setSessionForm(prev => ({...prev, start_time: e.target.value}))}
+                required
+              />
+              <Input 
+                label="Selesai" 
+                name="end_time" 
+                type="time"
+                value={sessionForm.end_time}
+                onChange={(e) => setSessionForm(prev => ({...prev, end_time: e.target.value}))}
+                required
+              />
+            </div>
+
+            {/* Location & Notes */}
+            <Input 
+              label="Lokasi / Ruang" 
+              name="location" 
+              value={sessionForm.location}
+              onChange={(e) => setSessionForm(prev => ({...prev, location: e.target.value}))}
+              placeholder="Contoh: Ruang RPL-1, Lab Komputer"
+              icon={MapPin}
+            />
+            
+            <RetroTextArea 
+              label="Catatan" 
+              name="notes" 
+              value={sessionForm.notes}
+              onChange={(e) => setSessionForm(prev => ({...prev, notes: e.target.value}))}
+              placeholder="Catatan tambahan untuk sesi ini..."
+              rows={2}
+            />
+
+            {/* QR Code Option */}
+            <div className="p-4 retro-card bg-retro-yellow/10 border-2 border-retro-yellow">
+              <div className="flex items-center gap-3">
+                <QrCode className="w-5 h-5 text-retro-orange" />
+                <div>
+                  <p className="font-retro-display font-black text-base-black text-sm">Generate QR Code</p>
+                  <p className="font-retro-mono text-[10px] text-base-black/60">
+                    QR code akan dibuat otomatis setelah sesi disimpan
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-4 flex justify-end gap-3 border-t-2 border-base-black/20">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsCreateSessionOpen(false)}
+              >
+                Batal
+              </Button>
+              <Button 
+                type="submit" 
+                loading={createSessionMutation.isLoading}
+              >
+                💾 Buat Sesi
+              </Button>
+            </div>
+          </form>
+        )}
       </Modal>
 
       {/* ═══════════════════════════════════════════════════════════
