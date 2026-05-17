@@ -228,6 +228,7 @@ Route::middleware('api')->group(function () {
             // Attendance Control - Retro Features
             Route::prefix('attendance')->group(function () {
                 Route::get('/sessions', [TeacherAttendance::class, 'sessions']);
+                Route::post('/generate/{schedule_id}', [TeacherAttendance::class, 'generateFromSchedule']);
                 Route::post('/session/create', [TeacherAttendance::class, 'createSession']);
                 Route::post('/session/retro-create', [TeacherAttendance::class, 'retroCreateSession']);
                 Route::post('/session/{id}/generate-code', [TeacherAttendance::class, 'generateCode']);

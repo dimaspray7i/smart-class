@@ -149,6 +149,50 @@ class AttendanceController extends Controller
     }
 
     /**
+     * ✨ Generate attendance session automatically from schedule ID
+     * 
+     * @param Request $request
+     * @param int $scheduleId
+     * @return JsonResponse
+     */
+    public function generateFromSchedule(Request $request, int $scheduleId): JsonResponse
+    {
+        try {
+            $teacherId = $request->user()->id;
+
+            $result = $this->attendanceService->generateFromSchedule($scheduleId, $teacherId);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'GENERATE_SESSION_FAILED',
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $result['message'],
+                'code' => $result['code'] ?? 'SESSION_CREATED',
+                'data' => $result['data'],
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('AttendanceController::generateFromSchedule failed', [
+                'teacher_id' => $request->user()?->id,
+                'schedule_id' => $scheduleId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal membuat sesi absensi dari jadwal.',
+                'code' => 'GENERATE_SESSION_ERROR',
+            ], 500);
+        }
+    }
+
+    /**
      * 🔄 Generate/refresh QR code for existing session
      * 
      * @param Request $request

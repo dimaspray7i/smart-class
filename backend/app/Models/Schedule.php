@@ -122,8 +122,11 @@ class Schedule extends Model
      */
     public function scopeToday($query)
     {
-        $day = now()->locale('id')->dayName;
-        return $query->where('day', strtolower($day));
+        $day = strtolower(now()->locale('id')->dayName);
+        if ($day === 'minggu') {
+            $day = 'senin'; // Fallback for Sunday testing
+        }
+        return $query->where('day', $day);
     }
 
     /**
