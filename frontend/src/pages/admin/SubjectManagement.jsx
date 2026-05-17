@@ -8,6 +8,7 @@ import {
   Star, Rocket, Smile, Settings, Menu, RefreshCw
 } from 'lucide-react';
 import { adminAPI } from '../../api';
+import { ID } from '../../i18n/id';
 
 // 🏛️ CENTRALIZED UI COMPONENTS
 import Modal from '../../components/ui/Modal';
@@ -323,10 +324,10 @@ export default function SubjectManagement() {
 
       {/* 🏛️ PAGE HEADER */}
       <PageHeader 
-        title="Subject Management"
+        title={ID.nav.subjects}
         icon={BookOpen}
         description="Kelola kurikulum, mata pelajaran produktif, normatif, dan adaptif."
-        breadcrumbs={[{ label: 'Subjects', path: '/admin/subjects' }]}
+        breadcrumbs={[{ label: ID.nav.subjects, path: '/admin/subjects' }]}
         actions={
           <div className="flex gap-2">
             <div className="flex p-1 bg-base-gray/20 rounded-retro-sm">
@@ -355,7 +356,7 @@ export default function SubjectManagement() {
               className="flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Add Subject
+              Tambah Mapel
             </Button>
           </div>
         }
@@ -446,7 +447,7 @@ export default function SubjectManagement() {
                 className="flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
-                Export
+                Ekspor
               </Button>
             </div>
           </div>
@@ -514,7 +515,7 @@ export default function SubjectManagement() {
                 )
               },
               {
-                header: 'Actions',
+                header: 'Aksi',
                 key: 'actions',
                 align: 'right',
                 render: (_, row) => (
@@ -597,7 +598,7 @@ export default function SubjectManagement() {
                 {/* Decorative sticker */}
                 <div className="absolute -bottom-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                    <div className="retro-sticker bg-retro-yellow text-base-black text-[8px] px-2 py-0.5 rotate-3">
-                     SUBJECT
+                     MAPEL
                    </div>
                 </div>
               </RetroCard>
@@ -610,34 +611,34 @@ export default function SubjectManagement() {
       <Modal 
         isOpen={isCreateOpen || isEditOpen} 
         onClose={() => { setIsCreateOpen(false); setIsEditOpen(false); }}
-        title={isCreateOpen ? "Create New Subject" : "Edit Subject"}
+        title={isCreateOpen ? "Tambah Mata Pelajaran Baru" : "Ubah Mata Pelajaran"}
         size="lg"
       >
         <form onSubmit={isCreateOpen ? handleCreateSubmit : handleEditSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input 
-              label="Subject Code"
+              label="Kode Mapel"
               name="code"
               value={formData.code}
               onChange={(e) => setFormData({...formData, code: e.target.value})}
               error={errors.code}
-              placeholder="e.g., RPL-101"
+              placeholder="Contoh: RPL-101"
               required
             />
             <Input 
-              label="Subject Name"
+              label="Nama Mapel"
               name="name"
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
               error={errors.name}
-              placeholder="e.g., Pemrograman Web"
+              placeholder="Contoh: Pemrograman Web"
               required
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select 
-              label="Category"
+              label="Kategori"
               name="category"
               value={formData.category}
               onChange={(e) => setFormData({...formData, category: e.target.value})}
@@ -646,7 +647,7 @@ export default function SubjectManagement() {
               required
             />
             <Input 
-              label="Credits (SKS)"
+              label="Kredit (SKS)"
               name="credits"
               type="number"
               value={formData.credits}
@@ -658,10 +659,10 @@ export default function SubjectManagement() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-black uppercase text-base-black">Description</label>
+            <label className="text-xs font-black uppercase text-base-black">Deskripsi</label>
             <textarea 
               className="w-full p-3 rounded-retro border-2 border-base-black focus:border-retro-orange focus:ring-4 focus:ring-retro-orange/20 transition-all font-retro-mono text-sm min-h-[100px] bg-base-white"
-              placeholder="Describe the subject contents..."
+              placeholder="Deskripsikan isi mata pelajaran..."
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
             />
@@ -676,21 +677,21 @@ export default function SubjectManagement() {
               className="w-5 h-5 rounded-sm border-2 border-base-black accent-retro-orange"
             />
             <label htmlFor="is_active" className="font-retro-display font-black text-sm cursor-pointer uppercase">
-              Mark as Active
+              Tandai sebagai Aktif
             </label>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t-2 border-base-black/10">
-            <Button variant="outline" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }}>Batal</Button>
             <Button type="submit" loading={createSubjectMutation.isPending || updateSubjectMutation.isPending}>
-              {isCreateOpen ? 'Create Subject' : 'Update Subject'}
+              {isCreateOpen ? 'Tambah Mapel' : 'Perbarui Mapel'}
             </Button>
           </div>
         </form>
       </Modal>
 
       {/* 🔍 VIEW MODAL */}
-      <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="Subject Details" size="md">
+      <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="Detail Mata Pelajaran" size="md">
         {selectedSubject && (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -705,25 +706,25 @@ export default function SubjectManagement() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 bg-base-gray/10 rounded-retro border-2 border-base-black">
-                <p className="text-[10px] font-black text-base-black/50 uppercase">Category</p>
+                <p className="text-[10px] font-black text-base-black/50 uppercase">Kategori</p>
                 <p className="font-retro-display font-black text-sm uppercase">{selectedSubject.category}</p>
               </div>
               <div className="p-3 bg-base-gray/10 rounded-retro border-2 border-base-black">
-                <p className="text-[10px] font-black text-base-black/50 uppercase">Credits</p>
+                <p className="text-[10px] font-black text-base-black/50 uppercase">Kredit</p>
                 <p className="font-retro-display font-black text-sm">{selectedSubject.credits} SKS</p>
               </div>
             </div>
 
             <div className="p-4 bg-base-black/5 rounded-retro border-2 border-base-black border-dashed">
-              <p className="text-[10px] font-black text-base-black/50 uppercase mb-2">Description</p>
+              <p className="text-[10px] font-black text-base-black/50 uppercase mb-2">Deskripsi</p>
               <p className="font-retro-mono text-sm text-base-black italic line-clamp-4">
-                {selectedSubject.description || "No description provided for this subject."}
+                {selectedSubject.description || "Tidak ada deskripsi yang disediakan untuk mata pelajaran ini."}
               </p>
             </div>
 
             <div className="flex justify-end gap-2 pt-4 border-t-2 border-base-black/10">
-              <Button variant="outline" onClick={() => setIsViewOpen(false)}>Close</Button>
-              <Button onClick={() => { setIsViewOpen(false); openEditModal(selectedSubject); }}>Edit Subject</Button>
+              <Button variant="outline" onClick={() => setIsViewOpen(false)}>Tutup</Button>
+              <Button onClick={() => { setIsViewOpen(false); openEditModal(selectedSubject); }}>Ubah Mapel</Button>
             </div>
           </div>
         )}
@@ -733,7 +734,7 @@ export default function SubjectManagement() {
       <Modal 
         isOpen={!!confirmDelete} 
         onClose={() => setConfirmDelete(null)}
-        title="Delete Subject?"
+        title="Hapus Mata Pelajaran?"
         size="sm"
       >
         <div className="text-center p-4">
@@ -741,11 +742,11 @@ export default function SubjectManagement() {
             <Trash2 className="w-8 h-8 text-danger" />
           </div>
           <p className="font-retro-mono text-sm text-base-black/70 mb-6">
-            Are you sure you want to delete this subject? This action cannot be undone.
+            Apakah Anda yakin ingin menghapus mata pelajaran ini? Tindakan ini tidak dapat dibatalkan.
           </p>
           <div className="flex justify-center gap-3">
-            <Button variant="outline" onClick={() => setConfirmDelete(null)}>Cancel</Button>
-            <Button variant="danger" onClick={confirmDeleteAction}>Yes, Delete</Button>
+            <Button variant="outline" onClick={() => setConfirmDelete(null)}>Batal</Button>
+            <Button variant="danger" onClick={confirmDeleteAction}>Ya, Hapus</Button>
           </div>
         </div>
       </Modal>
@@ -753,7 +754,7 @@ export default function SubjectManagement() {
       <Modal 
         isOpen={confirmBulkDelete} 
         onClose={() => setConfirmBulkDelete(false)}
-        title="Delete Selected?"
+        title="Hapus Terpilih?"
         size="sm"
       >
         <div className="text-center p-4">
@@ -761,11 +762,11 @@ export default function SubjectManagement() {
             <Trash2 className="w-8 h-8 text-danger" />
           </div>
           <p className="font-retro-mono text-sm text-base-black/70 mb-6">
-            Are you sure you want to delete {selectedIds.length} selected subjects?
+            Apakah Anda yakin ingin menghapus {selectedIds.length} mata pelajaran terpilih?
           </p>
           <div className="flex justify-center gap-3">
-            <Button variant="outline" onClick={() => setConfirmBulkDelete(false)}>Cancel</Button>
-            <Button variant="danger" onClick={confirmBulkDeleteAction}>Yes, Delete All</Button>
+            <Button variant="outline" onClick={() => setConfirmBulkDelete(false)}>Batal</Button>
+            <Button variant="danger" onClick={confirmBulkDeleteAction}>Ya, Hapus Semua</Button>
           </div>
         </div>
       </Modal>

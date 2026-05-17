@@ -203,7 +203,7 @@ function RetroFeatureCard({ icon: Icon, title, description, color, delay = 0 }) 
         whileInView="visible"
         className="absolute -top-2 -right-2"
       >
-        <div className="retro-sticker bg-retro-yellow text-base-black text-[9px] px-2 py-0.5">NEW</div>
+        <div className="retro-sticker bg-retro-yellow text-base-black text-[9px] px-2 py-0.5">BARU</div>
       </motion.div>
     </motion.div>
   );
@@ -237,7 +237,7 @@ function RetroGalleryCard({ project, delay = 0 }) {
             className="text-retro-orange text-xs font-retro-mono flex items-center gap-1"
             whileHover={{ x: 3 }}
           >
-            View <ArrowRight className="w-3 h-3" />
+            Lihat Detail <ArrowRight className="w-3 h-3" />
           </motion.span>
         </div>
       </div>
@@ -295,31 +295,31 @@ function RetroCTASection() {
         whileInView="visible"
         className="absolute -top-3 -left-3"
       >
-        <div className="retro-sticker bg-retro-pink text-base-white text-[10px] px-3 py-1">JOIN NOW</div>
+        <div className="retro-sticker bg-retro-pink text-base-white text-[10px] px-3 py-1">GABUNG SEKARANG</div>
       </motion.div>
       
       <h2 className="retro-heading retro-heading-xl text-retro-orange mb-4">
-        READY TO START YOUR <span className="text-retro-blue">RPL JOURNEY</span>?
+        SIAP MEMULAI <span className="text-retro-blue">PERJALANAN RPL</span> KAMU?
       </h2>
       <p className="font-retro-mono text-base-black/70 mb-8 max-w-2xl mx-auto">
-        Join hundreds of students already mastering programming, building projects, and preparing for their future in tech.
+        Bergabunglah dengan ratusan siswa yang telah menguasai pemrograman, membangun proyek, dan mempersiapkan masa depan mereka di dunia teknologi.
       </p>
       
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <motion.div variants={pulseVariants} animate="animate">
           <Link to="/login" className="retro-btn retro-btn-lg flex items-center justify-center gap-2">
             <Rocket className="w-5 h-5" />
-            Get Started Free
+            Mulai Sekarang, Gratis!
           </Link>
         </motion.div>
         <Link to="/simulator" className="retro-btn retro-btn-lg retro-btn-outline flex items-center justify-center gap-2">
-          Try Career Simulator
+          Coba Simulator Karir
           <ArrowRight className="w-5 h-5" />
         </Link>
       </div>
       
       <p className="font-retro-mono text-[10px] text-base-black/50 mt-6">
-        ✨ No credit card required • Free forever for students
+        ✨ Tidak perlu kartu kredit • Gratis selamanya untuk siswa
       </p>
     </motion.section>
   );
@@ -330,10 +330,10 @@ function RetroFooter() {
   const currentYear = new Date().getFullYear();
   
   const links = {
-    Product: ['Features', 'Pricing', 'Career Simulator', 'Student Gallery'],
-    Resources: ['Documentation', 'API Reference', 'Blog', 'Community'],
-    Company: ['About', 'Careers', 'Contact', 'Privacy'],
-    Legal: ['Terms', 'Privacy Policy', 'Cookie Policy', 'Licenses'],
+    Produk: ['Fitur', 'Harga', 'Simulator Karir', 'Galeri Siswa'],
+    'Sumber Daya': ['Dokumentasi', 'Referensi API', 'Blog', 'Komunitas'],
+    Lembaga: ['Tentang Kami', 'Karir', 'Hubungi Kami', 'Privasi'],
+    Hukum: ['Ketentuan', 'Kebijakan Privasi', 'Kebijakan Cookie', 'Lisensi'],
   };
   
   return (
@@ -349,7 +349,7 @@ function RetroFooter() {
               <span className="font-retro-display font-black text-base-black text-lg">RPL SMART</span>
             </div>
             <p className="font-retro-mono text-xs text-base-black/60 mb-4">
-              Empowering the next generation of tech talent through innovative learning.
+              Memberdayakan generasi talenta teknologi berikutnya melalui pembelajaran inovatif.
             </p>
             <div className="flex gap-2">
               {[Github, Globe, MessageCircle].map((Icon, i) => (
@@ -386,12 +386,12 @@ function RetroFooter() {
         {/* Bottom Bar */}
         <div className="pt-8 border-t-2 border-base-black/20 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="font-retro-mono text-[10px] text-base-black/50">
-            © {currentYear} RPL Smart Ecosystem. Built with ❤️ & ☕
+            © {currentYear} RPL Smart Ecosystem. Dibuat dengan ❤️ & ☕
           </p>
           <div className="flex items-center gap-4">
             <span className="retro-badge retro-badge-green text-[9px]">v2.0 RETRO</span>
             <a href="#" className="font-retro-mono text-[10px] text-base-black/60 hover:text-retro-orange transition-colors">Status</a>
-            <a href="#" className="font-retro-mono text-[10px] text-base-black/60 hover:text-retro-orange transition-colors">Changelog</a>
+            <a href="#" className="font-retro-mono text-[10px] text-base-black/60 hover:text-retro-orange transition-colors">Riwayat Pembaruan</a>
           </div>
         </div>
       </div>
@@ -403,7 +403,7 @@ function RetroFooter() {
         whileInView="visible"
         className="absolute -bottom-3 -right-3"
       >
-        <div className="retro-sticker bg-retro-lime text-base-black text-[10px] px-3 py-1">MADE WITH RETRO ✨</div>
+        <div className="retro-sticker bg-retro-lime text-base-black text-[10px] px-3 py-1">DIBUAT DENGAN RETRO ✨</div>
       </motion.div>
     </footer>
   );
@@ -468,17 +468,17 @@ export default function LandingPage() {
 
   // Sample data for gallery preview
   const galleryProjects = [
-    { id: 1, title: 'E-Commerce App', description: 'Full-stack online store with payment integration', category: 'Web Dev', image: null },
-    { id: 2, title: 'Task Manager', description: 'Productivity app with real-time sync', category: 'Mobile', image: null },
-    { id: 3, title: 'AI Chatbot', description: 'NLP-powered customer support assistant', category: 'AI/ML', image: null },
-    { id: 4, title: 'Game Platform', description: 'Multiplayer gaming platform with leaderboards', category: 'Game Dev', image: null },
+    { id: 1, title: 'Aplikasi E-Commerce', description: 'Toko online full-stack dengan integrasi pembayaran', category: 'Web Dev', image: null },
+    { id: 2, title: 'Manajer Tugas', description: 'Aplikasi produktivitas dengan sinkronisasi waktu nyata', category: 'Mobile', image: null },
+    { id: 3, title: 'Chatbot AI', description: 'Asisten layanan pelanggan bertenaga NLP', category: 'AI/ML', image: null },
+    { id: 4, title: 'Platform Game', description: 'Platform game multipemain dengan papan peringkat', category: 'Game Dev', image: null },
   ];
 
   // Sample testimonials
   const testimonials = [
-    { author: 'Ahmad Rizki', role: 'Student, Class XII', quote: 'RPL Smart helped me land my first internship! The project tracking feature is amazing.', rating: 5 },
-    { author: 'Siti Nurhaliza', role: 'Teacher, RPL Department', quote: 'Managing attendance and student progress has never been easier. Highly recommended!', rating: 5 },
-    { author: 'Budi Santoso', role: 'Alumni, Software Engineer', quote: 'The career simulator gave me clarity on my path. Now I work at a top tech company!', rating: 5 },
+    { author: 'Ahmad Rizki', role: 'Siswa, Kelas XII', quote: 'RPL Smart membantu saya mendapatkan magang pertama saya! Fitur pelacakan proyek sangat luar biasa.', rating: 5 },
+    { author: 'Siti Nurhaliza', role: 'Guru, Departemen RPL', quote: 'Mengelola absensi dan kemajuan siswa kini jauh lebih mudah. Sangat direkomendasikan!', rating: 5 },
+    { author: 'Budi Santoso', role: 'Alumni, Software Engineer', quote: 'Simulator karir memberi saya kejelasan tentang masa depan saya. Sekarang saya bekerja di perusahaan teknologi terkemuka!', rating: 5 },
   ];
 
   // ═══════════════════════════════════════════════════════════
@@ -493,7 +493,6 @@ export default function LandingPage() {
     >
       {/* Background Decorations */}
       <LandingDecorations />
-
 
       {/* ═══════════════════════════════════════════════════
           🚀 HERO SECTION - RETRO STYLE
@@ -510,7 +509,7 @@ export default function LandingPage() {
           >
             <div className="retro-sticker bg-retro-yellow text-base-black text-xs px-4 py-1.5 flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
-              Welcome to RPL Smart Ecosystem v2.0
+              Selamat Datang di RPL Smart Ecosystem v2.0
             </div>
           </motion.div>
           
@@ -522,7 +521,7 @@ export default function LandingPage() {
             transition={{ delay: 0.2 }}
           >
             RPL SMART<br />
-            <span className="text-retro-blue">ECOSYSTEM</span>
+            <span className="text-retro-blue">EKOSISTEM</span>
           </motion.h1>
           
           {/* Subheading */}
@@ -546,12 +545,12 @@ export default function LandingPage() {
             <motion.div variants={pulseVariants} animate="animate">
               <Link to="/simulator" className="retro-btn retro-btn-lg flex items-center justify-center gap-2">
                 <TrendingUp className="w-5 h-5" />
-                Try Career Simulator
+                Coba Simulator Karir
                 <ArrowRight className="w-5 h-5" />
               </Link>
             </motion.div>
             <Link to="/login" className="retro-btn retro-btn-lg retro-btn-outline flex items-center justify-center gap-2">
-              Login to Dashboard
+              Masuk ke Dashboard
             </Link>
           </motion.div>
           
@@ -562,7 +561,7 @@ export default function LandingPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
           >
-            {['🔐 Secure', '⚡ Fast', '🎨 Retro UI', '📱 Mobile Ready'].map((badge, i) => (
+            {['🔐 Aman', '⚡ Cepat', '🎨 UI Retro', '📱 Siap Mobile'].map((badge, i) => (
               <span key={i} className="retro-badge retro-badge-blue text-[10px] px-3 py-1">
                 {badge}
               </span>
@@ -609,10 +608,10 @@ export default function LandingPage() {
           >
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               {[
-                { value: '450+', label: 'Active Students', icon: Users, delay: 0 },
-                { value: '32', label: 'Expert Teachers', icon: Users, delay: 100 },
-                { value: '120+', label: 'Projects Built', icon: Code, delay: 200 },
-                { value: '15', label: 'Skill Tracks', icon: TrendingUp, delay: 300 },
+                { value: '450+', label: 'Siswa Aktif', icon: Users, delay: 0 },
+                { value: '32', label: 'Guru Pengajar', icon: Users, delay: 100 },
+                { value: '120+', label: 'Proyek Dibuat', icon: Code, delay: 200 },
+                { value: '15', label: 'Jalur Kompetensi', icon: TrendingUp, delay: 300 },
               ].map((stat, index) => (
                 <RetroStatCard key={index} {...stat} />
               ))}
@@ -638,12 +637,12 @@ export default function LandingPage() {
             variants={cardVariants}
             className="text-center mb-12"
           >
-            <span className="retro-badge retro-badge-yellow text-[10px] px-3 py-1 mb-4 inline-block">FEATURES</span>
+            <span className="retro-badge retro-badge-yellow text-[10px] px-3 py-1 mb-4 inline-block">FITUR UNGGULAN</span>
             <h2 className="retro-heading retro-heading-xl text-retro-orange mb-3">
-              Powerful <span className="text-retro-blue">Features</span>
+              Fitur <span className="text-retro-blue">Unggulan Kami</span>
             </h2>
             <p className="font-retro-mono text-base-black/70 max-w-2xl mx-auto">
-              Everything you need to succeed in your RPL journey, all in one retro-futuristic platform.
+              Semua hal yang kamu butuhkan untuk sukses di jurusan RPL, dalam satu platform retro-futuristik.
             </p>
           </motion.div>
           
@@ -655,42 +654,42 @@ export default function LandingPage() {
             {[
               {
                 icon: CalendarCheck,
-                title: 'Smart Attendance',
+                title: 'Absensi Pintar',
                 description: 'Absensi harian dengan validasi lokasi GPS, foto selfie real-time, dan anti-fake GPS protection.',
                 color: 'orange',
                 delay: 0,
               },
               {
                 icon: Code,
-                title: 'Project Tracking',
+                title: 'Pelacakan Proyek',
                 description: 'Kelola dan track progress project coding kamu dengan Git integration dan collaborative tools.',
                 color: 'blue',
                 delay: 100,
               },
               {
                 icon: TrendingUp,
-                title: 'Skill Analytics',
+                title: 'Analisis Kompetensi',
                 description: 'Track dan visualisasi perkembangan skill programming kamu dengan interactive charts & badges.',
                 color: 'purple',
                 delay: 200,
               },
               {
                 icon: MapPin,
-                title: 'PKL Management',
+                title: 'Manajemen PKL',
                 description: 'Kelola penempatan PKL, absensi lokasi, dan laporan mingguan dalam satu dashboard terintegrasi.',
                 color: 'lime',
                 delay: 300,
               },
               {
                 icon: QrCode,
-                title: 'QR Attendance',
+                title: 'Absensi QR Code',
                 description: 'Scan QR code animated untuk absensi cepat dengan expired timer dan random generation.',
                 color: 'yellow',
                 delay: 400,
               },
               {
                 icon: Shield,
-                title: 'Secure & Private',
+                title: 'Keamanan & Privasi',
                 description: 'Data kamu aman dengan enkripsi end-to-end, 2FA, dan compliance dengan standar privasi.',
                 color: 'orange',
                 delay: 500,
@@ -718,12 +717,12 @@ export default function LandingPage() {
             variants={cardVariants}
             className="text-center mb-12"
           >
-            <span className="retro-badge retro-badge-purple text-[10px] px-3 py-1 mb-4 inline-block">STUDENT WORK</span>
+            <span className="retro-badge retro-badge-purple text-[10px] px-3 py-1 mb-4 inline-block">KARYA SISWA</span>
             <h2 className="retro-heading retro-heading-xl text-retro-orange mb-3">
-              Student <span className="text-retro-blue">Gallery</span>
+              Galeri <span className="text-retro-blue">Siswa</span>
             </h2>
             <p className="font-retro-mono text-base-black/70 max-w-2xl mx-auto">
-              Explore amazing projects built by our RPL students. Get inspired for your next big idea!
+              Eksplorasi proyek luar biasa yang dibangun oleh siswa RPL kami. Dapatkan inspirasi untuk ide besarmu berikutnya!
             </p>
           </motion.div>
           
@@ -743,7 +742,7 @@ export default function LandingPage() {
             className="text-center"
           >
             <Link to="/gallery" className="retro-btn retro-btn-lg retro-btn-outline flex items-center justify-center gap-2 mx-auto">
-              View All Projects
+              Lihat Semua Proyek
               <ExternalLink className="w-5 h-5" />
             </Link>
           </motion.div>
@@ -767,12 +766,12 @@ export default function LandingPage() {
             variants={cardVariants}
             className="text-center mb-12"
           >
-            <span className="retro-badge retro-badge-green text-[10px] px-3 py-1 mb-4 inline-block">TESTIMONIALS</span>
+            <span className="retro-badge retro-badge-green text-[10px] px-3 py-1 mb-4 inline-block">TESTIMONI</span>
             <h2 className="retro-heading retro-heading-xl text-retro-orange mb-3">
-              Loved by <span className="text-retro-blue">Students & Teachers</span>
+              Dicintai oleh <span className="text-retro-blue">Siswa & Guru</span>
             </h2>
             <p className="font-retro-mono text-base-black/70 max-w-2xl mx-auto">
-              Don't just take our word for it. Here's what our community has to say.
+              Jangan hanya percaya kata kami. Inilah yang dikatakan oleh komunitas kami.
             </p>
           </motion.div>
           
@@ -792,9 +791,9 @@ export default function LandingPage() {
             className="retro-card bg-base-white border-4 border-base-black p-6 flex flex-wrap justify-center items-center gap-6 md:gap-12"
           >
             {[
-              { value: '4.9/5', label: 'Average Rating', icon: Star },
-              { value: '98%', label: 'Satisfaction Rate', icon: Heart },
-              { value: '500+', label: 'Success Stories', icon: Award },
+              { value: '4.9/5', label: 'Peringkat Rata-rata', icon: Star },
+              { value: '98%', label: 'Tingkat Kepuasan', icon: Heart },
+              { value: '500+', label: 'Kisah Sukses', icon: Award },
             ].map((stat, i) => {
               const Icon = stat.icon;
               return (

@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import ThemeToggle from './ThemeToggle';
+import { ID } from '../../i18n/id';
 
 /**
  * 🖥️ Retro Desktop Topbar
@@ -27,7 +28,7 @@ export default function RetroDesktopTopbar({ onMenuClick }) {
           <input
             type="text"
             className="block w-full pl-10 pr-12 py-2 bg-base-white border-2 border-base-black rounded-retro text-xs font-retro-mono focus:outline-none focus:ring-4 focus:ring-retro-orange/20 focus:border-retro-orange transition-all placeholder:text-base-black/30"
-            placeholder="Quick search... (Ctrl + /)"
+            placeholder={ID.button.quickSearch}
           />
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
             <kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black text-[8px] font-retro-mono text-base-black/50">
@@ -69,14 +70,14 @@ export default function RetroDesktopTopbar({ onMenuClick }) {
         {/* Vertical Divider */}
         <div className="h-8 w-1 bg-base-black/10 rounded-full mx-1" />
 
-        {/* User Profile Dropdown Placeholder */}
+        {/* User Profile Display */}
         <div className="flex items-center gap-3 pl-2">
           <div className="text-right hidden xl:block">
             <p className="font-retro-display font-black text-xs text-base-black uppercase leading-tight">
-              {user?.name || 'Admin User'}
+              {user?.name || 'Pengguna Admin'}
             </p>
             <p className="font-retro-mono text-[9px] text-base-black/50 uppercase tracking-tighter">
-              {user?.role || 'Administrator'}
+              {user?.role === 'siswa' ? 'Siswa' : user?.role === 'guru' ? 'Guru' : 'Administrator'}
             </p>
           </div>
           <motion.div 

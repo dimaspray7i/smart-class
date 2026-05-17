@@ -37,10 +37,29 @@ const RETRO_CONFIG = {
 // ═══════════════════════════════════════════════════════════
 // 🎭 RETRO SOUND EFFECTS (Optional - Web Audio API)
 // ═══════════════════════════════════════════════════════════
+let userInteracted = false;
+
+const handleInteraction = () => {
+  userInteracted = true;
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('click', handleInteraction);
+    window.removeEventListener('keydown', handleInteraction);
+    window.removeEventListener('mousedown', handleInteraction);
+    window.removeEventListener('touchstart', handleInteraction);
+  }
+};
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('click', handleInteraction, { passive: true });
+  window.addEventListener('keydown', handleInteraction, { passive: true });
+  window.addEventListener('mousedown', handleInteraction, { passive: true });
+  window.addEventListener('touchstart', handleInteraction, { passive: true });
+}
+
 const playRetroSound = (preset) => {
   try {
     // Only play if user has interacted with page (browser policy)
-    if (document.hasFocus() && document.visibilityState === 'visible') {
+    if (userInteracted && document.hasFocus() && document.visibilityState === 'visible') {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
       

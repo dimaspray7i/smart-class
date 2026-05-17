@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminAPI } from '../../api';
+import { ID } from '../../i18n/id';
 
 // 🏛️ CENTRALIZED UI COMPONENTS
 import Modal from '../../components/ui/Modal';
@@ -119,17 +120,42 @@ export default function ScheduleManagement() {
 
   const debouncedSearch = useDebounce(search, 500);
 
-  // Fetch dependencies for forms (ORIGINAL PRESERVED)
+  // Fetch dependencies for forms sequentially to avoid deadlock/timeout on single-threaded PHP built-in server
   useEffect(() => {
-    Promise.all([
-      adminAPI.getClasses({ is_active: true, all: true }),
-      adminAPI.getSubjects({ is_active: true, all: true }),
-      adminAPI.getUsers({ role: 'guru', is_active: true, all: true })
-    ]).then(([classesRes, subjectsRes, teachersRes]) => {
-      setClasses(classesRes.data?.data || []);
-      setSubjects(subjectsRes.data?.data || []);
-      setTeachers(teachersRes.data?.data || []);
-    }).catch(err => console.error('Failed to fetch dependencies:', err));
+    const loadDependencies = async () => {
+      try {
+        let classesData = [];
+        try {
+          const classesRes = await adminAPI.getClasses({ is_active: true, all: true });
+          classesData = Array.isArray(classesRes.data) ? classesRes.data : (classesRes.data?.data || classesRes.data || []);
+        } catch (e) {
+          console.error('Failed to fetch classes dependency:', e);
+        }
+
+        let subjectsData = [];
+        try {
+          const subjectsRes = await adminAPI.getSubjects({ is_active: true, all: true });
+          subjectsData = Array.isArray(subjectsRes.data) ? subjectsRes.data : (subjectsRes.data?.data || subjectsRes.data || []);
+        } catch (e) {
+          console.error('Failed to fetch subjects dependency:', e);
+        }
+
+        let teachersData = [];
+        try {
+          const teachersRes = await adminAPI.getUsers({ role: 'guru', is_active: true, all: true });
+          teachersData = Array.isArray(teachersRes.data) ? teachersRes.data : (teachersRes.data?.data || teachersRes.data || []);
+        } catch (e) {
+          console.error('Failed to fetch teachers dependency:', e);
+        }
+
+        setClasses(classesData);
+        setSubjects(subjectsData);
+        setTeachers(teachersData);
+      } catch (err) {
+        console.error('Failed to fetch dependencies:', err);
+      }
+    };
+    loadDependencies();
   }, []);
 
   // Fetch schedules with filters (ORIGINAL PRESERVED)
@@ -268,9 +294,9 @@ export default function ScheduleManagement() {
   const toggleSelect = (id) => { setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]); };
   const handleExport = () => { exportSchedulesMutation.mutate({ search: debouncedSearch || undefined, class_id: classFilter === 'all' ? undefined : classFilter, day: dayFilter === 'all' ? undefined : dayFilter, teacher_id: teacherFilter === 'all' ? undefined : teacherFilter }); };
   const clearSearch = useCallback(() => setSearch(''), []);
-  const getClassName = (id) => classes.find(c => c.id === id)?.name || '-';
-  const getSubjectName = (id) => subjects.find(s => s.id === id)?.name || '-';
-  const getTeacherName = (id) => teachers.find(t => t.id === id)?.name || '-';
+  const getClassName = (id) => (Array.isArray(classes) ? classes.find(c => c.id === id)?.name : '') || '-';
+  const getSubjectName = (id) => (Array.isArray(subjects) ? subjects.find(s => s.id === id)?.name : '') || '-';
+  const getTeacherName = (id) => (Array.isArray(teachers) ? teachers.find(t => t.id === id)?.name : '') || '-';
 
   // ═══════════════════════════════════════════════════════════
   // LOADING & ERROR (ORIGINAL PRESERVED + RETRO STYLING)
@@ -322,10 +348,10 @@ export default function ScheduleManagement() {
     >
       {/* 🏛️ PAGE HEADER */}
       <PageHeader 
-        title="Schedule Management"
+        title={ID.nav.schedules}
         icon={Calendar}
-        description="Plan and organize class timetables, subject distributions, and room allocations."
-        breadcrumbs={[{ label: 'Schedules', path: '/admin/schedules' }]}
+        description="Rencanakan dan kelola jadwal pelajaran kelas, distribusi mata pelajaran, dan alokasi ruangan."
+        breadcrumbs={[{ label: ID.nav.schedules, path: '/admin/schedules' }]}
         actions={
           <div className="flex gap-2">
             <div className="flex p-1 bg-base-gray/20 rounded-retro-sm">
@@ -363,7 +389,7 @@ export default function ScheduleManagement() {
               className="flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Add Schedule
+              Tambah Jadwal
             </Button>
           </div>
         }
@@ -372,25 +398,25 @@ export default function ScheduleManagement() {
       {/* 📊 QUICK STATS */}
       <StatGrid>
         <RetroStatWidget
-          title="Total Schedules"
+          title="Total Jadwal"
           value={meta.total || 0}
           icon={Calendar}
           color="orange"
         />
         <RetroStatWidget
-          title="Classes Assigned"
+          title="Kelas Terdaftar"
           value={classes.length}
           icon={School}
           color="blue"
         />
         <RetroStatWidget
-          title="Active Subjects"
+          title="Mapel Aktif"
           value={subjects.length}
           icon={BookOpen}
           color="purple"
         />
         <RetroStatWidget
-          title="Teachers"
+          title="Total Guru"
           value={teachers.length}
           icon={Users}
           color="lime"
@@ -403,8 +429,8 @@ export default function ScheduleManagement() {
           <div className="flex flex-col md:flex-row gap-4 items-end">
             <div className="flex-1 w-full">
               <Input 
-                label="Search Schedule"
-                placeholder="Search subject or teacher..."
+                label="Cari Jadwal"
+                placeholder="Cari mata pelajaran atau guru..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 prefix={<Search className="w-4 h-4" />}
@@ -418,7 +444,7 @@ export default function ScheduleManagement() {
                 className="flex items-center gap-2"
               >
                 <Filter className="w-4 h-4" />
-                {showFilters ? 'Hide' : 'Show'} Filters
+                {showFilters ? 'Sembunyikan' : 'Tampilkan'} Filter
               </Button>
               <Button 
                 variant="outline" 
@@ -439,29 +465,29 @@ export default function ScheduleManagement() {
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <Select 
-                    label="Filter by Class"
+                    label="Filter Kelas"
                     value={classFilter}
                     onChange={(e) => setClassFilter(e.target.value)}
                     options={[
-                      { value: 'all', label: 'All Classes' },
+                      { value: 'all', label: 'Semua Kelas' },
                       ...classes.map(c => ({ value: c.id, label: c.name }))
                     ]}
                   />
                   <Select 
-                    label="Filter by Day"
+                    label="Filter Hari"
                     value={dayFilter}
                     onChange={(e) => setDayFilter(e.target.value)}
                     options={[
-                      { value: 'all', label: 'All Days' },
+                      { value: 'all', label: 'Semua Hari' },
                       ...dayOptions
                     ]}
                   />
                   <Select 
-                    label="Filter by Teacher"
+                    label="Filter Guru"
                     value={teacherFilter}
                     onChange={(e) => setTeacherFilter(e.target.value)}
                     options={[
-                      { value: 'all', label: 'All Teachers' },
+                      { value: 'all', label: 'Semua Guru' },
                       ...teachers.map(t => ({ value: t.id, label: t.name }))
                     ]}
                   />
@@ -494,7 +520,7 @@ export default function ScheduleManagement() {
             data={schedules}
             columns={[
               {
-                header: 'Class',
+                header: 'Kelas',
                 key: 'class_id',
                 render: (id) => (
                   <div className="flex items-center gap-2">
@@ -506,7 +532,7 @@ export default function ScheduleManagement() {
                 )
               },
               {
-                header: 'Subject & Teacher',
+                header: 'Mata Pelajaran & Guru',
                 key: 'subject_id',
                 render: (sid, item) => (
                   <div className="space-y-1">
@@ -522,7 +548,7 @@ export default function ScheduleManagement() {
                 )
               },
               {
-                header: 'Schedule',
+                header: 'Jadwal',
                 key: 'day',
                 render: (day, item) => (
                   <div className="flex flex-col">
@@ -534,7 +560,7 @@ export default function ScheduleManagement() {
                 )
               },
               {
-                header: 'Room',
+                header: 'Ruangan',
                 key: 'room',
                 render: (room) => (
                   <div className="flex items-center gap-1.5 text-base-black/70">
@@ -553,9 +579,13 @@ export default function ScheduleManagement() {
                 )
               }
             ]}
-            onEdit={openEditModal}
-            onDelete={handleDelete}
-            onView={openViewModal}
+            actions={(row) => (
+              <TableActions 
+                onView={() => openViewModal(row)}
+                onEdit={() => openEditModal(row)}
+                onDelete={() => handleDelete(row.id)}
+              />
+            )}
             selectedIds={selectedIds}
             onSelect={toggleSelect}
             onSelectAll={toggleSelectAll}
@@ -714,40 +744,40 @@ export default function ScheduleManagement() {
           <Modal 
             isOpen={isCreateOpen || isEditOpen} 
             onClose={() => { setIsCreateOpen(false); setIsEditOpen(false); }} 
-            title={isCreateOpen ? "Create New Schedule" : "Edit Schedule Entry"} 
+            title={isCreateOpen ? "Tambah Jadwal Baru" : "Ubah Entri Jadwal"} 
             size="2xl"
           >
             <form onSubmit={isCreateOpen ? handleCreateSubmit : handleEditSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-6">
                   <Select 
-                    label="Target Class"
+                    label="Kelas Sasaran"
                     value={formData.class_id}
                     onChange={(e) => setFormData({...formData, class_id: e.target.value})}
                     options={[
-                      { value: '', label: 'Select Class' },
+                      { value: '', label: 'Pilih Kelas' },
                       ...classes.map(c => ({ value: c.id, label: c.name }))
                     ]}
                     required
                     error={errors.class_id}
                   />
                   <Select 
-                    label="Subject"
+                    label="Mata Pelajaran"
                     value={formData.subject_id}
                     onChange={(e) => setFormData({...formData, subject_id: e.target.value})}
                     options={[
-                      { value: '', label: 'Select Subject' },
+                      { value: '', label: 'Pilih Mata Pelajaran' },
                       ...subjects.map(s => ({ value: s.id, label: `${s.code} - ${s.name}` }))
                     ]}
                     required
                     error={errors.subject_id}
                   />
                   <Select 
-                    label="Teacher"
+                    label="Guru"
                     value={formData.teacher_id}
                     onChange={(e) => setFormData({...formData, teacher_id: e.target.value})}
                     options={[
-                      { value: '', label: 'Select Teacher' },
+                      { value: '', label: 'Pilih Guru' },
                       ...teachers.map(t => ({ value: t.id, label: t.name }))
                     ]}
                     required
@@ -758,29 +788,29 @@ export default function ScheduleManagement() {
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <Select 
-                      label="Day"
+                      label="Hari"
                       value={formData.day}
                       onChange={(e) => setFormData({...formData, day: e.target.value})}
                       options={dayOptions}
                       required
                     />
                     <Input 
-                      label="Room"
-                      placeholder="e.g. LAB-01"
+                      label="Ruangan"
+                      placeholder="Contoh: LAB-01"
                       value={formData.room}
                       onChange={(e) => setFormData({...formData, room: e.target.value})}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <Input 
-                      label="Start Time"
+                      label="Waktu Mulai"
                       type="time"
                       value={formData.start_time}
                       onChange={(e) => setFormData({...formData, start_time: e.target.value})}
                       required
                     />
                     <Input 
-                      label="End Time"
+                      label="Waktu Selesai"
                       type="time"
                       value={formData.end_time}
                       onChange={(e) => setFormData({...formData, end_time: e.target.value})}
@@ -790,7 +820,7 @@ export default function ScheduleManagement() {
 
                   <div className="p-3 retro-card bg-retro-yellow/5 border-retro-yellow/20">
                     <p className="text-[10px] font-black uppercase tracking-widest text-base-black/40 mb-3 flex items-center gap-2">
-                      <Clock className="w-3 h-3" /> Quick Templates
+                      <Clock className="w-3 h-3" /> Templat Cepat
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {quickTimeTemplates.map(t => (
@@ -815,7 +845,7 @@ export default function ScheduleManagement() {
                       className="w-4 h-4 accent-retro-orange border-2 border-base-black rounded-sm"
                     />
                     <label htmlFor="is_active_check" className="text-xs font-black uppercase tracking-tight text-base-black/60 cursor-pointer">
-                      Activate Schedule
+                      Aktifkan Jadwal
                     </label>
                   </div>
                 </div>
@@ -825,16 +855,16 @@ export default function ScheduleManagement() {
                 <div className="p-4 retro-card bg-danger/10 border-danger border-2 flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-danger" />
                   <div>
-                    <p className="text-xs font-black uppercase text-danger">Schedule Conflict!</p>
+                    <p className="text-xs font-black uppercase text-danger">Konflik Jadwal!</p>
                     <p className="text-[10px] font-retro-mono text-base-black/70 mt-1">{Array.isArray(errors.non_field_errors) ? errors.non_field_errors[0] : errors.non_field_errors}</p>
                   </div>
                 </div>
               )}
 
               <div className="flex justify-end gap-3 pt-6 border-t-4 border-base-black">
-                <Button variant="outline" type="button" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }}>Cancel</Button>
+                <Button variant="outline" type="button" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }}>Batal</Button>
                 <Button variant="primary" type="submit" loading={createScheduleMutation.isPending || updateScheduleMutation.isPending}>
-                  {isCreateOpen ? 'Create Schedule' : 'Update Changes'}
+                  {isCreateOpen ? 'Tambah Jadwal' : 'Simpan Perubahan'}
                 </Button>
               </div>
             </form>
@@ -847,14 +877,14 @@ export default function ScheduleManagement() {
           ═══════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {isViewOpen && selectedSchedule && (
-          <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="Schedule Details" size="lg">
+          <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="Detail Jadwal" size="lg">
             <div className="space-y-8">
               <div className="flex items-center gap-6 p-4 bg-retro-orange/5 border-2 border-retro-orange rounded-retro">
                 <div className="w-20 h-20 retro-card bg-retro-orange border-4 border-base-black flex items-center justify-center flex-shrink-0 shadow-hard">
                   <Calendar className="w-10 h-10 text-base-white" />
                 </div>
                 <div className="min-w-0">
-                  <span className="retro-badge retro-badge-orange text-[9px] mb-2 inline-block">CLASS SESSION</span>
+                  <span className="retro-badge retro-badge-orange text-[9px] mb-2 inline-block">SESI KELAS</span>
                   <h3 className="retro-heading text-2xl text-base-black truncate">{getClassName(selectedSchedule.class_id)}</h3>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="font-retro-display font-black text-retro-orange uppercase text-xs">{selectedSchedule.day}</span>
@@ -868,7 +898,7 @@ export default function ScheduleManagement() {
                 <RetroCard variant="purple" className="p-4 border-2">
                   <div className="flex items-center gap-3 mb-3">
                     <BookOpen className="w-5 h-5 text-retro-purple" />
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-base-black/50">Subject</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-base-black/50">Mata Pelajaran</h4>
                   </div>
                   <p className="font-retro-display font-black text-base-black text-lg truncate">
                     {getSubjectName(selectedSchedule.subject_id)}
@@ -878,7 +908,7 @@ export default function ScheduleManagement() {
                 <RetroCard variant="blue" className="p-4 border-2">
                   <div className="flex items-center gap-3 mb-3">
                     <Users className="w-5 h-5 text-retro-blue" />
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-base-black/50">Teacher</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-base-black/50">Guru</h4>
                   </div>
                   <p className="font-retro-display font-black text-base-black text-lg truncate">
                     {getTeacherName(selectedSchedule.teacher_id)}
@@ -888,10 +918,10 @@ export default function ScheduleManagement() {
                 <RetroCard variant="white" className="p-4 border-2">
                   <div className="flex items-center gap-3 mb-3">
                     <MapPin className="w-5 h-5 text-retro-orange" />
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-base-black/50">Location</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-base-black/50">Lokasi</h4>
                   </div>
                   <p className="font-retro-display font-black text-base-black text-lg">
-                    {selectedSchedule.room || 'Not Assigned'}
+                    {selectedSchedule.room || 'Belum Ditentukan'}
                   </p>
                 </RetroCard>
 
@@ -904,14 +934,14 @@ export default function ScheduleManagement() {
                     "retro-badge text-xs px-4",
                     selectedSchedule.is_active ? "retro-badge-green" : "retro-badge-red"
                   )}>
-                    {selectedSchedule.is_active ? 'ACTIVE SESSION' : 'INACTIVE'}
+                    {selectedSchedule.is_active ? 'SESI AKTIF' : 'NON-AKTIF'}
                   </span>
                 </RetroCard>
               </div>
 
               <div className="flex justify-end gap-3 pt-6 border-t-4 border-base-black">
-                <Button variant="outline" onClick={() => setIsViewOpen(false)}>Close</Button>
-                <Button variant="primary" onClick={() => { setIsViewOpen(false); openEditModal(selectedSchedule); }}>Edit Entry</Button>
+                <Button variant="outline" onClick={() => setIsViewOpen(false)}>Tutup</Button>
+                <Button variant="primary" onClick={() => { setIsViewOpen(false); openEditModal(selectedSchedule); }}>Ubah Entri</Button>
               </div>
             </div>
           </Modal>
@@ -919,34 +949,34 @@ export default function ScheduleManagement() {
       </AnimatePresence>
 
       {/* Confirmation Modals */}
-      <Modal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Confirm Deletion" size="md">
+      <Modal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Konfirmasi Penghapusan" size="md">
         <div className="text-center p-4">
           <div className="w-20 h-20 bg-danger/10 border-4 border-danger rounded-retro mx-auto mb-6 flex items-center justify-center">
             <Trash2 className="w-10 h-10 text-danger" />
           </div>
-          <h3 className="retro-heading text-xl mb-3">Delete this schedule?</h3>
+          <h3 className="retro-heading text-xl mb-3">Hapus jadwal ini?</h3>
           <p className="text-sm font-retro-mono text-base-black/60 mb-8">
-            This action will permanently remove this class session. This cannot be undone.
+            Tindakan ini akan menghapus sesi kelas ini secara permanen. Tindakan ini tidak dapat dibatalkan.
           </p>
           <div className="flex gap-4 justify-center">
-            <Button variant="outline" className="flex-1" onClick={() => setConfirmDelete(null)}>Keep it</Button>
-            <Button variant="primary" className="bg-danger border-danger flex-1" onClick={confirmDeleteAction}>Yes, Delete</Button>
+            <Button variant="outline" className="flex-1" onClick={() => setConfirmDelete(null)}>Batal</Button>
+            <Button variant="primary" className="bg-danger border-danger flex-1" onClick={confirmDeleteAction}>Ya, Hapus</Button>
           </div>
         </div>
       </Modal>
 
-      <Modal isOpen={confirmBulkDelete} onClose={() => setConfirmBulkDelete(false)} title="Bulk Deletion" size="md">
+      <Modal isOpen={confirmBulkDelete} onClose={() => setConfirmBulkDelete(false)} title="Hapus Massal" size="md">
         <div className="text-center p-4">
           <div className="w-20 h-20 bg-danger/10 border-4 border-danger rounded-retro mx-auto mb-6 flex items-center justify-center">
             <Trash2 className="w-10 h-10 text-danger" />
           </div>
-          <h3 className="retro-heading text-xl mb-3">Delete {selectedIds.length} items?</h3>
+          <h3 className="retro-heading text-xl mb-3">Hapus {selectedIds.length} jadwal terpilih?</h3>
           <p className="text-sm font-retro-mono text-base-black/60 mb-8">
-            You are about to remove multiple schedule entries. This action is final.
+            Anda akan menghapus beberapa entri jadwal sekaligus. Tindakan ini bersifat final.
           </p>
           <div className="flex gap-4 justify-center">
-            <Button variant="outline" className="flex-1" onClick={() => setConfirmBulkDelete(false)}>Cancel</Button>
-            <Button variant="primary" className="bg-danger border-danger flex-1" onClick={confirmBulkDeleteAction}>Delete All</Button>
+            <Button variant="outline" className="flex-1" onClick={() => setConfirmBulkDelete(false)}>Batal</Button>
+            <Button variant="primary" className="bg-danger border-danger flex-1" onClick={confirmBulkDeleteAction}>Ya, Hapus Semua</Button>
           </div>
         </div>
       </Modal>

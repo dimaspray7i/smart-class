@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
+import { ID } from '../../i18n/id';
 
 // ═══════════════════════════════════════════════════════════
 // 🎨 RETRO ANIMATION VARIANTS
@@ -163,7 +164,7 @@ function RetroMenuItem({ item, isActive, index, onClick }) {
             className="absolute -top-1.5 -right-1.5"
           >
             <div className={`retro-sticker ${colors.sticker} text-[8px] px-1.5 py-0.5`}>
-              ACTIVE
+              AKTIF
             </div>
           </motion.div>
         )}
@@ -232,7 +233,7 @@ function RetroUserProfile({ user, onLogout }) {
             }`}>
               {user.role.toUpperCase()}
             </span>
-            <span className="font-retro-mono text-[9px] text-base-black/50">Online</span>
+            <span className="font-retro-mono text-[9px] text-base-black/50">Aktif</span>
           </div>
         </div>
       </div>
@@ -240,9 +241,9 @@ function RetroUserProfile({ user, onLogout }) {
       {/* Quick Stats */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[
-          { label: 'Login', value: '✓', icon: CheckCircle2, color: 'text-success' },
-          { label: 'Role', value: user.role.charAt(0).toUpperCase(), icon: Shield, color: 'text-retro-orange' },
-          { label: 'Active', value: '●', icon: Clock, color: 'text-retro-lime' },
+          { label: 'Masuk', value: '✓', icon: CheckCircle2, color: 'text-success' },
+          { label: 'Peran', value: user.role === 'siswa' ? 'Siswa' : user.role === 'guru' ? 'Guru' : 'Admin', icon: Shield, color: 'text-retro-orange' },
+          { label: 'Status', value: '●', icon: Clock, color: 'text-retro-lime' },
         ].map((stat, i) => {
           const Icon = stat.icon;
           return (
@@ -263,7 +264,7 @@ function RetroUserProfile({ user, onLogout }) {
         className="w-full retro-btn retro-btn-sm bg-danger hover:bg-danger/90 text-base-white flex items-center justify-center gap-2"
       >
         <LogOut className="w-4 h-4" />
-        <span className="font-retro-mono text-xs">LOGOUT</span>
+        <span className="font-retro-mono text-xs">KELUAR</span>
       </motion.button>
       
       {/* Decorative sticker */}
@@ -274,7 +275,7 @@ function RetroUserProfile({ user, onLogout }) {
         className="absolute -top-2 -left-2"
       >
         <div className="retro-sticker bg-retro-lime text-base-black text-[8px] px-2 py-0.5">
-          SECURE 🔐
+          AMAN 🔐
         </div>
       </motion.div>
     </motion.div>
@@ -292,7 +293,7 @@ function RetroPublicLogin({ onClose }) {
         <Rocket className="w-6 h-6 text-retro-orange" />
       </div>
       <p className="font-retro-mono text-xs text-base-black/70 mb-4">
-        Login to access your personalized dashboard
+        Masuk untuk mengakses beranda pribadi Anda
       </p>
       <Link
         to="/login"
@@ -300,7 +301,7 @@ function RetroPublicLogin({ onClose }) {
         className="retro-btn retro-btn-sm w-full flex items-center justify-center gap-2"
       >
         <Shield className="w-4 h-4" />
-        <span className="font-retro-mono text-xs">LOGIN NOW</span>
+        <span className="font-retro-mono text-xs">MASUK SEKARANG</span>
       </Link>
       
       {/* Decorative corner */}
@@ -341,36 +342,36 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   const getMenuItems = () => {
     if (!user) {
       return [
-        { icon: Home, label: 'Home', href: '/', shortcut: 'h', description: 'Landing page' },
-        { icon: Users, label: 'Gallery', href: '/gallery', shortcut: 'g', description: 'Student projects' },
-        { icon: BookOpen, label: 'Simulator', href: '/simulator', shortcut: 's', description: 'Career path' },
+        { icon: Home, label: ID.nav.home, href: '/', shortcut: 'h', description: 'Halaman depan' },
+        { icon: Users, label: ID.nav.gallery, href: '/gallery', shortcut: 'g', description: 'Galeri karya siswa' },
+        { icon: BookOpen, label: ID.nav.simulator, href: '/simulator', shortcut: 's', description: 'Simulasi karir' },
       ];
     }
 
     if (user.role === 'siswa') {
       return [
-        { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/student', shortcut: 'd', description: 'Overview' },
-        { icon: CalendarCheck, label: 'Absensi', href: '/dashboard/student/attendance', shortcut: 'a', description: 'Check in/out' },
-        { icon: FolderKanban, label: 'Project', href: '/dashboard/student/projects', shortcut: 'p', description: 'My projects' },
-        { icon: GraduationCap, label: 'Skill', href: '/dashboard/student/skills', shortcut: 'k', description: 'Progress' },
+        { icon: LayoutDashboard, label: ID.nav.dashboard, href: '/dashboard/student', shortcut: 'd', description: 'Ikhtisar' },
+        { icon: CalendarCheck, label: ID.nav.attendance, href: '/dashboard/student/attendance', shortcut: 'a', description: 'Presensi harian' },
+        { icon: FolderKanban, label: ID.nav.projects, href: '/dashboard/student/projects', shortcut: 'p', description: 'Proyek saya' },
+        { icon: GraduationCap, label: ID.nav.skills, href: '/dashboard/student/skills', shortcut: 'k', description: 'Perkembangan keahlian' },
       ];
     } else if (user.role === 'guru') {
       return [
-        { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/teacher', shortcut: 'd', description: 'Overview' },
-        { icon: CalendarCheck, label: 'Absensi', href: '/dashboard/teacher/attendance', shortcut: 'a', description: 'Manage attendance' },
-        { icon: Users, label: 'Siswa', href: '/dashboard/teacher/students', shortcut: 's', description: 'Student list' },
-        { icon: BookOpen, label: 'Izin', href: '/dashboard/teacher/permissions', shortcut: 'i', description: 'Approvals' },
+        { icon: LayoutDashboard, label: ID.nav.dashboard, href: '/dashboard/teacher', shortcut: 'd', description: 'Ikhtisar' },
+        { icon: CalendarCheck, label: ID.nav.attendance, href: '/dashboard/teacher/attendance', shortcut: 'a', description: 'Kelola presensi' },
+        { icon: Users, label: ID.nav.student, href: '/dashboard/teacher/students', shortcut: 's', description: 'Daftar siswa kelas' },
+        { icon: BookOpen, label: ID.nav.permissions, href: '/dashboard/teacher/permissions', shortcut: 'i', description: 'Persetujuan izin' },
       ];
     } else if (user.role === 'admin') {
       return [
-        { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/admin', shortcut: 'd', description: 'System overview' },
-        { icon: Users, label: 'Users', href: '/dashboard/admin/users', shortcut: 'u', description: 'Manage accounts' },
-        { icon: GraduationCap, label: 'Kelas', href: '/dashboard/admin/classes', shortcut: 'c', description: 'Class management' },
-        { icon: BookOpen, label: 'Mapel', href: '/dashboard/admin/subjects', shortcut: 'm', description: 'Subjects' },
-        { icon: CalendarCheck, label: 'Jadwal', href: '/dashboard/admin/schedules', shortcut: 'j', description: 'Schedules' },
-        { icon: Clock, label: 'Absensi', href: '/dashboard/admin/attendance', shortcut: 'a', description: 'Realtime attendance' },
-        { icon: Briefcase, label: 'PKL', href: '/dashboard/admin/pkl', shortcut: 'p', description: 'Internships' },
-        { icon: Settings, label: 'Settings', href: '/dashboard/admin/settings', shortcut: 't', description: 'System config' },
+        { icon: LayoutDashboard, label: ID.nav.dashboard, href: '/dashboard/admin', shortcut: 'd', description: 'Ikhtisar sistem' },
+        { icon: Users, label: ID.nav.users, href: '/dashboard/admin/users', shortcut: 'u', description: 'Kelola akun pengguna' },
+        { icon: GraduationCap, label: ID.nav.classes, href: '/dashboard/admin/classes', shortcut: 'c', description: 'Kelola data kelas' },
+        { icon: BookOpen, label: ID.nav.subjects, href: '/dashboard/admin/subjects', shortcut: 'm', description: 'Mata pelajaran' },
+        { icon: CalendarCheck, label: ID.nav.schedules, href: '/dashboard/admin/schedules', shortcut: 'j', description: 'Jadwal pelajaran' },
+        { icon: Clock, label: ID.nav.attendance, href: '/dashboard/admin/attendance', shortcut: 'a', description: 'Presensi waktu nyata' },
+        { icon: Briefcase, label: ID.nav.pkl, href: '/dashboard/admin/pkl', shortcut: 'p', description: 'Praktik Kerja Lapangan' },
+        { icon: Settings, label: ID.nav.settings, href: '/dashboard/admin/settings', shortcut: 't', description: 'Pengaturan sistem' },
       ];
     }
     return [];
@@ -407,7 +408,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   }, [isOpen, onClose, menuItems]);
 
   const handleLogout = () => {
-    if (window.confirm('Apakah Anda yakin ingin logout?')) {
+    if (window.confirm('Apakah Anda yakin ingin keluar?')) {
       logout();
       if (window.innerWidth < 1024) onClose();
     }

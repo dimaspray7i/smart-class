@@ -91,7 +91,7 @@ export default function StudentDashboard() {
         <div className="flex items-center gap-2 px-4 py-2 bg-primary-50 dark:bg-primary-900/20 rounded-xl">
           <CalendarCheck className="w-5 h-5 text-primary-600" />
           <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
-            Streak: {attendanceStats.streak || 0} hari
+            Streak Kehadiran: {attendanceStats.streak || 0} hari
           </span>
         </div>
       </div>
@@ -111,13 +111,13 @@ export default function StudentDashboard() {
           color="text-success"
         />
         <StatCard 
-          label="Izin/Sakit" 
+          label="Izin / Sakit" 
           value={(attendanceStats.izin || 0) + (attendanceStats.sakit || 0)} 
           icon={<Clock className="w-6 h-6" />}
           color="text-warning"
         />
         <StatCard 
-          label="Project Aktif" 
+          label="Proyek Aktif" 
           value={projectStats.in_progress || 0} 
           icon={<Award className="w-6 h-6" />}
           color="text-accent-cyan"
@@ -210,7 +210,7 @@ export default function StudentDashboard() {
         {/* Skill Progress Preview */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Progress Skill</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Perkembangan Keahlian</h3>
             <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">
               Kelola →
             </button>

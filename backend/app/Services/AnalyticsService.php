@@ -338,9 +338,9 @@ class AnalyticsService
     private function getAttendanceByHour(string $start, string $end): array
     {
         return Attendance::query()
-            ->selectRaw("HOUR(check_in_time) as hour, COUNT(*) as count")
+            ->selectRaw("HOUR(created_at) as hour, COUNT(*) as count")
             ->whereBetween('date', [$start, $end])
-            ->whereNotNull('check_in_time')
+            ->whereNotNull('created_at')
             ->groupBy('hour')
             ->orderBy('hour')
             ->get()

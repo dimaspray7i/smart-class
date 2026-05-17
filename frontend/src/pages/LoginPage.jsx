@@ -162,10 +162,10 @@ function RolePreviewCard({ role, icon: Icon, color, description, onClick, isActi
           <Icon className={`w-5 h-5 ${isActive ? 'text-base-white' : colorClasses[role].split(' ')[2]}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`font-retro-display font-black text-sm capitalize ${isActive ? 'text-base-black' : 'text-base-black/80'}`}>
+          <p className={`font-retro-display font-black text-xs capitalize ${isActive ? 'text-base-black' : 'text-base-black/80'}`}>
             {role}
           </p>
-          <p className="font-retro-mono text-[9px] text-base-black/50 truncate">{description}</p>
+          <p className="font-retro-mono text-[8px] text-base-black/50 truncate">{description}</p>
         </div>
         {isActive && <CheckCircle2 className="w-5 h-5 text-success animate-pulse" />}
       </div>
@@ -223,9 +223,9 @@ function DemoCredentialsModal({ isOpen, onClose }) {
   if (!isOpen) return null;
   
   const demos = [
-    { role: 'admin', email: 'rplsmkn1@gmail.com', pass: 'rpljuara', desc: 'Full access to all features' },
-    { role: 'guru', email: 'guru@rpl.id', pass: 'guru123', desc: 'Manage classes & attendance' },
-    { role: 'siswa', email: 'siswa@rpl.id', pass: 'siswa123', desc: 'Submit attendance & projects' },
+    { role: 'admin', email: 'rplsmkn1@gmail.com', pass: 'rpljuara', desc: 'Akses penuh ke semua fitur panel admin.' },
+    { role: 'guru', email: 'guru@rpl.id', pass: 'guru123', desc: 'Kelola kelas, pelajaran, dan pantau absensi.' },
+    { role: 'siswa', email: 'siswa@rpl.id', pass: 'siswa123', desc: 'Lakukan absensi mandiri & lihat jadwal pelajaran.' },
   ];
   
   return (
@@ -246,7 +246,7 @@ function DemoCredentialsModal({ isOpen, onClose }) {
         <div className="flex items-center justify-between mb-4">
           <h3 className="retro-heading retro-heading-sm text-base-black flex items-center gap-2">
             <Terminal className="w-5 h-5 text-retro-orange" />
-            DEMO CREDENTIALS
+            DAFTAR AKUN DEMO
           </h3>
           <button onClick={onClose} className="retro-btn retro-btn-sm p-1">
             <X className="w-4 h-4" />
@@ -260,15 +260,15 @@ function DemoCredentialsModal({ isOpen, onClose }) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="p-3 rounded-retro bg-base-gray border-2 border-base-black/30"
+              className="p-3 rounded-retro bg-base-gray border-2 border-base-black/30 animate-pulse-retro"
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="font-retro-display font-black text-sm capitalize text-retro-orange">{demo.role}</span>
-                <span className="retro-badge retro-badge-blue text-[9px]">Click to Copy</span>
+                <span className="retro-badge retro-badge-blue text-[9px]">Demo Smart</span>
               </div>
               <div className="space-y-1 font-retro-mono text-xs">
                 <p><span className="text-base-black/50">Email:</span> <span className="text-base-black">{demo.email}</span></p>
-                <p><span className="text-base-black/50">Pass:</span> <span className="text-base-black">{demo.pass}</span></p>
+                <p><span className="text-base-black/50">Sandi:</span> <span className="text-base-black">{demo.pass}</span></p>
               </div>
               <p className="font-retro-mono text-[9px] text-base-black/50 mt-2">{demo.desc}</p>
             </motion.div>
@@ -276,11 +276,11 @@ function DemoCredentialsModal({ isOpen, onClose }) {
         </div>
         
         <p className="font-retro-mono text-[9px] text-base-black/50 mt-4 text-center">
-          ⚠️ For demo purposes only. Change passwords in production!
+          ⚠️ Khusus untuk mode percobaan. Ganti kata sandi pada mode produksi!
         </p>
         
         <div className="absolute -top-3 -right-3 retro-sticker bg-retro-yellow text-base-black text-[10px] px-2 py-0.5">
-          TRY ME!
+          COBA SAYA!
         </div>
       </motion.div>
     </div>
@@ -357,7 +357,7 @@ export default function LoginPage() {
       };
       navigate(redirects[role] || '/dashboard', { replace: true });
     } else {
-      setError(result.error || 'Login failed. Please try again.');
+      setError(result.error || 'Gagal masuk. Silakan coba lagi.');
       // Retro shake animation on error
       const card = document.querySelector('.login-card');
       if (card) {
@@ -372,15 +372,6 @@ export default function LoginPage() {
   const handleChange = useCallback(() => {
     if (error) clearError();
   }, [error, clearError]);
-
-  const handleDemoLogin = (demo) => {
-    setEmail(demo.email);
-    setPassword(demo.pass);
-    setSelectedRole(demo.role);
-    setShowDemoModal(false);
-    // Auto-focus password field
-    setTimeout(() => document.getElementById('password')?.focus(), 100);
-  };
 
   // ═══════════════════════════════════════════════════════════
   // 🎨 MAIN RENDER - RETRO FUTURISTIC LOGIN
@@ -399,10 +390,10 @@ export default function LoginPage() {
       <Link 
         to="/"
         className="fixed top-4 left-4 z-50 retro-btn retro-btn-sm p-2 flex items-center gap-2"
-        title="Back to Home"
+        title="Kembali ke Beranda"
       >
         <ArrowLeft className="w-5 h-5" />
-        <span className="hidden md:inline font-retro-mono text-xs">Home</span>
+        <span className="hidden md:inline font-retro-mono text-xs">Beranda</span>
       </Link>
       
       {/* Theme Toggle */}
@@ -411,7 +402,7 @@ export default function LoginPage() {
         whileTap={{ scale: 0.9 }}
         onClick={toggleTheme}
         className="fixed top-4 right-4 z-50 retro-btn retro-btn-sm p-2"
-        title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        title={isDark ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
       >
         {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
       </motion.button>
@@ -427,8 +418,8 @@ export default function LoginPage() {
           >
             <Keyboard className="w-4 h-4 text-retro-orange" />
             <span className="font-retro-mono text-xs text-base-black">
-              Press <kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border border-base-black font-retro-mono">/</kbd> to focus email • 
-              <kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border border-base-black font-retro-mono ml-1">?</kbd> for shortcuts
+              Tekan <kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border border-base-black font-retro-mono">/</kbd> untuk fokus email • 
+              <kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border border-base-black font-retro-mono ml-1">?</kbd> untuk pintasan
             </span>
             <button onClick={() => setKeyboardHint(false)} className="ml-2 p-1 hover:bg-base-gray rounded-sm">
               <X className="w-3 h-3" />
@@ -461,7 +452,7 @@ export default function LoginPage() {
               RPL SMART
             </h1>
             <p className="font-retro-mono text-sm text-base-black/70">
-              Login to your account
+              Masuk ke akun Anda
             </p>
             
             {/* Version Badge */}
@@ -477,7 +468,7 @@ export default function LoginPage() {
               role="admin" 
               icon={Shield} 
               color="orange"
-              description="System admin"
+              description="Admin Sistem"
               onClick={() => setSelectedRole('admin')}
               isActive={selectedRole === 'admin'}
             />
@@ -485,7 +476,7 @@ export default function LoginPage() {
               role="guru" 
               icon={Users} 
               color="blue"
-              description="Teacher"
+              description="Guru / Pengajar"
               onClick={() => setSelectedRole('guru')}
               isActive={selectedRole === 'guru'}
             />
@@ -493,7 +484,7 @@ export default function LoginPage() {
               role="siswa" 
               icon={School} 
               color="purple"
-              description="Student"
+              description="Siswa / Murid"
               onClick={() => setSelectedRole('siswa')}
               isActive={selectedRole === 'siswa'}
             />
@@ -522,7 +513,7 @@ export default function LoginPage() {
 
             {/* Email Field */}
             <RetroLoginInput 
-              label="Email" 
+              label="Surel / Email" 
               name="email" 
               type="email"
               value={email}
@@ -535,7 +526,7 @@ export default function LoginPage() {
 
             {/* Password Field */}
             <RetroLoginInput 
-              label="Password" 
+              label="Kata Sandi / Password" 
               name="password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -557,7 +548,7 @@ export default function LoginPage() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="w-4 h-4 rounded-sm border-2 border-base-black accent-retro-orange"
                 />
-                <span className="font-retro-mono text-xs text-base-black/70">Remember me</span>
+                <span className="font-retro-mono text-xs text-base-black/70">Ingat saya</span>
               </label>
               <button 
                 type="button"
@@ -565,7 +556,7 @@ export default function LoginPage() {
                 className="font-retro-mono text-xs text-retro-orange hover:text-retro-blue transition-colors flex items-center gap-1"
               >
                 <HelpCircle className="w-3 h-3" />
-                Demo login
+                Akun demo
               </button>
             </div>
 
@@ -586,12 +577,12 @@ export default function LoginPage() {
                     transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                     className="w-5 h-5 border-2 border-base-white border-t-transparent rounded-full"
                   />
-                  <span className="font-retro-mono text-sm">Authenticating...</span>
+                  <span className="font-retro-mono text-sm">Memverifikasi...</span>
                 </>
               ) : (
                 <>
                   <Zap className="w-5 h-5" />
-                  <span className="font-retro-display font-black text-sm">LOGIN</span>
+                  <span className="font-retro-display font-black text-sm">MASUK</span>
                 </>
               )}
             </motion.button>
@@ -600,7 +591,7 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="flex items-center gap-3 my-6">
             <div className="flex-1 h-px bg-base-black/20" />
-            <span className="font-retro-mono text-xs text-base-black/50">OR</span>
+            <span className="font-retro-mono text-xs text-base-black/50">ATAU</span>
             <div className="flex-1 h-px bg-base-black/20" />
           </div>
 
@@ -619,10 +610,10 @@ export default function LoginPage() {
           {/* Footer Info */}
           <div className="mt-8 pt-6 border-t-2 border-base-black/20 text-center">
             <p className="font-retro-mono text-xs text-base-black/60">
-              Don't have an account?
+              Belum memiliki akun?
             </p>
             <p className="font-retro-mono text-xs text-base-black/80 mt-1">
-              Contact your administrator to get access.
+              Silakan hubungi administrator untuk mendapatkan akses.
             </p>
             
             {/* Demo Credentials Hint */}
@@ -631,13 +622,13 @@ export default function LoginPage() {
               className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-retro bg-retro-yellow/20 border-2 border-retro-yellow hover:bg-retro-yellow/30 transition-colors"
             >
               <Info className="w-3 h-3 text-retro-orange" />
-              <span className="font-retro-mono text-[10px] text-base-black">Try demo credentials</span>
+              <span className="font-retro-mono text-[10px] text-base-black">Coba Masuk Akun Demo</span>
               <ChevronRight className="w-3 h-3 text-retro-orange" />
             </button>
             
             {/* Keyboard Shortcut Hint */}
             <p className="font-retro-mono text-[9px] text-base-black/40 mt-4">
-              Press <kbd className="px-1 py-0.5 rounded-sm bg-base-gray border border-base-black/30">/</kbd> to focus • <kbd className="px-1 py-0.5 rounded-sm bg-base-gray border border-base-black/30">?</kbd> for shortcuts
+              Tekan <kbd className="px-1 py-0.5 rounded-sm bg-base-gray border border-base-black/30">/</kbd> untuk fokus • <kbd className="px-1 py-0.5 rounded-sm bg-base-gray border border-base-black/30">?</kbd> untuk pintasan
             </p>
           </div>
 
@@ -649,7 +640,7 @@ export default function LoginPage() {
             className="absolute -top-3 -right-3"
           >
             <div className="retro-sticker bg-retro-lime text-base-black text-[10px] px-3 py-1">
-              SECURE 🔐
+              AMAN 🔐
             </div>
           </motion.div>
         </motion.div>
@@ -668,7 +659,7 @@ export default function LoginPage() {
           className="retro-card bg-base-white/80 backdrop-blur-sm border-2 border-base-black px-4 py-2"
         >
           <p className="font-retro-mono text-[10px] text-base-black/60">
-            RPL Smart Ecosystem • Built with ❤️ & ☕ • <span className="text-retro-orange">Retro v2.0</span>
+            RPL Smart Ecosystem • Dibuat dengan ❤️ & ☕ • <span className="text-retro-orange">Retro v2.0</span>
           </p>
         </motion.div>
       </div>
@@ -684,7 +675,7 @@ export default function LoginPage() {
             onClick={() => setShowDemoModal(true)}
             className="retro-btn retro-btn-sm retro-btn-outline text-[10px]"
           >
-            Demo Login
+            Akun Demo
           </button>
         </div>
       </div>

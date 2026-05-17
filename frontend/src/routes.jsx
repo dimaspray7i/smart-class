@@ -144,6 +144,7 @@ function RetroLoadingSpinner() {
 // Retro Coming Soon Page Component
 function RetroComingSoon({ title = "Fitur", icon = "🚧", description }) {
   const location = useLocation();
+  const { user } = useAuth();
   
   return (
     <motion.div 
@@ -192,11 +193,11 @@ function RetroComingSoon({ title = "Fitur", icon = "🚧", description }) {
             <span className="font-retro-mono text-xs">Kembali</span>
           </button>
           <button 
-            onClick={() => window.location.href = '/dashboard'}
+            onClick={() => window.location.href = user ? '/dashboard' : '/'}
             className="retro-btn bg-retro-orange hover:bg-retro-orange/90 text-base-white flex items-center justify-center gap-2"
           >
             <Home className="w-4 h-4" />
-            <span className="font-retro-mono text-xs">Ke Dashboard</span>
+            <span className="font-retro-mono text-xs">{user ? 'Ke Dashboard' : 'Ke Home'}</span>
           </button>
         </div>
         

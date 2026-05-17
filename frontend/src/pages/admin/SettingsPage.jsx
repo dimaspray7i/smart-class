@@ -18,6 +18,7 @@ import {
   Terminal, Server, HardHat, Wrench, Package, Box, Folder, File
 } from 'lucide-react';
 import { adminAPI } from '../../api';
+import { ID } from '../../i18n/id';
 
 // 🏛️ CENTRALIZED UI COMPONENTS
 import Modal from '../../components/ui/Modal';
@@ -32,14 +33,6 @@ import { twMerge } from 'tailwind-merge';
 const pageVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.1 } }
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 30, rotate: -1 },
-  visible: { 
-    opacity: 1, y: 0, rotate: 0,
-    transition: { type: "spring", stiffness: 100, damping: 15, mass: 0.1 } 
-  }
 };
 
 const floatVariants = {
@@ -118,12 +111,12 @@ export default function SettingsPage() {
 
   // Tab Definitions
   const tabs = [
-    { id: 'general', label: 'General', icon: Settings2 },
-    { id: 'attendance', label: 'Attendance', icon: Clock },
+    { id: 'general', label: 'Umum', icon: Settings2 },
+    { id: 'attendance', label: 'Kehadiran / Absensi', icon: Clock },
     { id: 'pkl', label: 'PKL', icon: Briefcase },
-    { id: 'security', label: 'Security', icon: Shield },
-    { id: 'features', label: 'Features', icon: ToggleRight },
-    { id: 'backup', label: 'Backup', icon: Database },
+    { id: 'security', label: 'Keamanan', icon: Shield },
+    { id: 'features', label: 'Fitur Tambahan', icon: ToggleRight },
+    { id: 'backup', label: 'Cadangan Data', icon: Database },
   ];
 
   // Settings State
@@ -152,13 +145,13 @@ export default function SettingsPage() {
       setIsSaving(false);
       setShowSaveIndicator(false);
       setHasUnsavedChanges(false);
-      setToast({ message: 'Settings saved successfully! 🚀', type: 'success' });
+      setToast({ message: 'Pengaturan berhasil disimpan! 🚀', type: 'success' });
       queryClient.invalidateQueries(['admin-settings']);
     },
     onError: () => {
       setIsSaving(false);
       setShowSaveIndicator(false);
-      setToast({ message: 'Failed to save settings. ❌', type: 'error' });
+      setToast({ message: 'Gagal menyimpan pengaturan. ❌', type: 'error' });
     }
   });
 
@@ -176,22 +169,22 @@ export default function SettingsPage() {
   // 🎨 RENDER TABS
   const renderGeneral = () => (
     <motion.div variants={pageVariants} initial="hidden" animate="visible" className="space-y-6">
-      <SettingsSection title="App Identity" icon={School} description="Branding and basic school info">
+      <SettingsSection title="Identitas Aplikasi" icon={School} description="Branding dan informasi dasar sekolah">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input label="App Name" value={general.app_name} onChange={e => updateState(setGeneral, 'app_name', e.target.value)} icon={Settings2} />
-          <Input label="School Name" value={general.school_name} onChange={e => updateState(setGeneral, 'school_name', e.target.value)} icon={School} />
+          <Input label="Nama Aplikasi" value={general.app_name} onChange={e => updateState(setGeneral, 'app_name', e.target.value)} icon={Settings2} />
+          <Input label="Nama Sekolah" value={general.school_name} onChange={e => updateState(setGeneral, 'school_name', e.target.value)} icon={School} />
           <Input label="NPSN" value={general.npsn} onChange={e => updateState(setGeneral, 'npsn', e.target.value)} icon={Building2} />
-          <Input label="Slogan" value={general.school_slogan} onChange={e => updateState(setGeneral, 'school_slogan', e.target.value)} icon={Award} />
-          <Input label="Academic Year" value={general.academic_year} onChange={e => updateState(setGeneral, 'academic_year', e.target.value)} icon={Calendar} />
+          <Input label="Slogan Sekolah" value={general.school_slogan} onChange={e => updateState(setGeneral, 'school_slogan', e.target.value)} icon={Award} />
+          <Input label="Tahun Ajaran" value={general.academic_year} onChange={e => updateState(setGeneral, 'academic_year', e.target.value)} icon={Calendar} />
           <Select label="Semester" value={general.semester} onChange={e => updateState(setGeneral, 'semester', e.target.value)} options={[{value:'1',label:'Semester 1'},{value:'2',label:'Semester 2'}]} />
         </div>
       </SettingsSection>
-      <SettingsSection title="Contact & Address" icon={MapPin}>
+      <SettingsSection title="Kontak & Alamat" icon={MapPin}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input label="Email" value={general.support_email} onChange={e => updateState(setGeneral, 'support_email', e.target.value)} icon={Mail} />
-          <Input label="Phone" value={general.support_phone} onChange={e => updateState(setGeneral, 'support_phone', e.target.value)} icon={Smartphone} />
+          <Input label="Surel / Email" value={general.support_email} onChange={e => updateState(setGeneral, 'support_email', e.target.value)} icon={Mail} />
+          <Input label="Nomor Telepon" value={general.support_phone} onChange={e => updateState(setGeneral, 'support_phone', e.target.value)} icon={Smartphone} />
           <div className="md:col-span-2">
-            <Input label="Address" value={general.address} onChange={e => updateState(setGeneral, 'address', e.target.value)} icon={MapPin} />
+            <Input label="Alamat Lengkap" value={general.address} onChange={e => updateState(setGeneral, 'address', e.target.value)} icon={MapPin} />
           </div>
         </div>
       </SettingsSection>
@@ -200,19 +193,19 @@ export default function SettingsPage() {
 
   const renderAttendance = () => (
     <motion.div variants={pageVariants} initial="hidden" animate="visible" className="space-y-6">
-      <SettingsSection title="Timing Rules" icon={Clock} description="Global attendance hours">
+      <SettingsSection title="Aturan Jam Kerja" icon={Clock} description="Aturan waktu jam absensi global">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Input label="Check-in Start" type="time" value={attendance.check_in_time} onChange={e => updateState(setAttendance, 'check_in_time', e.target.value)} />
-          <Input label="Check-out Start" type="time" value={attendance.check_out_time} onChange={e => updateState(setAttendance, 'check_out_time', e.target.value)} />
-          <Input label="Late Tolerance" type="number" suffix="min" value={attendance.late_tolerance} onChange={e => updateState(setAttendance, 'late_tolerance', e.target.value)} />
+          <Input label="Mulai Masuk" type="time" value={attendance.check_in_time} onChange={e => updateState(setAttendance, 'check_in_time', e.target.value)} />
+          <Input label="Mulai Pulang" type="time" value={attendance.check_out_time} onChange={e => updateState(setAttendance, 'check_out_time', e.target.value)} />
+          <Input label="Toleransi Terlambat" type="number" suffix="menit" value={attendance.late_tolerance} onChange={e => updateState(setAttendance, 'late_tolerance', e.target.value)} />
         </div>
       </SettingsSection>
-      <SettingsSection title="Validation Features" icon={ShieldCheck}>
+      <SettingsSection title="Fitur Validasi Absensi" icon={ShieldCheck}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="Face Verification" checked={attendance.face_verification} onChange={v => updateState(setAttendance, 'face_verification', v)} icon={Camera} />
-          <SettingsToggle label="Selfie Verification" checked={attendance.selfie_verification} onChange={v => updateState(setAttendance, 'selfie_verification', v)} icon={Smartphone} />
-          <SettingsToggle label="Anti Fake GPS" checked={attendance.anti_fake_gps} onChange={v => updateState(setAttendance, 'anti_fake_gps', v)} icon={Target} />
-          <SettingsToggle label="QR Code Support" checked={attendance.qr_enabled} onChange={v => updateState(setAttendance, 'qr_enabled', v)} icon={QrCode} />
+          <SettingsToggle label="Verifikasi Wajah" checked={attendance.face_verification} onChange={v => updateState(setAttendance, 'face_verification', v)} icon={Camera} />
+          <SettingsToggle label="Verifikasi Selfie" checked={attendance.selfie_verification} onChange={v => updateState(setAttendance, 'selfie_verification', v)} icon={Smartphone} />
+          <SettingsToggle label="Anti Fake GPS / Fake Location" checked={attendance.anti_fake_gps} onChange={v => updateState(setAttendance, 'anti_fake_gps', v)} icon={Target} />
+          <SettingsToggle label="Dukungan QR Code" checked={attendance.qr_enabled} onChange={v => updateState(setAttendance, 'qr_enabled', v)} icon={QrCode} />
         </div>
       </SettingsSection>
     </motion.div>
@@ -224,18 +217,18 @@ export default function SettingsPage() {
         <div className="flex items-center gap-3">
            <Briefcase className="w-8 h-8 text-retro-purple" />
            <div>
-              <p className="font-retro-display font-black text-base-black uppercase">PKL Management Hub</p>
-              <p className="font-retro-mono text-[10px] text-base-black/50 uppercase">Configure global internship behaviors</p>
+              <p className="font-retro-display font-black text-base-black uppercase">Hub Manajemen PKL</p>
+              <p className="font-retro-mono text-[10px] text-base-black/50 uppercase">Konfigurasi aturan dan penempatan PKL global</p>
            </div>
         </div>
-        <Button variant="outline" onClick={() => window.location.href='/dashboard/admin/pkl'}>Go to Management</Button>
+        <Button variant="outline" onClick={() => window.location.href='/dashboard/admin/pkl'}>Buka Manajemen PKL</Button>
       </div>
-      <SettingsSection title="Global PKL Rules" icon={Globe}>
+      <SettingsSection title="Aturan PKL Global" icon={Globe}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="Enable PKL Attendance" checked={pkl.enable_pkl_attendance} onChange={v => updateState(setPkl, 'enable_pkl_attendance', v)} icon={Clock} />
-          <SettingsToggle label="Supervisor Approval" checked={pkl.require_supervisor_approval} onChange={v => updateState(setPkl, 'require_supervisor_approval', v)} icon={ShieldCheck} />
-          <SettingsToggle label="Weekly Reports" checked={pkl.require_weekly_report} onChange={v => updateState(setPkl, 'require_weekly_report', v)} icon={FileText} />
-          <SettingsToggle label="Auto Reminders" checked={pkl.auto_reminder} onChange={v => updateState(setPkl, 'auto_reminder', v)} icon={Bell} />
+          <SettingsToggle label="Aktifkan Absensi PKL" checked={pkl.enable_pkl_attendance} onChange={v => updateState(setPkl, 'enable_pkl_attendance', v)} icon={Clock} />
+          <SettingsToggle label="Persetujuan Pembimbing" checked={pkl.require_supervisor_approval} onChange={v => updateState(setPkl, 'require_supervisor_approval', v)} icon={ShieldCheck} />
+          <SettingsToggle label="Laporan Mingguan PKL" checked={pkl.require_weekly_report} onChange={v => updateState(setPkl, 'require_weekly_report', v)} icon={FileText} />
+          <SettingsToggle label="Pengingat Otomatis" checked={pkl.auto_reminder} onChange={v => updateState(setPkl, 'auto_reminder', v)} icon={Bell} />
         </div>
       </SettingsSection>
     </motion.div>
@@ -243,12 +236,12 @@ export default function SettingsPage() {
 
   const renderSecurity = () => (
     <motion.div variants={pageVariants} initial="hidden" animate="visible" className="space-y-6">
-      <SettingsSection title="Authentication" icon={Lock}>
+      <SettingsSection title="Otentikasi & Keamanan" icon={Lock}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="Two-Factor Auth" checked={security.two_factor_auth} onChange={v => updateState(setSecurity, 'two_factor_auth', v)} icon={Shield} />
-          <SettingsToggle label="Biometric Login" checked={security.biometric_login} onChange={v => updateState(setSecurity, 'biometric_login', v)} icon={Fingerprint} />
-          <Input label="Min Password Length" type="number" value={security.min_password_length} onChange={e => updateState(setSecurity, 'min_password_length', e.target.value)} icon={Key} />
-          <Input label="Session Limit" type="number" value={security.session_limit} onChange={e => updateState(setSecurity, 'session_limit', e.target.value)} icon={Monitor} />
+          <SettingsToggle label="Otentikasi Dua Faktor (2FA)" checked={security.two_factor_auth} onChange={v => updateState(setSecurity, 'two_factor_auth', v)} icon={Shield} />
+          <SettingsToggle label="Login Biometrik / Sidik Jari" checked={security.biometric_login} onChange={v => updateState(setSecurity, 'biometric_login', v)} icon={Fingerprint} />
+          <Input label="Panjang Sandi Minimal" type="number" value={security.min_password_length} onChange={e => updateState(setSecurity, 'min_password_length', e.target.value)} icon={Key} />
+          <Input label="Batas Maksimal Sesi" type="number" value={security.session_limit} onChange={e => updateState(setSecurity, 'session_limit', e.target.value)} icon={Monitor} />
         </div>
       </SettingsSection>
     </motion.div>
@@ -256,12 +249,12 @@ export default function SettingsPage() {
 
   const renderFeatures = () => (
     <motion.div variants={pageVariants} initial="hidden" animate="visible" className="space-y-6">
-      <SettingsSection title="Active Modules" icon={ToggleRight}>
+      <SettingsSection title="Modul Fitur Aktif" icon={ToggleRight}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="Career Simulator" checked={features.career_simulator} onChange={v => updateState(setFeatures, 'career_simulator', v)} icon={Briefcase} />
-          <SettingsToggle label="Student Gallery" checked={features.public_gallery} onChange={v => updateState(setFeatures, 'public_gallery', v)} icon={Image} />
-          <SettingsToggle label="AI Recommendation" checked={features.ai_student_recommendation} onChange={v => updateState(setFeatures, 'ai_student_recommendation', v)} icon={Brain} />
-          <SettingsToggle label="E-Raport" checked={features.e_raport} onChange={v => updateState(setFeatures, 'e_raport', v)} icon={GraduationCap} />
+          <SettingsToggle label="Simulator Karir & PKL" checked={features.career_simulator} onChange={v => updateState(setFeatures, 'career_simulator', v)} icon={Briefcase} />
+          <SettingsToggle label="Galeri Karya Siswa" checked={features.public_gallery} onChange={v => updateState(setFeatures, 'public_gallery', v)} icon={Image} />
+          <SettingsToggle label="Rekomendasi Karir AI" checked={features.ai_student_recommendation} onChange={v => updateState(setFeatures, 'ai_student_recommendation', v)} icon={Brain} />
+          <SettingsToggle label="Modul E-Raport" checked={features.e_raport} onChange={v => updateState(setFeatures, 'e_raport', v)} icon={GraduationCap} />
         </div>
       </SettingsSection>
     </motion.div>
@@ -269,18 +262,18 @@ export default function SettingsPage() {
 
   const renderBackup = () => (
     <motion.div variants={pageVariants} initial="hidden" animate="visible" className="space-y-6">
-      <SettingsSection title="Data Preservation" icon={Database}>
+      <SettingsSection title="Pemeliharaan & Cadangan Data" icon={Database}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SettingsToggle label="Auto Backup" checked={backup.auto_backup} onChange={v => updateState(setBackup, 'auto_backup', v)} icon={Cloud} />
-          <SettingsToggle label="Encrypt Backups" checked={backup.encrypt_backup} onChange={v => updateState(setBackup, 'encrypt_backup', v)} icon={Lock} />
-          <Select label="Frequency" value={backup.backup_schedule} onChange={e => updateState(setBackup, 'backup_schedule', e.target.value)} options={[{value:'daily',label:'Daily'},{value:'weekly',label:'Weekly'}]} />
-          <Input label="Backup Time" type="time" value={backup.backup_time} onChange={e => updateState(setBackup, 'backup_time', e.target.value)} />
+          <SettingsToggle label="Cadangan Data Otomatis" checked={backup.auto_backup} onChange={v => updateState(setBackup, 'auto_backup', v)} icon={Cloud} />
+          <SettingsToggle label="Enkripsi File Cadangan" checked={backup.encrypt_backup} onChange={v => updateState(setBackup, 'encrypt_backup', v)} icon={Lock} />
+          <Select label="Frekuensi Cadangan" value={backup.backup_schedule} onChange={e => updateState(setBackup, 'backup_schedule', e.target.value)} options={[{value:'daily',label:'Harian'},{value:'weekly',label:'Mingguan'}]} />
+          <Input label="Waktu Pencadangan" type="time" value={backup.backup_time} onChange={e => updateState(setBackup, 'backup_time', e.target.value)} />
         </div>
       </SettingsSection>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Button variant="outline" className="h-24 flex-col gap-2"><Download className="w-6 h-6" /> Download Latest</Button>
-        <Button variant="outline" className="h-24 flex-col gap-2"><RefreshCw className="w-6 h-6" /> Clear Cache</Button>
-        <Button variant="danger" className="h-24 flex-col gap-2"><Trash2 className="w-6 h-6" /> Clean Storage</Button>
+        <Button variant="outline" className="h-24 flex-col gap-2"><Download className="w-6 h-6" /> Unduh Cadangan Terbaru</Button>
+        <Button variant="outline" className="h-24 flex-col gap-2"><RefreshCw className="w-6 h-6" /> Bersihkan Cache</Button>
+        <Button variant="danger" className="h-24 flex-col gap-2"><Trash2 className="w-6 h-6" /> Kosongkan Penyimpanan</Button>
       </div>
     </motion.div>
   );
@@ -303,20 +296,20 @@ export default function SettingsPage() {
 
       {/* Header */}
       <PageHeader 
-        title="System Settings"
+        title={ID.nav.settings}
         icon={Settings2}
         description="Konfigurasi parameter sistem, keamanan, dan fitur aktif."
-        breadcrumbs={[{ label: 'Settings', path: '/admin/settings' }]}
+        breadcrumbs={[{ label: ID.nav.settings, path: '/admin/settings' }]}
         actions={
           <div className="flex gap-2">
             {hasUnsavedChanges && (
               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-2 px-3 py-1 bg-warning/10 border-2 border-warning rounded-retro-sm text-[10px] font-black text-warning">
-                <AlertTriangle className="w-3 h-3" /> UNSAVED CHANGES
+                <AlertTriangle className="w-3 h-3" /> PERUBAHAN BELUM DISIMPAN
               </motion.div>
             )}
             <Button variant="primary" onClick={handleSave} loading={isSaving} disabled={!hasUnsavedChanges}>
               <Save className="w-4 h-4 mr-2" />
-              Save All
+              Simpan Semua
             </Button>
           </div>
         }
@@ -326,15 +319,15 @@ export default function SettingsPage() {
       <div className="flex flex-wrap gap-4 mb-8">
         <div className="flex items-center gap-3 px-4 py-2 bg-base-white border-2 border-base-black rounded-retro-sm shadow-hard-sm">
           <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-wider">System Online</span>
+          <span className="text-[10px] font-black uppercase tracking-wider">Sistem Online</span>
         </div>
         <div className="flex items-center gap-3 px-4 py-2 bg-base-white border-2 border-base-black rounded-retro-sm shadow-hard-sm">
           <Activity className="w-4 h-4 text-retro-blue" />
-          <span className="text-[10px] font-black uppercase tracking-wider">Perf: Optimal</span>
+          <span className="text-[10px] font-black uppercase tracking-wider">Kinerja: Optimal</span>
         </div>
         <div className="flex items-center gap-3 px-4 py-2 bg-base-white border-2 border-base-black rounded-retro-sm shadow-hard-sm">
           <Database className="w-4 h-4 text-retro-purple" />
-          <span className="text-[10px] font-black uppercase tracking-wider">Storage: 45%</span>
+          <span className="text-[10px] font-black uppercase tracking-wider">Penyimpanan: 45%</span>
         </div>
       </div>
 
@@ -342,7 +335,7 @@ export default function SettingsPage() {
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Navigation Sidebar */}
         <aside className="lg:w-64 space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-widest text-base-black/40 px-4 mb-4">Configuration Tabs</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-base-black/40 px-4 mb-4">Kategori Konfigurasi</p>
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -392,7 +385,7 @@ export default function SettingsPage() {
             className="fixed bottom-10 right-10 z-50 flex items-center gap-3 px-6 py-3 bg-retro-orange border-4 border-base-black rounded-retro text-base-white font-black uppercase tracking-widest shadow-hard-lg"
           >
             <RefreshCw className="w-5 h-5 animate-spin" />
-            Saving Configuration...
+            Menyimpan Konfigurasi...
           </motion.div>
         )}
       </AnimatePresence>
