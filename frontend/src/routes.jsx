@@ -431,6 +431,12 @@ import ScheduleManagement from './pages/admin/ScheduleManagement';
 import SettingsPage from './pages/admin/SettingsPage';
 import PKLManagement from './pages/admin/PKLManagement';
 import AttendanceManagement from './pages/admin/AttendanceManagement';
+import AdminTeachers from './pages/admin/AdminTeachers';
+import AdminStudents from './pages/admin/AdminStudents';
+import AdminPermissions from './pages/admin/AdminPermissions';
+import AdminAnnouncements from './pages/admin/AdminAnnouncements';
+import AdminReports from './pages/admin/AdminReports';
+import AdminSecurity from './pages/admin/AdminSecurity';
 
 // ═══════════════════════════════════════════════════════════
 // 🗺️ ROUTE DEFINITIONS (Array format for createBrowserRouter)
@@ -519,32 +525,20 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
         children: [
-          // Dashboard
           { index: true, element: <AdminDashboard /> },
-          
-          // User Management 
           { path: 'users', element: <UserManagement /> },
-          
-          // Class Management
+          { path: 'teachers', element: <AdminTeachers /> },
+          { path: 'students', element: <AdminStudents /> },
           { path: 'classes', element: <ClassManagement /> },
-          
-          // Subject Management 
           { path: 'subjects', element: <SubjectManagement /> },
-          
-          // Schedule Management
           { path: 'schedules', element: <ScheduleManagement /> },
-          
-          // Settings Page
-          { path: 'settings', element: <SettingsPage /> },
-          
-          // PKL Management
-          { path: 'pkl', element: <PKLManagement /> },
-
-          // Attendance Management
           { path: 'attendance', element: <AttendanceManagement /> },
-          
-          // 🚧 Coming Soon: Other admin features
-          { path: 'analytics', element: <ComingSoon title="Analytics & Reports" icon="📈" /> },
+          { path: 'pkl', element: <PKLManagement /> },
+          { path: 'permissions', element: <AdminPermissions /> },
+          { path: 'announcements', element: <AdminAnnouncements /> },
+          { path: 'reports', element: <AdminReports /> },
+          { path: 'security', element: <AdminSecurity /> },
+          { path: 'settings', element: <SettingsPage /> },
         ],
       },
       
