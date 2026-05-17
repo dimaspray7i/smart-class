@@ -5,7 +5,8 @@ import {
   X, LayoutDashboard, CalendarCheck, FolderKanban, GraduationCap, 
   Users, BookOpen, Settings, LogOut, Rocket, Shield, School,
   Sparkles, Star, Zap, ChevronRight, ArrowRight, Palette,
-  Menu, Home, Briefcase, Award, Target, Clock, CheckCircle2
+  Menu, Home, Briefcase, Award, Target, Clock, CheckCircle2,
+  BarChart3, Megaphone, MessageSquare, User, FileText
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
@@ -357,10 +358,18 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       ];
     } else if (user.role === 'guru') {
       return [
-        { icon: LayoutDashboard, label: ID.nav.dashboard, href: '/dashboard/teacher', shortcut: 'd', description: 'Ikhtisar' },
-        { icon: CalendarCheck, label: ID.nav.attendance, href: '/dashboard/teacher/attendance', shortcut: 'a', description: 'Kelola presensi' },
-        { icon: Users, label: ID.nav.student, href: '/dashboard/teacher/students', shortcut: 's', description: 'Daftar siswa kelas' },
-        { icon: BookOpen, label: ID.nav.permissions, href: '/dashboard/teacher/permissions', shortcut: 'i', description: 'Persetujuan izin' },
+        { icon: LayoutDashboard, label: ID.nav.dashboard,      href: '/dashboard/teacher',               shortcut: 'd', description: 'Beranda overview' },
+        { icon: CalendarCheck,   label: ID.nav.attendance,     href: '/dashboard/teacher/attendance',    shortcut: 'a', description: 'Kelola presensi' },
+        { icon: CalendarCheck,   label: ID.nav.schedules,      href: '/dashboard/teacher/schedules',     shortcut: 'j', description: 'Jadwal pelajaran' },
+        { icon: Users,           label: ID.nav.student,        href: '/dashboard/teacher/students',      shortcut: 's', description: 'Daftar siswa' },
+        { icon: BookOpen,        label: ID.nav.permissions,    href: '/dashboard/teacher/permissions',   shortcut: 'i', description: 'Persetujuan izin' },
+        { icon: BarChart3,       label: ID.nav.grades,         href: '/dashboard/teacher/grades',        shortcut: 'n', description: 'Nilai & penilaian' },
+        { icon: FileText,        label: ID.nav.materials,      href: '/dashboard/teacher/materials',     shortcut: 'm', description: 'Tugas & materi' },
+        { icon: Megaphone,       label: ID.nav.announcements,  href: '/dashboard/teacher/announcements', shortcut: 'p', description: 'Pengumuman kelas' },
+        { icon: MessageSquare,   label: ID.nav.messages,       href: '/dashboard/teacher/messages',      shortcut: 'c', description: 'Pesan siswa' },
+        { icon: Award,           label: ID.nav.reports,        href: '/dashboard/teacher/reports',       shortcut: 'r', description: 'Laporan & analitik' },
+        { icon: User,            label: ID.nav.profile,        href: '/dashboard/teacher/profile',       shortcut: 'o', description: 'Profil saya' },
+        { icon: Settings,        label: ID.nav.settings,       href: '/dashboard/teacher/settings',      shortcut: 't', description: 'Pengaturan akun' },
       ];
     } else if (user.role === 'admin') {
       return [
