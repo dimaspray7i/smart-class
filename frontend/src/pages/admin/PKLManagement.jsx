@@ -7,6 +7,7 @@ import {
   CheckCircle2, Clock, Calendar, Download, Filter, RefreshCw, Star
 } from 'lucide-react';
 import { adminAPI } from '../../api';
+import { ID } from '../../i18n/id';
 
 // 🏛️ CENTRALIZED UI COMPONENTS
 import Modal from '../../components/ui/Modal';
@@ -60,7 +61,7 @@ function LocationMap({ lat, lng, companyName }) {
   if (!lat || !lng) return (
     <div className="flex flex-col items-center justify-center h-full rounded-retro bg-base-gray border-2 border-dashed border-base-black/30 text-base-black/50">
       <MapPin className="w-8 h-8 mb-2 opacity-50" />
-      <p className="font-retro-mono text-xs">No Coordinates Provided</p>
+      <p className="font-retro-mono text-xs">Koordinat GPS Belum Ditentukan</p>
     </div>
   );
 
@@ -84,6 +85,14 @@ function LocationMap({ lat, lng, companyName }) {
   );
 }
 
+// Helper to ensure we always work with arrays
+const ensureArray = (data) => {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object' && Array.isArray(data.data)) return data.data;
+  if (data && typeof data === 'object') return Object.values(data);
+  return [];
+};
+
 export default function PKLManagement() {
   const queryClient = useQueryClient();
   
@@ -103,13 +112,13 @@ export default function PKLManagement() {
   // Fetch PKL Locations
   const { data: locationsData, isLoading: isLoadingLocations } = useQuery({
     queryKey: ['pkl-locations'],
-    queryFn: () => adminAPI.getPklLocations().then(res => res.data || []),
+    queryFn: () => adminAPI.getPklLocations().then(res => res.data?.data || []),
   });
 
   // Fetch Students (RPL Grade 12)
   const { data: studentsData, isLoading: isLoadingStudents } = useQuery({
     queryKey: ['pkl-students'],
-    queryFn: () => adminAPI.getPklStudents({ per_page: 100 }).then(res => res.data || []),
+    queryFn: () => adminAPI.getPklStudents({ per_page: 100 }).then(res => res.data?.data || []),
   });
 
   const showToast = useCallback((message, type = 'success') => {
@@ -146,8 +155,8 @@ export default function PKLManagement() {
   });
 
   const stats = useMemo(() => {
-    const locations = locationsData || [];
-    const students = studentsData || [];
+    const locations = ensureArray(locationsData);
+    const students = ensureArray(studentsData);
     return {
       totalLocations: locations.length,
       placedStudents: students.filter(s => s.pkl_location_id).length,
@@ -205,14 +214,14 @@ export default function PKLManagement() {
 
       {/* Header */}
       <PageHeader 
-        title="PKL Management"
+        title={ID.nav.pkl}
         icon={Briefcase}
         description="Kelola lokasi Praktik Kerja Lapangan (PKL) dan penempatan siswa."
-        breadcrumbs={[{ label: 'PKL', path: '/admin/pkl' }]}
+        breadcrumbs={[{ label: ID.nav.pkl, path: '/admin/pkl' }]}
         actions={
           <Button variant="primary" onClick={() => handleOpenModal()} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            Add Location
+            Tambah Lokasi
           </Button>
         }
       />
@@ -222,7 +231,7 @@ export default function PKLManagement() {
         <RetroStatWidget title="Total Lokasi" value={stats.totalLocations} icon={Building2} color="orange" />
         <RetroStatWidget title="Siswa Terplot" value={stats.placedStudents} icon={UserCheck} color="purple" trend={Math.round((stats.placedStudents/stats.totalStudents)*100) || 0} />
         <RetroStatWidget title="Siswa Belum Terplot" value={stats.unplacedStudents} icon={Users} color="blue" />
-        <RetroStatWidget title="Total Kapasitas" value={locationsData?.reduce((acc, loc) => acc + (loc.capacity || 0), 0) || 0} icon={MapPin} color="lime" />
+        <RetroStatWidget title="Total Kapasitas" value={ensureArray(locationsData).reduce((acc, loc) => acc + (loc.capacity || 0), 0) || 0} icon={MapPin} color="lime" />
       </StatGrid>
 
       {/* Tabs */}
@@ -234,7 +243,7 @@ export default function PKLManagement() {
             activeTab === 'locations' ? "bg-base-black text-base-white shadow-hard-sm" : "text-base-black hover:bg-base-black/5"
           )}
         >
-          Locations
+          Lokasi PKL
         </button>
         <button 
           onClick={() => setActiveTab('assignments')}
@@ -243,7 +252,7 @@ export default function PKLManagement() {
             activeTab === 'assignments' ? "bg-base-black text-base-white shadow-hard-sm" : "text-base-black hover:bg-base-black/5"
           )}
         >
-          Assignments
+          Penempatan Siswa
         </button>
       </div>
 
@@ -251,9 +260,9 @@ export default function PKLManagement() {
       <AnimatePresence mode="wait">
         {activeTab === 'locations' ? (
           <motion.div key="loc" variants={pageVariants} className="space-y-6">
-            <RetroSection title="PKL Locations Grid">
+            <RetroSection title="Daftar Lokasi PKL">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {(locationsData || []).map((loc) => (
+                {ensureArray(locationsData).map((loc) => (
                   <RetroCard key={loc.id} className="p-0 overflow-hidden group flex flex-col md:flex-row h-full md:h-64">
                     <div className="w-full md:w-1/2 h-48 md:h-full border-b-4 md:border-b-0 md:border-r-4 border-base-black">
                       <LocationMap lat={loc.latitude} lng={loc.longitude} companyName={loc.company_name} />
@@ -268,7 +277,7 @@ export default function PKLManagement() {
                             "px-2 py-0.5 rounded-retro-sm text-[10px] font-black border-2",
                             loc.is_approved ? "bg-success/10 border-success text-success" : "bg-danger/10 border-danger text-danger"
                           )}>
-                            {loc.is_approved ? 'APPROVED' : 'PENDING'}
+                            {loc.is_approved ? 'DISETUJUI' : 'MENUNGGU'}
                           </span>
                         </div>
                         <p className="font-retro-mono text-xs text-base-black/60 line-clamp-2 mb-4">
@@ -277,7 +286,7 @@ export default function PKLManagement() {
                         <div className="flex flex-wrap gap-2 mb-4">
                           <div className="flex items-center gap-1.5 px-2 py-1 rounded-retro-sm bg-base-gray/30 border border-base-black/10 text-[10px] font-retro-mono">
                             <Users className="w-3 h-3 text-retro-purple" />
-                            {loc.students?.length || 0} Students
+                            {loc.students?.length || 0} Siswa
                           </div>
                           <div className="flex items-center gap-1.5 px-2 py-1 rounded-retro-sm bg-base-gray/30 border border-base-black/10 text-[10px] font-retro-mono">
                             <Clock className="w-3 h-3 text-retro-blue" />
@@ -286,7 +295,7 @@ export default function PKLManagement() {
                         </div>
                       </div>
                       <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleOpenModal(loc)}>Edit</Button>
+                        <Button variant="outline" size="sm" onClick={() => handleOpenModal(loc)}>Ubah</Button>
                         <Button variant="danger" size="sm" icon={Trash2} />
                       </div>
                     </div>
@@ -297,12 +306,12 @@ export default function PKLManagement() {
           </motion.div>
         ) : (
           <motion.div key="assign" variants={pageVariants} className="space-y-6">
-            <RetroSection title="Student Placements">
+            <RetroSection title="Penempatan Siswa">
               <RetroCard className="p-4 mb-6">
                 <div className="flex flex-col md:flex-row gap-4 items-end">
                   <div className="flex-1 w-full">
                     <Input 
-                      label="Search Students"
+                      label="Cari Siswa"
                       placeholder="Cari nama siswa..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
@@ -316,11 +325,11 @@ export default function PKLManagement() {
               </RetroCard>
 
               <RetroTable 
-                data={(studentsData || []).filter(s => s.name.toLowerCase().includes(search.toLowerCase()))}
+                data={ensureArray(studentsData).filter(s => s.name.toLowerCase().includes(search.toLowerCase()))}
                 isLoading={isLoadingStudents}
                 columns={[
                   {
-                    header: 'Student',
+                    header: 'Siswa',
                     key: 'name',
                     render: (val, row) => (
                       <div className="flex items-center gap-3">
@@ -335,7 +344,7 @@ export default function PKLManagement() {
                     )
                   },
                   {
-                    header: 'Current Placement',
+                    header: 'Lokasi Saat Ini',
                     key: 'pkl_location_id',
                     render: (val, row) => (
                       val ? (
@@ -344,12 +353,12 @@ export default function PKLManagement() {
                           {row.pkl_location?.company_name}
                         </div>
                       ) : (
-                        <span className="text-base-black/30 italic">Unplaced</span>
+                        <span className="text-base-black/30 italic">Belum Terplot</span>
                       )
                     )
                   },
                   {
-                    header: 'Change Assignment',
+                    header: 'Pilih Lokasi Penempatan',
                     key: 'actions',
                     render: (_, row) => (
                       <select 
@@ -357,8 +366,8 @@ export default function PKLManagement() {
                         value={row.pkl_location_id || ''}
                         onChange={(e) => assignMutation.mutate({ student_ids: [row.id], pkl_location_id: e.target.value })}
                       >
-                        <option value="">Unassign</option>
-                        {locationsData?.map(loc => (
+                        <option value="">Batalkan Penempatan</option>
+                        {ensureArray(locationsData).map(loc => (
                           <option key={loc.id} value={loc.id}>{loc.company_name}</option>
                         ))}
                       </select>
@@ -375,20 +384,20 @@ export default function PKLManagement() {
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        title={selectedLocation ? "Edit PKL Location" : "Add PKL Location"}
+        title={selectedLocation ? "Ubah Lokasi PKL" : "Tambah Lokasi PKL"}
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input 
-              label="Company Name" 
+              label="Nama Perusahaan / Instansi" 
               value={formData.company_name} 
               onChange={e => setFormData({...formData, company_name: e.target.value})}
               required
               icon={Building2}
             />
             <Input 
-              label="Supervisor Name" 
+              label="Nama Pembimbing Lapangan" 
               value={formData.supervisor_name} 
               onChange={e => setFormData({...formData, supervisor_name: e.target.value})}
               icon={UserCheck}
@@ -396,7 +405,7 @@ export default function PKLManagement() {
           </div>
           
           <Input 
-            label="Full Address" 
+            label="Alamat Lengkap" 
             value={formData.address} 
             onChange={e => setFormData({...formData, address: e.target.value})}
             required
@@ -419,7 +428,7 @@ export default function PKLManagement() {
               placeholder="106.816666"
             />
             <Input 
-              label="Radius (meters)" 
+              label="Radius Presensi (Meter)" 
               type="number"
               value={formData.radius_meters} 
               onChange={e => setFormData({...formData, radius_meters: e.target.value})}
@@ -429,16 +438,16 @@ export default function PKLManagement() {
           </div>
 
           <div className="p-4 bg-retro-orange/5 border-2 border-base-black border-dashed rounded-retro">
-            <p className="text-[10px] font-black uppercase text-base-black/50 mb-3">Map Preview</p>
+            <p className="text-[10px] font-black uppercase text-base-black/50 mb-3">Pratinjau Peta</p>
             <div className="h-48">
               <LocationMap lat={formData.latitude} lng={formData.longitude} companyName={formData.company_name} />
             </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t-2 border-base-black/10">
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Batal</Button>
             <Button type="submit" loading={submitMutation.isPending}>
-              {selectedLocation ? 'Update Location' : 'Save Location'}
+              {selectedLocation ? 'Simpan Perubahan' : 'Tambah Lokasi'}
             </Button>
           </div>
         </form>

@@ -58,7 +58,7 @@ class Device extends Model
     public function getRetroNameAttribute(): string
     {
         $name = $this->name ?? 'Unknown Device';
-        $type = $this->device_type;
+        $type = $this->getDeviceTypeAttribute();
         
         $icons = [
             'mobile' => '📱',
@@ -66,6 +66,7 @@ class Device extends Model
             'desktop' => '💻',
         ];
         
-        return "{$icons[$type] ?? '🖥️'} {$name}";
+        $icon = $icons[$type] ?? '🖥️';
+        return "{$icon} {$name}";
     }
 }

@@ -7,6 +7,7 @@ import {
   QrCode, MapPin, Smartphone, UserCheck, Shield, Star
 } from 'lucide-react';
 import { adminAPI } from '../../api';
+import { ID } from '../../i18n/id';
 
 // 🏛️ CENTRALIZED UI COMPONENTS
 import Modal from '../../components/ui/Modal';
@@ -105,10 +106,10 @@ export default function AttendanceManagement() {
 
       {/* Header */}
       <PageHeader 
-        title="Attendance Tracking"
+        title={ID.nav.attendance}
         icon={Clock}
         description="Pantau kehadiran siswa secara realtime, validasi koordinat GPS, dan kelola perizinan."
-        breadcrumbs={[{ label: 'Attendance', path: '/admin/attendance' }]}
+        breadcrumbs={[{ label: ID.nav.attendance, path: '/admin/attendance' }]}
         actions={
           <div className="flex gap-2">
             <Input 
@@ -119,7 +120,7 @@ export default function AttendanceManagement() {
             />
             <Button variant="outline" onClick={handleExport} className="flex items-center gap-2">
               <Download className="w-4 h-4" />
-              Export
+              Ekspor
             </Button>
           </div>
         }
@@ -139,7 +140,7 @@ export default function AttendanceManagement() {
           <div className="flex flex-col md:flex-row gap-4 items-end">
             <div className="flex-1 w-full">
               <Input 
-                label="Search Student"
+                label="Cari Siswa"
                 placeholder="Cari nama atau NIS..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -157,7 +158,7 @@ export default function AttendanceManagement() {
                       statusFilter === status ? "bg-base-black text-base-white shadow-hard-sm" : "text-base-black hover:bg-base-black/5"
                     )}
                   >
-                    {status}
+                    {status === 'all' ? 'Semua' : status === 'present' ? 'Hadir' : status === 'late' ? 'Terlambat' : 'Alpa'}
                   </button>
                 ))}
               </div>
@@ -174,7 +175,7 @@ export default function AttendanceManagement() {
           isLoading={isLoading}
           columns={[
             {
-              header: 'Student',
+              header: 'Siswa',
               key: 'user.name',
               render: (val, row) => (
                 <div className="flex items-center gap-3">
@@ -189,12 +190,12 @@ export default function AttendanceManagement() {
               )
             },
             {
-              header: 'Check In',
+              header: 'Waktu Masuk',
               key: 'check_in',
               render: (val) => val ? (
                 <div className="flex flex-col">
                   <span className="font-retro-mono font-black text-sm">{val}</span>
-                  <span className="text-[10px] text-base-black/50">Device: Mobile App</span>
+                  <span className="text-[10px] text-base-black/50">Perangkat: Aplikasi Mobile</span>
                 </div>
               ) : '-'
             },
@@ -209,12 +210,12 @@ export default function AttendanceManagement() {
                   val === 'absent' ? "bg-danger/10 border-danger text-danger" :
                   "bg-retro-blue/10 border-retro-blue text-retro-blue"
                 )}>
-                  {val}
+                  {val === 'present' ? 'Hadir' : val === 'late' ? 'Terlambat' : val === 'absent' ? 'Alpa' : 'Izin/Sakit'}
                 </span>
               )
             },
             {
-              header: 'Verification',
+              header: 'Verifikasi',
               key: 'is_verified',
               render: (val) => (
                 <div className="flex items-center gap-2">
@@ -225,7 +226,7 @@ export default function AttendanceManagement() {
               )
             },
             {
-              header: 'Actions',
+              header: 'Aksi',
               key: 'actions',
               align: 'right',
               render: (_, row) => (
@@ -250,7 +251,7 @@ export default function AttendanceManagement() {
       <Modal 
         isOpen={isViewOpen} 
         onClose={() => setIsViewOpen(false)}
-        title="Attendance Evidence"
+        title="Bukti Kehadiran"
         size="md"
       >
         {selectedAttendance && (
@@ -265,18 +266,18 @@ export default function AttendanceManagement() {
               </div>
               <div>
                 <h3 className="retro-heading retro-heading-sm text-base-black">{selectedAttendance.user?.name}</h3>
-                <p className="font-retro-mono text-xs text-base-black/50">Checked in at {selectedAttendance.check_in}</p>
+                <p className="font-retro-mono text-xs text-base-black/50">Masuk pukul {selectedAttendance.check_in}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 bg-base-gray/10 rounded-retro border-2 border-base-black">
-                <p className="text-[10px] font-black text-base-black/50 uppercase">Coordinates</p>
+                <p className="text-[10px] font-black text-base-black/50 uppercase">Koordinat GPS</p>
                 <p className="font-retro-mono text-xs">{selectedAttendance.latitude || '0'}, {selectedAttendance.longitude || '0'}</p>
               </div>
               <div className="p-3 bg-base-gray/10 rounded-retro border-2 border-base-black">
-                <p className="text-[10px] font-black text-base-black/50 uppercase">Device ID</p>
-                <p className="font-retro-mono text-xs truncate">{selectedAttendance.device_id || 'Unknown'}</p>
+                <p className="text-[10px] font-black text-base-black/50 uppercase">ID Perangkat</p>
+                <p className="font-retro-mono text-xs truncate">{selectedAttendance.device_id || 'Tidak Diketahui'}</p>
               </div>
             </div>
 
@@ -285,14 +286,14 @@ export default function AttendanceManagement() {
                <div className="w-full h-full bg-base-gray flex items-center justify-center relative">
                   <MapPin className="w-12 h-12 text-retro-orange opacity-20" />
                   <div className="absolute inset-0 flex items-center justify-center text-[10px] font-retro-mono text-base-black/40">
-                     GPS Verification Active
+                     Verifikasi GPS Aktif
                   </div>
                </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-4 border-t-2 border-base-black/10">
-              <Button variant="outline" onClick={() => setIsViewOpen(false)}>Close</Button>
-              <Button variant="danger">Invalidate</Button>
+              <Button variant="outline" onClick={() => setIsViewOpen(false)}>Tutup</Button>
+              <Button variant="danger">Batalkan Validasi</Button>
             </div>
           </div>
         )}

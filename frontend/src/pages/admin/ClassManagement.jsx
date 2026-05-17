@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminAPI } from '../../api';
+import { ID } from '../../i18n/id';
 
 // 🏛️ CENTRALIZED UI COMPONENTS
 import Modal from '../../components/ui/Modal';
@@ -70,6 +71,106 @@ function RetroSelect({ label, name, value, onChange, options = [], error, ...pro
   );
 }
 
+// 🎨 ADDITIONAL STYLES & VARIANTS
+const floatVariants = {
+  animate: {
+    y: [0, -10, 0],
+    rotate: [0, 3, -3, 0],
+    transition: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+  }
+};
+
+function RetroTag({ label, color = 'orange' }) {
+  const colors = {
+    orange: 'bg-retro-orange/10 text-retro-orange border-retro-orange',
+    blue: 'bg-retro-blue/10 text-retro-blue border-retro-blue',
+    purple: 'bg-retro-purple/10 text-retro-purple border-retro-purple',
+    lime: 'bg-retro-lime/10 text-retro-lime border-retro-lime',
+    green: 'bg-retro-green/10 text-retro-green border-retro-green',
+    pink: 'bg-retro-pink/10 text-retro-pink border-retro-pink',
+    gray: 'bg-base-gray/10 text-base-black/50 border-base-black/10',
+  };
+  return (
+    <span className={twMerge("px-2 py-0.5 rounded-retro text-[9px] font-black uppercase border-2", colors[color])}>
+      {label}
+    </span>
+  );
+}
+
+function RetroTeacherMultiSelect({ label, value = [], onChange, teachers = [], error }) {
+  const toggleTeacher = (id) => {
+    const next = value.includes(id) ? value.filter(i => i !== id) : [...value, id];
+    onChange(next);
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-[10px] font-black uppercase tracking-wider text-base-black">{label}</label>
+      <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1">
+        {teachers.map(t => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => toggleTeacher(t.id)}
+            className={twMerge(
+              "px-3 py-1 rounded-retro border-2 font-retro-mono text-[10px] transition-all",
+              value.includes(t.id) 
+                ? "bg-retro-purple text-base-white border-base-black shadow-hard-sm" 
+                : "bg-base-white text-base-black border-base-black/20 hover:border-base-black"
+            )}
+          >
+            {t.name}
+          </button>
+        ))}
+      </div>
+      {error && <p className="text-danger text-[9px] font-retro-mono">{error}</p>}
+    </div>
+  );
+}
+
+function RetroStatBox({ label, value, icon: Icon, color }) {
+  return (
+    <div className="retro-card bg-base-white border-4 border-base-black p-4 text-center relative group">
+      <div className={`w-10 h-10 mx-auto mb-2 rounded-retro bg-base-gray border-2 border-base-black flex items-center justify-center ${color}`}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <p className="font-retro-mono text-[9px] text-base-black/50 uppercase tracking-wider">{label}</p>
+      <p className="font-retro-display font-black text-base-black text-xl mt-1">{value}</p>
+      <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-retro-yellow border border-base-black rounded-sm rotate-45" />
+    </div>
+  );
+}
+
+function RetroDetailItem({ icon: Icon, label, value }) {
+  return (
+    <div className="flex items-center justify-between p-2 rounded border-2 border-base-black/5 bg-base-white/50">
+      <div className="flex items-center gap-2">
+        {Icon && <Icon className="w-4 h-4 text-base-black/40" />}
+        <span className="font-retro-mono text-xs text-base-black/60 uppercase">{label}</span>
+      </div>
+      <span className="font-retro-display font-black text-base-black text-xs">{value || '-'}</span>
+    </div>
+  );
+}
+
+function RetroConfirmModal({ isOpen, onClose, onConfirm, title, message }) {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`🚨 ${title}`} size="md">
+      <div className="space-y-4 text-center p-4">
+        <p className="font-retro-mono text-sm text-base-black">{message}</p>
+        <div className="flex justify-center gap-3 pt-4 border-t-2 border-base-black/10">
+          <Button variant="outline" onClick={onClose}>
+            CANCEL
+          </Button>
+          <Button variant="danger" onClick={onConfirm}>
+            CONFIRM
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════
 // 🎪 DECORATIVE FLOATING ELEMENTS
 // ═══════════════════════════════════════════════════════════
@@ -96,6 +197,9 @@ export default function ClassManagement() {
   
   // State Management
   const [search, setSearch] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({ level: 'all', status: 'all' });
+  const [page, setPage] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -133,11 +237,19 @@ export default function ClassManagement() {
 
   // Fetch classes with filters
   const { data, isPending, isError, isFetching } = useQuery({
-    queryKey: ['admin-classes', debouncedSearch],
-    queryFn: () => adminAPI.getClasses({
-      page: 1, 
-      search: debouncedSearch || undefined 
-    }),
+    queryKey: ['admin-classes', debouncedSearch, advancedFilters, page],
+    queryFn: () => {
+      const cleanFilters = Object.entries(advancedFilters).reduce((acc, [key, value]) => {
+        acc[key] = value === 'all' ? undefined : value;
+        return acc;
+      }, {});
+
+      return adminAPI.getClasses({
+        page, 
+        search: debouncedSearch || undefined, 
+        ...cleanFilters
+      });
+    },
     placeholderData: (prev) => prev,
     staleTime: 30000,
   });
@@ -288,8 +400,8 @@ export default function ClassManagement() {
             className="w-20 h-20 mx-auto mb-4 border-4 border-base-black rounded-retro-lg flex items-center justify-center bg-retro-orange shadow-hard">
             <School className="w-10 h-10 text-base-white animate-pulse" />
           </motion.div>
-          <h2 className="retro-heading retro-heading-orange text-2xl mb-2">LOADING CLASSES</h2>
-          <p className="font-retro-mono text-sm text-base-black/70 mb-4">Fetching awesome classrooms...</p>
+          <h2 className="retro-heading retro-heading-orange text-2xl mb-2">MEMUAT KELAS</h2>
+          <p className="font-retro-mono text-sm text-base-black/70 mb-4">Mengambil data kelas...</p>
           <div className="w-48 mx-auto h-4 border-4 border-base-black rounded-sm overflow-hidden bg-base-white">
             <motion.div className="h-full bg-retro-blue" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} style={{ width: '50%' }} />
           </div>
@@ -311,13 +423,13 @@ export default function ClassManagement() {
           className="w-16 h-16 mx-auto mb-4 border-4 border-base-black rounded-retro-lg flex items-center justify-center bg-danger shadow-[4px_4px_0px_0px_#111111]">
           <AlertCircle className="w-8 h-8 text-base-white" />
         </motion.div>
-        <h3 className="retro-heading text-xl mb-3 text-base-black">Oops! Connection Error</h3>
-        <p className="font-retro-mono text-sm text-base-black/70 mb-5">Failed to load class data.</p>
+        <h3 className="retro-heading text-xl mb-3 text-base-black">Oops! Terjadi Kesalahan Koneksi</h3>
+        <p className="font-retro-mono text-sm text-base-black/70 mb-5">Gagal memuat data kelas.</p>
         <div className="flex gap-3 justify-center">
           <button onClick={() => queryClient.invalidateQueries(['admin-classes'])} className="retro-btn retro-btn-secondary flex items-center gap-2">
-            <RefreshCw className="w-4 h-4" /> Retry
+            <RefreshCw className="w-4 h-4" /> Ulangi
           </button>
-          <button onClick={() => window.history.back()} className="retro-btn retro-btn-outline">Go Back</button>
+          <button onClick={() => window.history.back()} className="retro-btn retro-btn-outline">Kembali</button>
         </div>
         <div className="absolute -top-3 -right-3 retro-sticker bg-retro-yellow text-base-black text-xs px-3 py-1">ERROR!</div>
       </motion.div>
@@ -336,10 +448,10 @@ export default function ClassManagement() {
     >
       {/* 🏛️ PAGE HEADER */}
       <PageHeader 
-        title="Class Management"
+        title={ID.nav.classes}
         icon={School}
-        description="Organize and monitor classroom settings, homeroom assignments, and capacity."
-        breadcrumbs={[{ label: 'Classes', path: '/admin/classes' }]}
+        description="Atur dan pantau pengaturan kelas, penugasan wali kelas, dan kapasitas siswa."
+        breadcrumbs={[{ label: ID.nav.classes, path: '/admin/classes' }]}
         actions={
           <div className="flex gap-2">
             <Button 
@@ -348,7 +460,7 @@ export default function ClassManagement() {
               className="hidden sm:flex items-center gap-2"
             >
               <Upload className="w-4 h-4" />
-              Import
+              Impor
             </Button>
             <Button 
               variant="primary" 
@@ -356,7 +468,7 @@ export default function ClassManagement() {
               className="flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Add Class
+              Tambah Kelas
             </Button>
           </div>
         }
@@ -365,26 +477,26 @@ export default function ClassManagement() {
       {/* 📊 QUICK STATS */}
       <StatGrid>
         <RetroStatWidget
-          title="Total Classes"
+          title="Total Kelas"
           value={stats.total}
           icon={School}
           color="orange"
         />
         <RetroStatWidget
-          title="Active Students"
+          title="Siswa Aktif"
           value={stats.totalStudents}
           icon={Users}
           color="blue"
           trend={8}
         />
         <RetroStatWidget
-          title="Class Capacity"
+          title="Kapasitas Kelas"
           value={stats.totalCapacity}
           icon={MapPin}
           color="purple"
         />
         <RetroStatWidget
-          title="Active Classes"
+          title="Kelas Aktif"
           value={stats.active}
           icon={CheckCircle2}
           color="lime"
@@ -398,8 +510,8 @@ export default function ClassManagement() {
           <div className="flex flex-col md:flex-row gap-4 items-end">
             <div className="flex-1 w-full">
               <Input 
-                label="Search Classes"
-                placeholder="Search class name..."
+                label="Cari Kelas"
+                placeholder="Cari nama kelas..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 prefix={<Search className="w-4 h-4" />}
@@ -413,7 +525,7 @@ export default function ClassManagement() {
                 className="flex items-center gap-2"
               >
                 <Filter className="w-4 h-4" />
-                {showFilters ? 'Hide' : 'Show'} Filters
+                {showFilters ? 'Sembunyikan' : 'Tampilkan'} Penyaring
               </Button>
               <Button 
                 variant="outline" 
@@ -434,14 +546,14 @@ export default function ClassManagement() {
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <Select 
-                    label="Grade Level"
+                    label="Tingkat Kelas"
                     value={advancedFilters.level}
                     onChange={(e) => setAdvancedFilters({...advancedFilters, level: e.target.value})}
                     options={[
-                      { value: 'all', label: 'All Levels' },
-                      { value: 'X', label: 'Grade X' },
-                      { value: 'XI', label: 'Grade XI' },
-                      { value: 'XII', label: 'Grade XII' }
+                      { value: 'all', label: 'Semua Tingkat' },
+                      { value: 'X', label: 'Kelas X' },
+                      { value: 'XI', label: 'Kelas XI' },
+                      { value: 'XII', label: 'Kelas XII' }
                     ]}
                   />
                   <Select 
@@ -449,9 +561,9 @@ export default function ClassManagement() {
                     value={advancedFilters.status}
                     onChange={(e) => setAdvancedFilters({...advancedFilters, status: e.target.value})}
                     options={[
-                      { value: 'all', label: 'All Status' },
-                      { value: 'active', label: 'Active Only' },
-                      { value: 'inactive', label: 'Inactive Only' }
+                      { value: 'all', label: 'Semua Status' },
+                      { value: 'active', label: 'Hanya Aktif' },
+                      { value: 'inactive', label: 'Hanya Nonaktif' }
                     ]}
                   />
                   <div className="flex items-end">
@@ -460,7 +572,7 @@ export default function ClassManagement() {
                       className="w-full"
                       onClick={() => queryClient.invalidateQueries(['admin-classes'])}
                     >
-                      Apply Filters
+                      Terapkan Penyaring
                     </Button>
                   </div>
                 </div>
@@ -474,9 +586,9 @@ export default function ClassManagement() {
       <div className="space-y-4">
         <div className="flex gap-2 overflow-x-auto pb-2">
           {[
-            { id: 'overview', label: 'Overview', icon: BarChart3 },
-            { id: 'schedule', label: 'Schedule', icon: Calendar },
-            { id: 'students', label: 'Students', icon: Users },
+            { id: 'overview', label: 'Ringkasan', icon: BarChart3 },
+            { id: 'schedule', label: 'Jadwal', icon: Calendar },
+            { id: 'students', label: 'Siswa', icon: Users },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -496,11 +608,11 @@ export default function ClassManagement() {
 
         {activeTab === 'overview' && (
           <RetroTable 
-            isLoading={isLoading}
+            isLoading={isPending}
             data={classes}
             columns={[
               {
-                header: 'Class',
+                header: 'Kelas',
                 key: 'name',
                 render: (name, cls) => (
                   <div className="flex items-center gap-3">
@@ -509,18 +621,18 @@ export default function ClassManagement() {
                     </div>
                     <div>
                       <p className="font-retro-display font-black text-base-black text-sm leading-tight">{name}</p>
-                      <p className="font-retro-mono text-[10px] text-base-black/50 truncate max-w-[150px]">{cls.description || 'No description'}</p>
+                      <p className="font-retro-mono text-[10px] text-base-black/50 truncate max-w-[150px]">{cls.description || 'Tidak ada deskripsi'}</p>
                     </div>
                   </div>
                 )
               },
               {
-                header: 'Level',
+                header: 'Tingkat',
                 key: 'level',
-                render: (level) => <RetroTag label={`Grade ${level}`} color="blue" />
+                render: (level) => <RetroTag label={`Kelas ${level}`} color="blue" />
               },
               {
-                header: 'Capacity',
+                header: 'Kapasitas',
                 key: 'capacity',
                 render: (capacity, cls) => (
                   <div className="flex flex-col">
@@ -535,7 +647,7 @@ export default function ClassManagement() {
                 )
               },
               {
-                header: 'Homeroom',
+                header: 'Wali Kelas',
                 key: 'wali_kelas',
                 className: 'hidden md:table-cell',
                 render: (wali) => <span className="text-xs font-retro-mono">{wali?.name || '-'}</span>
@@ -548,7 +660,7 @@ export default function ClassManagement() {
                     "px-2 py-0.5 rounded-full text-[8px] font-black uppercase border-2",
                     active ? "bg-success/10 text-success border-success" : "bg-danger/10 text-danger border-danger"
                   )}>
-                    {active ? 'Active' : 'Inactive'}
+                    {active ? 'Aktif' : 'Nonaktif'}
                   </span>
                 )
               }
@@ -573,10 +685,10 @@ export default function ClassManagement() {
               <Rocket className="w-8 h-8 text-base-black/20" />
             </div>
             <div>
-              <h3 className="retro-heading text-lg">Module Integration</h3>
-              <p className="font-retro-mono text-sm text-base-black/50">This section is currently being synchronized with the master API.</p>
+              <h3 className="retro-heading text-lg">Integrasi Modul</h3>
+              <p className="font-retro-mono text-sm text-base-black/50">Bagian ini sedang disinkronisasikan dengan API master.</p>
             </div>
-            <Button variant="outline" size="sm">Notify Me When Ready</Button>
+            <Button variant="outline" size="sm">Beri Tahu Saya Jika Sudah Siap</Button>
           </RetroCard>
         )}
       </div>
@@ -586,26 +698,26 @@ export default function ClassManagement() {
           ═══════════════════════════════════════════════════════════ */}
       {(isCreateOpen || isEditOpen) && (
         <Modal isOpen={isCreateOpen || isEditOpen} onClose={() => { setIsCreateOpen(false); setIsEditOpen(false); }} 
-          title={isCreateOpen ? "✨ ADD NEW CLASS" : "✏️ EDIT CLASS"} size="2xl">
+          title={isCreateOpen ? "✨ TAMBAH KELAS BARU" : "✏️ UBAH KELAS"} size="2xl">
           <form onSubmit={isCreateOpen ? handleCreateSubmit : handleEditSubmit} className="space-y-5">
             
             {/* Section 1: Basic Info */}
             <div className="space-y-4">
               <h3 className="retro-heading retro-heading-sm text-retro-blue flex items-center gap-2">
-                <School className="w-5 h-5" /> CLASS INFO
+                <School className="w-5 h-5" /> INFORMASI KELAS
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <RetroInput label="Class Name" name="name" value={formData.name} onChange={setFormData} error={errors.name} required placeholder="RPL X-1" icon={School} />
-                <RetroSelect label="Grade Level" name="level" value={formData.level || 'X'} onChange={setFormData} 
-                  options={[{value:'X',label:'Grade X'},{value:'XI',label:'Grade XI'},{value:'XII',label:'Grade XII'}]} 
+                <RetroInput label="Nama Kelas" name="name" value={formData.name} onChange={setFormData} error={errors.name} required placeholder="RPL X-1" icon={School} />
+                <RetroSelect label="Tingkat Kelas" name="level" value={formData.level || 'X'} onChange={setFormData} 
+                  options={[{value:'X',label:'Kelas X'},{value:'XI',label:'Kelas XI'},{value:'XII',label:'Kelas XII'}]} 
                   error={errors.level} required icon={BarChart3} />
               </div>
-              <RetroInput label="Description" name="description" value={formData.description} onChange={setFormData} error={errors.description} placeholder="Brief description about this class..." />
+              <RetroInput label="Deskripsi" name="description" value={formData.description} onChange={setFormData} error={errors.description} placeholder="Deskripsi singkat mengenai kelas ini..." />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <RetroInput label="Max Capacity" name="capacity" type="number" value={formData.capacity} onChange={setFormData} error={errors.capacity} placeholder="36" helperText="Maximum students in class" />
+                <RetroInput label="Kapasitas Maksimal" name="capacity" type="number" value={formData.capacity} onChange={setFormData} error={errors.capacity} placeholder="36" helperText="Jumlah siswa maksimal di dalam kelas" />
                 <div className="flex items-center pt-6">
                   <input type="checkbox" id="is_active" checked={formData.is_active !== false} onChange={(e) => setFormData({...formData, is_active: e.target.checked})} className="w-4 h-4 accent-retro-orange border-2 border-base-black" />
-                  <label htmlFor="is_active" className="ml-2 text-xs font-retro-mono text-base-black/70 cursor-pointer">Active Class</label>
+                  <label htmlFor="is_active" className="ml-2 text-xs font-retro-mono text-base-black/70 cursor-pointer">Kelas Aktif</label>
                 </div>
               </div>
             </div>
@@ -613,10 +725,10 @@ export default function ClassManagement() {
             {/* Section 2: Teachers */}
             <div className="space-y-4">
               <h3 className="retro-heading retro-heading-sm text-retro-purple flex items-center gap-2">
-                <Users className="w-5 h-5" /> ASSIGN TEACHERS
+                <Users className="w-5 h-5" /> TUGASKAN GURU
               </h3>
-              <RetroTeacherMultiSelect label="Homeroom & Subject Teachers" value={formData.teacher_ids} onChange={(v) => setFormData({...formData, teacher_ids: v})} teachers={teachers} error={errors.teacher_ids} />
-              <p className="text-[10px] font-retro-mono text-base-black/50">💡 First teacher selected will be the homeroom teacher.</p>
+              <RetroTeacherMultiSelect label="Wali Kelas & Guru Mata Pelajaran" value={formData.teacher_ids} onChange={(v) => setFormData({...formData, teacher_ids: v})} teachers={teachers} error={errors.teacher_ids} />
+              <p className="text-[10px] font-retro-mono text-base-black/50">💡 Guru pertama yang dipilih akan menjadi Wali Kelas.</p>
             </div>
 
             <div className="pt-4 flex justify-end gap-3 border-t-4 border-base-black sticky bottom-0 bg-base-cream py-4 z-10 mt-6">
@@ -625,7 +737,7 @@ export default function ClassManagement() {
                 onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }} 
                 className="retro-btn retro-btn-outline"
               >
-                CANCEL
+                BATAL
               </button>
               <button 
                 type="submit" 
@@ -637,7 +749,7 @@ export default function ClassManagement() {
                 ) : (
                   <Rocket className="w-4 h-4" />
                 )}
-                {isCreateOpen ? 'CREATE CLASS' : 'SAVE CHANGES'}
+                {isCreateOpen ? 'TAMBAH KELAS' : 'SIMPAN PERUBAHAN'}
               </button>
             </div>
           </form>
@@ -648,7 +760,7 @@ export default function ClassManagement() {
           👁️ MODAL: VIEW CLASS DETAIL (RETRO STYLE)
           ═══════════════════════════════════════════════════════════ */}
       {isViewOpen && selectedClass && (
-        <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="📚 CLASS PROFILE" size="lg">
+        <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="📚 PROFIL KELAS" size="lg">
           <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center gap-4 pb-4 border-b-4 border-base-black">
@@ -657,11 +769,11 @@ export default function ClassManagement() {
               </motion.div>
               <div>
                 <h3 className="retro-heading retro-heading-lg text-base-black">{selectedClass.name}</h3>
-                <p className="font-retro-mono text-sm text-base-black/70">{selectedClass.description || 'No description'}</p>
+                <p className="font-retro-mono text-sm text-base-black/70">{selectedClass.description || 'Tidak ada deskripsi'}</p>
                 <div className="flex gap-2 mt-2">
-                  <span className="retro-badge retro-badge-blue text-[10px]">Grade {selectedClass.level}</span>
+                  <span className="retro-badge retro-badge-blue text-[10px]">Kelas {selectedClass.level}</span>
                   <span className={`retro-badge text-[10px] ${selectedClass.is_active ? 'retro-badge-green' : 'retro-badge-red'}`}>
-                    {selectedClass.is_active ? 'ACTIVE' : 'INACTIVE'}
+                    {selectedClass.is_active ? 'AKTIF' : 'NONAKTIF'}
                   </span>
                 </div>
               </div>
@@ -669,23 +781,23 @@ export default function ClassManagement() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <RetroStatBox label="Students" value={selectedClass.student_count || 0} icon={Users} color="text-retro-blue" />
-              <RetroStatBox label="Capacity" value={selectedClass.capacity || 36} icon={MapPin} color="text-retro-purple" />
-              <RetroStatBox label="Available" value={(selectedClass.capacity || 36) - (selectedClass.student_count || 0)} icon={CheckCircle2} color="text-success" />
-              <RetroStatBox label="Subjects" value={selectedClass.subject_count || 0} icon={BookOpen} color="text-retro-orange" />
+              <RetroStatBox label="Siswa" value={selectedClass.student_count || 0} icon={Users} color="text-retro-blue" />
+              <RetroStatBox label="Kapasitas" value={selectedClass.capacity || 36} icon={MapPin} color="text-retro-purple" />
+              <RetroStatBox label="Tersedia" value={(selectedClass.capacity || 36) - (selectedClass.student_count || 0)} icon={CheckCircle2} color="text-success" />
+              <RetroStatBox label="Mata Pelajaran" value={selectedClass.subject_count || 0} icon={BookOpen} color="text-retro-orange" />
             </div>
 
             {/* Details Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
-                <RetroDetailItem icon={Calendar} label="Created" value={new Date(selectedClass.created_at).toLocaleDateString('id-ID')} />
-                <RetroDetailItem icon={Clock} label="Updated" value={new Date(selectedClass.updated_at).toLocaleDateString('id-ID')} />
+                <RetroDetailItem icon={Calendar} label="Dibuat" value={new Date(selectedClass.created_at).toLocaleDateString('id-ID')} />
+                <RetroDetailItem icon={Clock} label="Diperbarui" value={new Date(selectedClass.updated_at).toLocaleDateString('id-ID')} />
                 {selectedClass.slug && <RetroDetailItem label="Slug" value={selectedClass.slug} />}
               </div>
               <div className="space-y-3">
                 {selectedClass.teachers?.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-wider text-base-black/50 mb-1">Teachers</p>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-base-black/50 mb-1">Guru</p>
                     <div className="flex flex-wrap gap-1.5">
                       {selectedClass.teachers.map((t) => (
                         <span key={t.id} className="retro-badge retro-badge-purple text-[9px]">{t.name}</span>
@@ -695,7 +807,7 @@ export default function ClassManagement() {
                 )}
                 {selectedClass.subjects?.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-wider text-base-black/50 mb-1">Subjects</p>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-base-black/50 mb-1">Mata Pelajaran</p>
                     <div className="flex flex-wrap gap-1.5">
                       {selectedClass.subjects.map((s) => (
                         <span key={s.id} className="retro-badge retro-badge-orange text-[9px]">{s.code}</span>
@@ -708,9 +820,9 @@ export default function ClassManagement() {
 
             {/* Actions */}
             <div className="pt-4 border-t-4 border-base-black flex justify-end gap-2">
-              <button onClick={() => { setIsViewOpen(false); openEditModal(selectedClass); }} className="retro-btn retro-btn-outline"><Edit2 className="w-4 h-4 mr-1" /> Edit</button>
-              <button onClick={() => { setIsViewOpen(false); /* Navigate to schedule */ }} className="retro-btn retro-btn-secondary"><Calendar className="w-4 h-4 mr-1" /> Schedule</button>
-              <button onClick={() => { setIsViewOpen(false); handleDelete(selectedClass.id); }} className="retro-btn bg-danger hover:bg-danger/90 text-base-white"><Trash2 className="w-4 h-4 mr-1" /> Delete</button>
+              <button onClick={() => { setIsViewOpen(false); openEditModal(selectedClass); }} className="retro-btn retro-btn-outline"><Edit2 className="w-4 h-4 mr-1" /> Ubah</button>
+              <button onClick={() => { setIsViewOpen(false); /* Navigate to schedule */ }} className="retro-btn retro-btn-secondary"><Calendar className="w-4 h-4 mr-1" /> Jadwal</button>
+              <button onClick={() => { setIsViewOpen(false); handleDelete(selectedClass.id); }} className="retro-btn bg-danger hover:bg-danger/90 text-base-white"><Trash2 className="w-4 h-4 mr-1" /> Hapus</button>
             </div>
           </div>
         </Modal>
@@ -718,15 +830,15 @@ export default function ClassManagement() {
 
       {/* Confirmation Modals */}
       <RetroConfirmModal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={confirmDeleteAction}
-        title="Delete Class?" message="Are you sure you want to delete this class? All related data will be affected." />
+        title="Hapus Kelas?" message="Apakah Anda yakin ingin menghapus kelas ini? Semua data terkait akan terpengaruh." />
       <RetroConfirmModal isOpen={confirmBulkDelete} onClose={() => setConfirmBulkDelete(false)} onConfirm={confirmBulkDeleteAction}
-        title={`Delete ${selectedIds.length} Class(es)?`} message="Are you sure you want to delete the selected classes? This action cannot be undone." />
+        title={`Hapus ${selectedIds.length} Kelas?`} message="Apakah Anda yakin ingin menghapus kelas terpilih? Tindakan ini tidak dapat dibatalkan." />
 
       {/* Floating Action Button */}
       <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
         onClick={() => { setFormData({level:'X',capacity:36}); setIsCreateOpen(true); }}
         className="fixed bottom-6 right-6 z-50 retro-btn retro-btn-lg retro-btn-sticker hidden md:flex items-center gap-2">
-        <Plus className="w-5 h-5" /><span className="hidden lg:inline">Add Class</span>
+        <Plus className="w-5 h-5" /><span className="hidden lg:inline">Tambah Kelas</span>
       </motion.button>
 
       {/* Decorative Footer Stickers */}

@@ -166,9 +166,9 @@ function RetroStatCard({ label, value, icon: Icon, color, trend, subtitle, onCli
           >
             {value.toLocaleString('id-ID')}
           </motion.h3>
-          <p className="text-sm font-black uppercase tracking-wider text-base-black/70">{label}</p>
+          <p className="text-xs font-black uppercase tracking-wider text-base-black/70">{label}</p>
           {subtitle && (
-            <p className="text-xs font-medium text-base-black/50 mt-2 flex items-center gap-1">
+            <p className="text-[10px] font-medium text-base-black/50 mt-2 flex items-center gap-1">
               <ArrowRight className="w-3 h-3 rotate-[-45deg]" />
               {subtitle}
             </p>
@@ -244,11 +244,11 @@ function RetroHealthItem({ label, value, icon: Icon }) {
   const getStatusConfig = (status) => {
     const configs = {
       connected: { color: 'text-success', bg: 'bg-success', border: 'border-base-black', dot: 'bg-success', label: 'OK' },
-      active: { color: 'text-success', bg: 'bg-success', border: 'border-base-black', dot: 'bg-success', label: 'ACTIVE' },
-      running: { color: 'text-success', bg: 'bg-success', border: 'border-base-black', dot: 'bg-success', label: 'RUNNING' },
-      configured: { color: 'text-retro-blue', bg: 'bg-retro-blue', border: 'border-base-black', dot: 'bg-retro-blue', label: 'READY' },
+      active: { color: 'text-success', bg: 'bg-success', border: 'border-base-black', dot: 'bg-success', label: 'AKTIF' },
+      running: { color: 'text-success', bg: 'bg-success', border: 'border-base-black', dot: 'bg-success', label: 'BERJALAN' },
+      configured: { color: 'text-retro-blue', bg: 'bg-retro-blue', border: 'border-base-black', dot: 'bg-retro-blue', label: 'SIAP' },
       disconnected: { color: 'text-danger', bg: 'bg-danger', border: 'border-base-black', dot: 'bg-danger', label: 'OFFLINE' },
-      inactive: { color: 'text-warning', bg: 'bg-warning', border: 'border-base-black', dot: 'bg-warning', label: 'IDLE' },
+      inactive: { color: 'text-warning', bg: 'bg-warning', border: 'border-base-black', dot: 'bg-warning', label: 'STANDBY' },
     };
     return configs[status?.toLowerCase()] || configs.configured;
   };
@@ -366,56 +366,56 @@ export default function AdminDashboard() {
   // ═════════════════════════════════════════════════════════
   const quickActions = [
     {
-      label: 'Users',
+      label: 'Pengguna',
       icon: Users,
       action: () => navigate('/dashboard/admin/users'),
       color: 'orange',
-      description: 'Manage accounts',
+      description: 'Kelola akun pengguna',
       badge: null,
       rotate: -2,
     },
     {
-      label: 'Classes',
+      label: 'Kelas',
       icon: School,
       action: () => navigate('/dashboard/admin/classes'),
       color: 'blue',
-      description: 'Manage classes',
+      description: 'Kelola data kelas',
       badge: null,
       rotate: 2,
     },
     {
-      label: 'Subjects',
+      label: 'Pelajaran',
       icon: BookOpen,
       action: () => navigate('/dashboard/admin/subjects'),
       color: 'purple',
-      description: 'Manage subjects',
-      badge: 'NEW',
+      description: 'Kurikulum mata pelajaran',
+      badge: 'BARU',
       rotate: -1,
     },
     {
-      label: 'Schedule',
+      label: 'Jadwal',
       icon: Calendar,
       action: () => navigate('/dashboard/admin/schedules'),
       color: 'yellow',
-      description: 'Manage schedule',
+      description: 'Kelola jadwal belajar',
       badge: null,
       rotate: 1,
     },
     {
-      label: 'Analytics',
+      label: 'Analisis',
       icon: BarChart3,
       action: () => setActiveTab('analytics'),
       color: 'lime',
-      description: 'View reports',
+      description: 'Laporan statistik absensi',
       badge: '📊',
       rotate: -3,
     },
     {
-      label: 'Settings',
+      label: 'Pengaturan',
       icon: Settings,
       action: () => navigate('/dashboard/admin/settings'),
       color: 'pink',
-      description: 'System config',
+      description: 'Konfigurasi sistem',
       badge: null,
       rotate: 2,
     },
@@ -442,7 +442,7 @@ export default function AdminDashboard() {
           </motion.div>
           
           <h2 className="retro-heading retro-heading-orange text-2xl mb-2">RPL SMART</h2>
-          <p className="font-retro-mono text-sm text-base-black/70 mb-4">Loading awesome stuff...</p>
+          <p className="font-retro-mono text-sm text-base-black/70 mb-4">Memuat data menarik...</p>
           
           {/* Retro progress bar */}
           <div className="w-48 mx-auto h-4 border-4 border-base-black rounded-sm overflow-hidden bg-base-white">
@@ -485,9 +485,9 @@ export default function AdminDashboard() {
           <AlertCircle className="w-8 h-8 text-base-white" />
         </motion.div>
         
-        <h3 className="retro-heading text-xl mb-3 text-base-black">Oops! Connection Error</h3>
+        <h3 className="retro-heading text-xl mb-3 text-base-black">Oops! Koneksi Bermasalah</h3>
         <p className="font-retro-mono text-sm text-base-black/70 mb-5">
-          {error?.message || 'Failed to connect to server.'}
+          {error?.message || 'Gagal terhubung ke server.'}
         </p>
         
         <div className="flex gap-3 justify-center">
@@ -497,13 +497,13 @@ export default function AdminDashboard() {
             disabled={isFetching}
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-            Retry
+            Ulangi
           </button>
           <button 
             onClick={() => navigate('/')}
             className="retro-btn retro-btn-outline"
           >
-            Go Home
+            Beranda
           </button>
         </div>
         
@@ -546,22 +546,25 @@ export default function AdminDashboard() {
           {/* Page Title */}
           <div className="flex items-center gap-2">
             <Shield className="w-6 h-6 text-retro-orange" />
-            <span className="font-retro-display font-black text-base-black text-lg">ADMIN DASHBOARD</span>
+            <span className="font-retro-display font-black text-base-black text-lg">PANEL KONTROL ADMIN</span>
           </div>
           
           {/* Tab Navigation */}
           <div className="flex items-center gap-1">
-            {['overview', 'analytics'].map((tab) => (
+            {[
+              { id: 'overview', label: 'Ringkasan' },
+              { id: 'analytics', label: 'Analisis' }
+            ].map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-2 font-black text-xs uppercase tracking-wide rounded-retro border-2 border-base-black transition-all ${
-                  activeTab === tab
+                  activeTab === tab.id
                     ? 'bg-retro-orange text-base-white shadow-[2px_2px_0px_0px_#111111]'
                     : 'bg-base-white text-base-black hover:bg-retro-yellow'
                 }`}
               >
-                {tab}
+                {tab.label}
               </button>
             ))}
           </div>
@@ -572,7 +575,7 @@ export default function AdminDashboard() {
             whileTap={{ scale: 0.9 }}
             onClick={handleRefresh}
             className="retro-btn retro-btn-sm retro-btn-outline"
-            title="Refresh data"
+            title="Muat ulang data"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
           </motion.button>
@@ -590,11 +593,11 @@ export default function AdminDashboard() {
             <div>
               <h1 className="retro-heading retro-heading-xl text-retro-orange mb-2 flex items-center gap-3">
                 <span className="inline-block animate-wobble">🚀</span>
-                ADMIN DASHBOARD
+                PANEL UTAMA ADMIN
                 <span className="inline-block animate-bounce-retro">✨</span>
               </h1>
               <p className="font-retro-mono text-base-black/70 flex items-center gap-2">
-                <span className="retro-badge retro-badge-blue text-[10px]">Welcome</span>
+                <span className="retro-badge retro-badge-blue text-[10px]">Selamat Datang</span>
                 <span className="font-bold">{user?.name}</span>
                 <span className="text-base-black/40">•</span>
                 <span>{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}</span>
@@ -605,7 +608,7 @@ export default function AdminDashboard() {
             <div className="flex flex-wrap gap-2">
               <div className="retro-badge retro-badge-green">
                 <CheckCircle2 className="w-3 h-3 mr-1" />
-                System Online
+                Sistem Aktif
               </div>
               <div className="retro-badge retro-badge-purple">
                 <Clock className="w-3 h-3 mr-1" />
@@ -623,39 +626,39 @@ export default function AdminDashboard() {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
         >
           <RetroStatCard 
-            label="Total Users" 
+            label="Total Pengguna" 
             value={overview.users?.total || 0} 
             icon={Users}
             color="orange"
             trend={12}
-            subtitle="Active accounts"
+            subtitle="Akun aktif terdaftar"
             onClick={() => navigate('/dashboard/admin/users')}
             sticker="👥"
           />
           <RetroStatCard 
-            label="Total Classes" 
+            label="Total Kelas" 
             value={overview.classes || 0} 
             icon={School}
             color="blue"
-            subtitle="All levels"
+            subtitle="Semua tingkatan kelas"
             onClick={() => navigate('/dashboard/admin/classes')}
             sticker="🏫"
           />
           <RetroStatCard 
-            label="Total Subjects" 
+            label="Total Pelajaran" 
             value={overview.subjects || 0} 
             icon={BookOpen}
             color="purple"
-            subtitle="Curriculum"
+            subtitle="Kurikulum aktif"
             onClick={() => navigate('/dashboard/admin/subjects')}
             sticker="📚"
           />
           <RetroStatCard 
-            label="Today's Attendance" 
+            label="Absensi Hari Ini" 
             value={overview.attendance_today || 0} 
             icon={Calendar}
             color="lime"
-            subtitle="Students present"
+            subtitle="Siswa yang sudah hadir"
             onClick={() => setActiveTab('analytics')}
             sticker="✅"
           />
@@ -672,10 +675,10 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between mb-5">
                 <h3 className="retro-heading retro-heading-md text-retro-blue flex items-center gap-2">
                   <Zap className="w-5 h-5" />
-                  QUICK ACTIONS
+                  AKSI CEPAT
                 </h3>
                 <div className="retro-badge retro-badge-yellow text-[10px] animate-pulse">
-                  ⚡ FAST ACCESS
+                  ⚡ AKSES CEPAT
                 </div>
               </div>
               
@@ -693,14 +696,14 @@ export default function AdminDashboard() {
               <motion.div variants={cardVariants} className="retro-card p-6">
                 <h3 className="retro-heading retro-heading-sm text-retro-purple mb-5 flex items-center gap-2">
                   <Server className="w-5 h-5" />
-                  SYSTEM HEALTH
+                  KESEHATAN SISTEM
                 </h3>
                 <div className="space-y-3">
                   {Object.entries(systemHealth).length > 0 ? (
                     Object.entries(systemHealth).map(([key, value], index) => (
                       <RetroHealthItem 
                         key={key} 
-                        label={key} 
+                        label={key === 'database' ? 'Basis Data / DB' : key === 'cache' ? 'Penyimpanan Cache' : key} 
                         value={value}
                         icon={key === 'database' ? Database : key === 'cache' ? Zap : Server}
                       />
@@ -708,7 +711,7 @@ export default function AdminDashboard() {
                   ) : (
                     <div className="text-center py-6">
                       <Database className="w-10 h-10 text-base-black/30 mx-auto mb-2" />
-                      <p className="font-retro-mono text-sm text-base-black/50">No system data</p>
+                      <p className="font-retro-mono text-sm text-base-black/50">Tidak ada data sistem</p>
                     </div>
                   )}
                 </div>
@@ -723,7 +726,7 @@ export default function AdminDashboard() {
               <motion.div variants={cardVariants} className="retro-card p-6">
                 <h3 className="retro-heading retro-heading-sm text-retro-orange mb-5 flex items-center gap-2">
                   <Target className="w-5 h-5" />
-                  USER DISTRIBUTION
+                  DISTRIBUSI PENGGUNA
                 </h3>
                 <div className="space-y-4">
                   {[
@@ -777,13 +780,13 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between mb-5">
                 <h3 className="retro-heading retro-heading-sm text-retro-blue flex items-center gap-2">
                   <Activity className="w-5 h-5" />
-                  RECENT ACTIVITY
+                  AKTIVITAS TERBARU PENGGUNA
                 </h3>
                 <button 
                   onClick={() => navigate('/dashboard/admin/users')} 
                   className="retro-btn retro-btn-sm retro-btn-outline flex items-center gap-1"
                 >
-                  View All
+                  Lihat Semua
                   <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
@@ -830,7 +833,7 @@ export default function AdminDashboard() {
                 {(!recentActivity.recent_users || recentActivity.recent_users.length === 0) && (
                   <div className="text-center py-8">
                     <FileText className="w-12 h-12 text-base-black/20 mx-auto mb-3" />
-                    <p className="font-retro-mono text-sm text-base-black/50">No recent activity</p>
+                    <p className="font-retro-mono text-sm text-base-black/50">Tidak ada aktivitas terbaru</p>
                   </div>
                 )}
               </div>
@@ -851,8 +854,8 @@ export default function AdminDashboard() {
                   <BarChart3 className="w-8 h-8 text-base-white" />
                 </div>
                 <div>
-                  <h3 className="retro-heading retro-heading-lg text-retro-orange">ATTENDANCE ANALYTICS</h3>
-                  <p className="font-retro-mono text-sm text-base-black/70">Real-time attendance data & insights</p>
+                  <h3 className="retro-heading retro-heading-lg text-retro-orange">ANALISIS KEHADIRAN SISWA</h3>
+                  <p className="font-retro-mono text-sm text-base-black/70">Statistik dan data absensi real-time siswa</p>
                 </div>
               </div>
             </motion.div>
@@ -863,8 +866,8 @@ export default function AdminDashboard() {
                 <motion.div variants={pageVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
                     { label: 'Hadir', value: analyticsData.data.summary?.present || 0, color: 'text-success', bg: 'bg-success/20', border: 'border-success', icon: CheckCircle2 },
-                    { label: 'Tidak Hadir', value: analyticsData.data.summary?.absent || 0, color: 'text-danger', bg: 'bg-danger/20', border: 'border-danger', icon: AlertCircle },
-                    { label: 'Attendance Rate', value: `${analyticsData.data.summary?.attendance_rate || 0}%`, color: 'text-retro-orange', bg: 'bg-retro-orange/20', border: 'border-retro-orange', icon: Target },
+                    { label: 'Absen / Alpha', value: analyticsData.data.summary?.absent || 0, color: 'text-danger', bg: 'bg-danger/20', border: 'border-danger', icon: AlertCircle },
+                    { label: 'Tingkat Kehadiran', value: `${analyticsData.data.summary?.attendance_rate || 0}%`, color: 'text-retro-orange', bg: 'bg-retro-orange/20', border: 'border-retro-orange', icon: Target },
                     { label: 'Total Siswa', value: analyticsData.data.summary?.total_students || 0, color: 'text-retro-blue', bg: 'bg-retro-blue/20', border: 'border-retro-blue', icon: Users },
                   ].map((stat, index) => (
                     <motion.div
@@ -891,12 +894,12 @@ export default function AdminDashboard() {
                     >
                       <BarChart3 className="w-14 h-14 text-retro-orange" />
                     </motion.div>
-                    <p className="font-retro-display font-black text-base-black text-lg mb-1">Interactive Chart</p>
+                    <p className="font-retro-display font-black text-base-black text-lg mb-1">Grafik Interaktif</p>
                     <p className="font-retro-mono text-xs text-base-black/50 mb-3">
-                      Period: <span className="font-bold">{analyticsData.data.period?.start}</span> → <span className="font-bold">{analyticsData.data.period?.end}</span>
+                      Periode: <span className="font-bold">{analyticsData.data.period?.start}</span> → <span className="font-bold">{analyticsData.data.period?.end}</span>
                     </p>
                     <button className="retro-btn retro-btn-sm retro-btn-outline">
-                      Launch Full Analytics →
+                      Buka Analisis Lengkap →
                     </button>
                   </div>
                 </motion.div>
@@ -905,7 +908,7 @@ export default function AdminDashboard() {
                 {analyticsData.data.daily?.length > 0 && (
                   <motion.div variants={cardVariants} className="retro-card overflow-hidden">
                     <div className="p-4 border-b-4 border-base-black bg-retro-blue text-base-white">
-                      <h4 className="font-retro-display font-black uppercase tracking-wide">Daily Breakdown</h4>
+                      <h4 className="font-retro-display font-black uppercase tracking-wide">Rincian Kehadiran Harian</h4>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full font-retro-mono text-sm">
@@ -945,8 +948,8 @@ export default function AdminDashboard() {
             ) : (
               <motion.div variants={cardVariants} className="retro-card p-8 text-center">
                 <Clock className="w-16 h-16 text-base-black/20 mx-auto mb-4" />
-                <p className="font-retro-display font-black text-base-black text-lg mb-2">Loading Analytics...</p>
-                <p className="font-retro-mono text-sm text-base-black/50">Please wait while we fetch your data</p>
+                <p className="font-retro-display font-black text-base-black text-lg mb-2">Memuat Analisis...</p>
+                <p className="font-retro-mono text-sm text-base-black/50">Silakan tunggu sementara kami mengambil data Anda</p>
               </motion.div>
             )}
           </motion.div>
@@ -965,7 +968,7 @@ export default function AdminDashboard() {
         className="fixed bottom-6 right-6 z-50 retro-btn retro-btn-lg retro-btn-sticker hidden md:flex items-center gap-2"
       >
         <Plus className="w-5 h-5" />
-        <span className="hidden lg:inline">Add New</span>
+        <span className="hidden lg:inline">Tambah Baru</span>
       </motion.button>
 
       {/* ═══════════════════════════════════════════════════
@@ -977,7 +980,7 @@ export default function AdminDashboard() {
           transition={{ duration: 3, repeat: Infinity }}
           className="retro-sticker bg-retro-pink text-base-white text-xs px-3 py-1"
         >
-          POWERED BY RPL
+          DIDUKUNG OLEH RPL
         </motion.div>
       </div>
       

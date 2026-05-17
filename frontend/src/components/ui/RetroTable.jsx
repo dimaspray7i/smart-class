@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import Button from './Button';
+import { ID } from '../../i18n/id';
 
 /**
  * 📊 Standardized Retro Table Component
@@ -17,7 +18,7 @@ export default function RetroTable({
   isLoading = false,
   pagination = null,
   onRowClick,
-  emptyMessage = "No data found",
+  emptyMessage = ID.table.noData,
   actions,
   className,
   containerClassName
@@ -34,7 +35,7 @@ export default function RetroTable({
           <div className="absolute inset-0 z-20 bg-base-cream/40 backdrop-blur-[1px] flex items-center justify-center">
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="w-8 h-8 text-retro-orange animate-spin" />
-              <p className="font-retro-mono text-[10px] text-base-black font-black uppercase tracking-widest">Syncing Data...</p>
+              <p className="font-retro-mono text-[10px] text-base-black font-black uppercase tracking-widest">{ID.table.syncing}</p>
             </div>
           </div>
         )}
@@ -61,7 +62,7 @@ export default function RetroTable({
                 ))}
                 {actions && (
                   <th className="px-4 py-3 font-retro-display font-black text-[10px] md:text-xs uppercase tracking-wider text-base-black w-20 text-center">
-                    Actions
+                    {ID.table.actions}
                   </th>
                 )}
               </tr>
@@ -153,7 +154,7 @@ export default function RetroTable({
       {pagination && data.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
           <p className="font-retro-mono text-[10px] text-base-black/50 uppercase tracking-widest">
-            Showing <span className="text-base-black font-black">{pagination.from || 0}</span> to <span className="text-base-black font-black">{pagination.to || 0}</span> of <span className="text-base-black font-black">{pagination.total || 0}</span> entries
+            {ID.table.showing} <span className="text-base-black font-black">{pagination.from || 0}</span> {ID.table.to} <span className="text-base-black font-black">{pagination.to || 0}</span> {ID.table.of} <span className="text-base-black font-black">{pagination.total || 0}</span> {ID.table.entries}
           </p>
           
           <div className="flex items-center gap-2">
@@ -221,7 +222,7 @@ export function TableActions({
           size="sm" 
           onClick={(e) => { e.stopPropagation(); onView(); }}
           className="w-8 h-8 p-0 border-2 border-base-black hover:bg-retro-yellow transition-all"
-          title="View Details"
+          title={ID.button.details}
         >
           <Search className="w-3.5 h-3.5" />
         </Button>
@@ -232,7 +233,7 @@ export function TableActions({
           size="sm" 
           onClick={(e) => { e.stopPropagation(); onReset(); }}
           className="w-8 h-8 p-0 border-2 border-base-black hover:bg-retro-blue hover:text-white transition-all"
-          title="Reset Password"
+          title="Atur Ulang Kata Sandi"
         >
           <Info className="w-3.5 h-3.5" />
         </Button>
@@ -243,7 +244,7 @@ export function TableActions({
           size="sm" 
           onClick={(e) => { e.stopPropagation(); onEdit(); }}
           className="w-8 h-8 p-0 border-2 border-base-black hover:bg-retro-orange hover:text-white transition-all"
-          title="Edit"
+          title={ID.button.edit}
         >
           <Filter className="w-3.5 h-3.5" />
         </Button>
@@ -254,7 +255,7 @@ export function TableActions({
           size="sm" 
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
           className="w-8 h-8 p-0 border-2 border-base-black hover:bg-danger hover:text-white transition-all"
-          title="Delete"
+          title={ID.button.delete}
         >
           <AlertCircle className="w-3.5 h-3.5" />
         </Button>
