@@ -269,7 +269,6 @@ function RetroErrorFallback({ error, resetErrorBoundary }) {
 // ═══════════════════════════════════════════════════════════
 function App() {
   const [appLoading, setAppLoading] = useState(true);
-  const [showHint, setShowHint] = useState(false);
   
   // Create query client with retro-themed defaults
   const queryClient = new QueryClient({
@@ -303,20 +302,6 @@ function App() {
     initApp();
   }, []);
 
-  // Keyboard shortcut for dev hints
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Ctrl+Shift+H to toggle dev hints
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'h') {
-        e.preventDefault();
-        setShowHint(prev => !prev);
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   // Show loading screen while initializing
   if (appLoading) {
     return <RetroAppLoader />;
@@ -339,37 +324,6 @@ function App() {
               {/* Background Decorations (z-0, pointer-events-none) */}
               <AppDecorations />
               
-              {/* Dev Hint Panel (Ctrl+Shift+H to toggle) */}
-              <AnimatePresence>
-                {showHint && process.env.NODE_ENV === 'development' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="fixed top-4 left-1/2 -translate-x-1/2 z-50 retro-card bg-base-white border-4 border-base-black px-4 py-3 max-w-2xl"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="font-retro-display font-black text-base-black text-sm mb-2">🎮 Dev Shortcuts</p>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[10px] font-retro-mono text-base-black/70">
-                          <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">Ctrl+Shift+H</kbd> Toggle hints</span>
-                          <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">Ctrl+T</kbd> Toggle theme</span>
-                          <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">Ctrl+L</kbd> Quick logout</span>
-                          <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">?</kbd> Page shortcuts</span>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => setShowHint(false)}
-                        className="p-1 retro-btn retro-btn-sm"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
               
               {/* Main Routing with RootLayout wrapper */}
               <Routes>

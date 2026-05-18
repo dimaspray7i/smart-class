@@ -36,6 +36,11 @@ function PermCard({ perm, onApprove, onReject, isMutating }) {
               <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase border-2 border-base-black bg-base-gray/30 text-base-black/60">
                 {perm.user_role === 'guru' ? 'Guru' : 'Siswa'}
               </span>
+              <span className="font-retro-mono text-[10px] text-base-black/50 ml-1">
+                {perm.user_role === 'guru' 
+                  ? `NIP: ${perm.user?.profile?.nip || perm.user?.nip || '-'}` 
+                  : `NIS: ${perm.student?.profile?.nis || perm.user?.profile?.nis || perm.student?.nis || perm.user?.nis || '-'}`}
+              </span>
             </div>
             <p className="font-retro-mono text-[10px] text-base-black/50 mt-0.5 flex items-center gap-1">
               <Clock className="w-3 h-3" />
@@ -91,7 +96,12 @@ export default function AdminPermissions() {
 
   const updatePerm = useMutation({
     mutationFn: ({ id, s }) => api.patch(`/admin/permissions/${id}`, { status: s }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-permissions'] }); showToast('✅ Izin diperbarui!'); },
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['admin-permissions'] }); 
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
+      showToast('✅ Izin diperbarui!'); 
+    },
     onError: () => showToast('❌ Gagal memperbarui', 'error'),
   });
 
@@ -164,7 +174,7 @@ export default function AdminPermissions() {
           <PermCard key={p.id} perm={p}
             onApprove={id => updatePerm.mutate({ id, s: 'approved' })}
             onReject={id => updatePerm.mutate({ id, s: 'rejected' })}
-            isMutating={updatePerm.isLoading}
+            isMutating={updatePerm.isPending}
           />
         )) : (
           <div className="lg:col-span-2 retro-card bg-base-white border-4 border-dashed border-base-black p-12 text-center">

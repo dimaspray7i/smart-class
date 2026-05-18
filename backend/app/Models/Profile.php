@@ -31,6 +31,9 @@ class Profile extends Model
         'bio',
         'github_url',
         'linkedin_url',
+        'address',
+        'gender',
+        'date_of_birth',
         'preferences',
     ];
 

@@ -169,7 +169,7 @@ export default function TeacherMaterials() {
           </div>
           <div className="flex justify-end gap-3">
             <Button variant="outline" type="button" onClick={() => setIsCreateOpen(false)}>Batal</Button>
-            <Button type="submit" disabled={createMaterial.isLoading}><Upload className="w-4 h-4 mr-1" />{createMaterial.isLoading ? 'Menyimpan...' : 'Simpan'}</Button>
+            <Button type="submit" disabled={createMaterial.isPending}><Upload className="w-4 h-4 mr-1" />{createMaterial.isPending ? 'Menyimpan...' : 'Simpan'}</Button>
           </div>
         </form>
       </Modal>

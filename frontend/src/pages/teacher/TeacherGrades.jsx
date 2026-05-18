@@ -165,7 +165,7 @@ export default function TeacherGrades() {
           </div>
           <div className="flex justify-end gap-3">
             <Button variant="outline" type="button" onClick={() => setEditStudent(null)}>Batal</Button>
-            <Button type="submit" disabled={saveGrade.isLoading}><Save className="w-4 h-4 mr-1" />{saveGrade.isLoading ? 'Menyimpan...' : 'Simpan Nilai'}</Button>
+            <Button type="submit" disabled={saveGrade.isPending}><Save className="w-4 h-4 mr-1" />{saveGrade.isPending ? 'Menyimpan...' : 'Simpan Nilai'}</Button>
           </div>
         </form>
       </Modal>

@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Camera, MapPin, CheckCircle, XCircle, Loader2, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
 
 export default function AttendancePage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   
@@ -124,6 +126,15 @@ export default function AttendancePage() {
       }
     );
   };
+
+  // Auto-fill and auto-GPS request on code param detect
+  useEffect(() => {
+    const codeParam = searchParams.get('code');
+    if (codeParam) {
+      setCode(codeParam.toUpperCase());
+      getLocation();
+    }
+  }, [searchParams]);
 
   const handleSubmit = async () => {
     // Validasi

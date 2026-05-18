@@ -218,33 +218,10 @@ export const AuthProvider = ({ children }) => {
 
     initAuth();
 
-    // Keyboard shortcuts for auth actions
-    const handleKeyDown = (e) => {
-      if (!user) return; // Only for authenticated users
-      
-      const { logout, profile } = RETRO_CONFIG.shortcuts;
-      
-      // Ctrl+L to logout
-      if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === logout.key) {
-        e.preventDefault();
-        handleQuickLogout();
-      }
-      
-      // Ctrl+P for profile (could navigate to profile page)
-      if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === profile.key) {
-        e.preventDefault();
-        // Could trigger profile modal or navigation here
-        setAuthEvent({ type: 'info', message: 'Opening profile... 🎮' });
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
     // Cleanup function
     return () => {
       isMounted = false;
       if (authCheckTimeout) clearTimeout(authCheckTimeout);
-      window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 

@@ -61,18 +61,27 @@ function PermissionCard({ permission, onApprove, onReject, isMutating }) {
           <button onClick={() => setExpanded(v => !v)} className="p-1.5 border-2 border-base-black rounded-retro hover:bg-base-gray/20">
             {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
-          <div className="flex gap-1">
-            <button onClick={() => onApprove(permission.id)} disabled={isMutating}
-              className="p-1.5 bg-success text-base-white border-2 border-base-black rounded-retro hover:opacity-90 disabled:opacity-50 shadow-[2px_2px_0px_0px_#111]"
-              title="Setujui">
-              <CheckCircle2 className="w-4 h-4" />
-            </button>
-            <button onClick={() => onReject(permission.id)} disabled={isMutating}
-              className="p-1.5 bg-danger text-base-white border-2 border-base-black rounded-retro hover:opacity-90 disabled:opacity-50 shadow-[2px_2px_0px_0px_#111]"
-              title="Tolak">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          
+          {permission.status === 'pending' ? (
+            <div className="flex gap-1">
+              <button onClick={() => onApprove(permission.id)} disabled={isMutating}
+                className="p-1.5 bg-success text-base-white border-2 border-base-black rounded-retro hover:opacity-90 disabled:opacity-50 shadow-[2px_2px_0px_0px_#111]"
+                title="Setujui">
+                <CheckCircle2 className="w-4 h-4" />
+              </button>
+              <button onClick={() => onReject(permission.id)} disabled={isMutating}
+                className="p-1.5 bg-danger text-base-white border-2 border-base-black rounded-retro hover:opacity-90 disabled:opacity-50 shadow-[2px_2px_0px_0px_#111]"
+                title="Tolak">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className={`px-3 py-1 rounded-retro border-2 border-base-black text-[10px] font-black uppercase ${
+              permission.status === 'approved' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'
+            }`}>
+              {permission.status === 'approved' ? 'Disetujui' : 'Ditolak'}
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
@@ -96,13 +105,24 @@ export default function TeacherPermissions() {
   });
 
   const updatePermission = useMutation({
-    mutationFn: ({ id, status }) => api.patch(`/teacher/permissions/${id}/approve`, { status }),
+    mutationFn: ({ id, status, reason }) => {
+      const endpoint = status === 'approved' ? 'approve' : 'reject';
+      const payload = status === 'rejected' ? { reason: reason || 'Ditolak oleh wali kelas/guru' } : {};
+      return api.patch(`/teacher/permissions/${id}/${endpoint}`, payload);
+    },
     onSuccess: (_, { status }) => {
       queryClient.invalidateQueries({ queryKey: ['teacher-permissions'] });
       showToast(status === 'approved' ? '✅ Izin disetujui!' : '✅ Izin ditolak!');
     },
-    onError: () => showToast('❌ Gagal memproses izin', 'error'),
+    onError: (err) => showToast(`❌ ${err.response?.data?.message || 'Gagal memproses izin'}`, 'error'),
   });
+
+  const handleReject = useCallback((id) => {
+    const reason = window.prompt("Alasan penolakan (opsional tapi disarankan):", "Tidak sesuai ketentuan");
+    if (reason !== null) {
+      updatePermission.mutate({ id, status: 'rejected', reason });
+    }
+  }, [updatePermission]);
 
   const filtered = useMemo(() => {
     const list = permissions?.data || [];
@@ -165,8 +185,8 @@ export default function TeacherPermissions() {
         ) : filtered.length > 0 ? filtered.map(p => (
           <PermissionCard key={p.id} permission={p}
             onApprove={id => updatePermission.mutate({ id, status: 'approved' })}
-            onReject={id => updatePermission.mutate({ id, status: 'rejected' })}
-            isMutating={updatePermission.isLoading}
+            onReject={handleReject}
+            isMutating={updatePermission.isPending && updatePermission.variables?.id === p.id}
           />
         )) : (
           <div className="lg:col-span-2 retro-card bg-base-white border-4 border-dashed border-base-black p-12 text-center">

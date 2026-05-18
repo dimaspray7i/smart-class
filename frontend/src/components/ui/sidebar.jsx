@@ -338,56 +338,56 @@ const staggerContainer = {
 export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const [showKeyboardHint, setShowKeyboardHint] = useState(false);
 
   // Role-based menu items with retro metadata
   const getMenuItems = () => {
     if (!user) {
       return [
-        { icon: Home, label: ID.nav.home, href: '/', shortcut: 'h', description: 'Halaman depan' },
-        { icon: Users, label: ID.nav.gallery, href: '/gallery', shortcut: 'g', description: 'Galeri karya siswa' },
-        { icon: BookOpen, label: ID.nav.simulator, href: '/simulator', shortcut: 's', description: 'Simulasi karir' },
+        { icon: Home, label: ID.nav.home, href: '/', description: 'Halaman depan' },
+        { icon: Users, label: ID.nav.gallery, href: '/gallery', description: 'Galeri karya siswa' },
+        { icon: BookOpen, label: ID.nav.simulator, href: '/simulator', description: 'Simulasi karir' },
       ];
     }
 
     if (user.role === 'siswa') {
       return [
-        { icon: LayoutDashboard, label: ID.nav.dashboard, href: '/dashboard/student', shortcut: 'd', description: 'Ikhtisar' },
-        { icon: CalendarCheck, label: ID.nav.attendance, href: '/dashboard/student/attendance', shortcut: 'a', description: 'Presensi harian' },
-        { icon: FolderKanban, label: ID.nav.projects, href: '/dashboard/student/projects', shortcut: 'p', description: 'Proyek saya' },
-        { icon: GraduationCap, label: ID.nav.skills, href: '/dashboard/student/skills', shortcut: 'k', description: 'Perkembangan keahlian' },
+        { icon: LayoutDashboard, label: ID.nav.dashboard, href: '/dashboard/student', description: 'Ikhtisar' },
+        { icon: CalendarCheck, label: ID.nav.attendance, href: '/dashboard/student/attendance', description: 'Presensi harian' },
+        { icon: FolderKanban, label: ID.nav.projects, href: '/dashboard/student/projects', description: 'Proyek saya' },
+        { icon: GraduationCap, label: ID.nav.skills, href: '/dashboard/student/skills', description: 'Perkembangan keahlian' },
       ];
     } else if (user.role === 'guru') {
       return [
-        { icon: LayoutDashboard, label: ID.nav.dashboard,      href: '/dashboard/teacher',               shortcut: 'd', description: 'Beranda overview' },
-        { icon: CalendarCheck,   label: ID.nav.attendance,     href: '/dashboard/teacher/attendance',    shortcut: 'a', description: 'Kelola presensi' },
-        { icon: CalendarCheck,   label: ID.nav.schedules,      href: '/dashboard/teacher/schedules',     shortcut: 'j', description: 'Jadwal pelajaran' },
-        { icon: Users,           label: ID.nav.student,        href: '/dashboard/teacher/students',      shortcut: 's', description: 'Daftar siswa' },
-        { icon: BookOpen,        label: ID.nav.permissions,    href: '/dashboard/teacher/permissions',   shortcut: 'i', description: 'Persetujuan izin' },
-        { icon: BarChart3,       label: ID.nav.grades,         href: '/dashboard/teacher/grades',        shortcut: 'n', description: 'Nilai & penilaian' },
-        { icon: FileText,        label: ID.nav.materials,      href: '/dashboard/teacher/materials',     shortcut: 'm', description: 'Tugas & materi' },
-        { icon: Megaphone,       label: ID.nav.announcements,  href: '/dashboard/teacher/announcements', shortcut: 'p', description: 'Pengumuman kelas' },
-        { icon: MessageSquare,   label: ID.nav.messages,       href: '/dashboard/teacher/messages',      shortcut: 'c', description: 'Pesan siswa' },
-        { icon: Award,           label: ID.nav.reports,        href: '/dashboard/teacher/reports',       shortcut: 'r', description: 'Laporan & analitik' },
-        { icon: User,            label: ID.nav.profile,        href: '/dashboard/teacher/profile',       shortcut: 'o', description: 'Profil saya' },
-        { icon: Settings,        label: ID.nav.settings,       href: '/dashboard/teacher/settings',      shortcut: 't', description: 'Pengaturan akun' },
+        { icon: LayoutDashboard, label: ID.nav.dashboard,      href: '/dashboard/teacher',               description: 'Beranda overview' },
+        { icon: CalendarCheck,   label: ID.nav.attendance,     href: '/dashboard/teacher/attendance',    description: 'Kelola presensi' },
+        { icon: CalendarCheck,   label: ID.nav.schedules,      href: '/dashboard/teacher/schedules',     description: 'Jadwal pelajaran' },
+        { icon: Users,           label: ID.nav.student,        href: '/dashboard/teacher/students',      description: 'Daftar siswa' },
+        { icon: BookOpen,        label: ID.nav.permissions,    href: '/dashboard/teacher/permissions',   description: 'Persetujuan izin' },
+        { icon: BarChart3,       label: ID.nav.grades,         href: '/dashboard/teacher/grades',        description: 'Nilai & penilaian' },
+        { icon: FileText,        label: ID.nav.materials,      href: '/dashboard/teacher/materials',     description: 'Tugas & materi' },
+        { icon: Megaphone,       label: ID.nav.announcements,  href: '/dashboard/teacher/announcements', description: 'Pengumuman kelas' },
+        { icon: MessageSquare,   label: ID.nav.messages,       href: '/dashboard/teacher/messages',      description: 'Pesan siswa' },
+        { icon: Award,           label: ID.nav.reports,        href: '/dashboard/teacher/reports',       description: 'Laporan & analitik' },
+        { icon: User,            label: ID.nav.profile,        href: '/dashboard/teacher/profile',       description: 'Profil saya' },
+        { icon: Settings,        label: ID.nav.settings,       href: '/dashboard/teacher/settings',      description: 'Pengaturan akun' },
       ];
     } else if (user.role === 'admin') {
       return [
-        { icon: LayoutDashboard, label: ID.nav.dashboard,          href: '/dashboard/admin',              shortcut: 'd', description: 'Ikhtisar sistem' },
-        { icon: Users,           label: ID.nav.users,              href: '/dashboard/admin/users',        shortcut: 'u', description: 'Kelola akun pengguna' },
-        { icon: UserCheck,       label: ID.nav.teachers,           href: '/dashboard/admin/teachers',     shortcut: 'g', description: 'Data & performa guru' },
-        { icon: GraduationCap,   label: ID.nav.students_admin,     href: '/dashboard/admin/students',     shortcut: 'i', description: 'Data siswa lengkap' },
-        { icon: School,          label: ID.nav.classes,            href: '/dashboard/admin/classes',      shortcut: 'c', description: 'Kelola data kelas' },
-        { icon: BookOpen,        label: ID.nav.subjects,           href: '/dashboard/admin/subjects',     shortcut: 'm', description: 'Mata pelajaran' },
-        { icon: CalendarCheck,   label: ID.nav.schedules,          href: '/dashboard/admin/schedules',    shortcut: 'j', description: 'Jadwal pelajaran' },
-        { icon: Clock,           label: ID.nav.attendance,         href: '/dashboard/admin/attendance',   shortcut: 'a', description: 'Presensi waktu nyata' },
-        { icon: Briefcase,       label: ID.nav.pkl,                href: '/dashboard/admin/pkl',          shortcut: 'p', description: 'Praktik Kerja Lapangan' },
-        { icon: Bell,            label: ID.nav.permissions_admin,  href: '/dashboard/admin/permissions',  shortcut: 'z', description: 'Kelola izin siswa & guru' },
-        { icon: Megaphone,       label: ID.nav.announcements_admin,href: '/dashboard/admin/announcements',shortcut: 'n', description: 'Broadcast pengumuman' },
-        { icon: TrendingUp,      label: ID.nav.reports_admin,      href: '/dashboard/admin/reports',      shortcut: 'r', description: 'Laporan & analitik' },
-        { icon: ShieldAlert,     label: ID.nav.security,           href: '/dashboard/admin/security',     shortcut: 'e', description: 'Keamanan & audit log' },
-        { icon: Settings,        label: ID.nav.settings,           href: '/dashboard/admin/settings',     shortcut: 't', description: 'Pengaturan sistem' },
+        { icon: LayoutDashboard, label: ID.nav.dashboard,          href: '/dashboard/admin',              description: 'Ikhtisar sistem' },
+        { icon: Users,           label: ID.nav.users,              href: '/dashboard/admin/users',        description: 'Kelola akun pengguna' },
+        { icon: UserCheck,       label: ID.nav.teachers,           href: '/dashboard/admin/teachers',     description: 'Data & performa guru' },
+        { icon: GraduationCap,   label: ID.nav.students_admin,     href: '/dashboard/admin/students',     description: 'Data siswa lengkap' },
+        { icon: School,          label: ID.nav.classes,            href: '/dashboard/admin/classes',      description: 'Kelola data kelas' },
+        { icon: BookOpen,        label: ID.nav.subjects,           href: '/dashboard/admin/subjects',     description: 'Mata pelajaran' },
+        { icon: CalendarCheck,   label: ID.nav.schedules,          href: '/dashboard/admin/schedules',    description: 'Jadwal pelajaran' },
+        { icon: Clock,           label: ID.nav.attendance,         href: '/dashboard/admin/attendance',   description: 'Presensi waktu nyata' },
+        { icon: Briefcase,       label: ID.nav.pkl,                href: '/dashboard/admin/pkl',          description: 'Praktik Kerja Lapangan' },
+        { icon: Bell,            label: ID.nav.permissions_admin,  href: '/dashboard/admin/permissions',  description: 'Kelola izin siswa & guru' },
+        { icon: Megaphone,       label: ID.nav.announcements_admin,href: '/dashboard/admin/announcements',description: 'Broadcast pengumuman' },
+        { icon: TrendingUp,      label: ID.nav.reports_admin,      href: '/dashboard/admin/reports',      description: 'Laporan & analitik' },
+        { icon: ShieldAlert,     label: ID.nav.security,           href: '/dashboard/admin/security',     description: 'Keamanan & audit log' },
+        { icon: User,            label: ID.nav.profile,            href: '/dashboard/admin/profile',      description: 'Profil saya' },
+        { icon: Settings,        label: ID.nav.settings,           href: '/dashboard/admin/settings',     description: 'Pengaturan sistem' },
       ];
     }
     return [];
@@ -395,33 +395,17 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
   const menuItems = getMenuItems();
 
-  // Keyboard shortcuts support
+  // Escape key down listener to close sidebar on mobile
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((!isOpen && window.innerWidth < 1024) || document.activeElement?.tagName === 'INPUT') return;
-      
       if (e.key === 'Escape' && window.innerWidth < 1024) {
         onClose();
-        return;
-      }
-      
-      if (e.key === '?') {
-        e.preventDefault();
-        setShowKeyboardHint(prev => !prev);
-        return;
-      }
-      
-      const item = menuItems.find(i => i.shortcut && e.key && i.shortcut === e.key.toLowerCase());
-      if (item) {
-        e.preventDefault();
-        if (window.innerWidth < 1024) onClose();
-        window.location.href = item.href;
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, menuItems]);
+  }, [isOpen, onClose]);
 
   const handleLogout = () => {
     if (window.confirm('Apakah Anda yakin ingin keluar?')) {

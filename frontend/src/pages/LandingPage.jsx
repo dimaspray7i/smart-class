@@ -415,36 +415,18 @@ function RetroFooter() {
 export default function LandingPage() {
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [keyboardHint, setKeyboardHint] = useState(false);
   const navigate = useNavigate();
 
-  // Keyboard shortcuts
+  // Escape key down listener to close mobile sidebar
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         setSidebarOpen(false);
-        setKeyboardHint(false);
-      }
-      if (e.key === '/' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        document.querySelector('input[type="search"]')?.focus();
-      }
-      if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        setKeyboardHint(!keyboardHint);
-      }
-      if (e.key === 'g' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        navigate('/gallery');
-      }
-      if (e.key === 's' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        navigate('/simulator');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [keyboardHint, navigate]);
+  }, []);
 
   // Theme toggle with localStorage
   useEffect(() => {

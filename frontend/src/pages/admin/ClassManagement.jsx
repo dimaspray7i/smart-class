@@ -281,6 +281,8 @@ export default function ClassManagement() {
     mutationFn: (newClass) => adminAPI.createClass(newClass),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-classes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       setIsCreateOpen(false);
       setFormData({});
       setErrors({});
@@ -296,6 +298,8 @@ export default function ClassManagement() {
     mutationFn: ({ id, ...updatedData }) => adminAPI.updateClass(id, updatedData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-classes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       setIsEditOpen(false);
       setSelectedClass(null);
       setFormData({});
@@ -312,6 +316,8 @@ export default function ClassManagement() {
     mutationFn: (id) => adminAPI.deleteClass(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-classes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       showToast('✅ Class deleted successfully!', 'success');
       setConfirmDelete(null);
     },
@@ -324,6 +330,8 @@ export default function ClassManagement() {
     mutationFn: (ids) => adminAPI.deleteClass(null, { ids }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-classes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       setSelectedIds([]);
       showToast('✅ Classes deleted successfully!', 'success');
       setConfirmBulkDelete(false);

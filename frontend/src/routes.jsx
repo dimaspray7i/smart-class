@@ -437,6 +437,7 @@ import AdminPermissions from './pages/admin/AdminPermissions';
 import AdminAnnouncements from './pages/admin/AdminAnnouncements';
 import AdminReports from './pages/admin/AdminReports';
 import AdminSecurity from './pages/admin/AdminSecurity';
+import AdminProfile from './pages/admin/AdminProfile';
 
 // ═══════════════════════════════════════════════════════════
 // 🗺️ ROUTE DEFINITIONS (Array format for createBrowserRouter)
@@ -539,6 +540,7 @@ export const router = createBrowserRouter([
           { path: 'reports', element: <AdminReports /> },
           { path: 'security', element: <AdminSecurity /> },
           { path: 'settings', element: <SettingsPage /> },
+          { path: 'profile', element: <AdminProfile /> },
         ],
       },
       

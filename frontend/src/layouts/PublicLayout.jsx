@@ -257,7 +257,6 @@ function RetroPublicLoader() {
 export default function PublicLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
-  const [keyboardHint, setKeyboardHint] = useState(false);
   
   const { user, loading, authEvent } = useAuth();
   const { isDark, themeEvent } = useTheme();
@@ -287,64 +286,16 @@ export default function PublicLayout() {
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
-  // Keyboard shortcuts support for public pages
+  // Escape key down listener to close mobile sidebar
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Only if not in input field
-      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
-        return;
-      }
-      
-      // Escape to close sidebar
       if (e.key === 'Escape') {
         setSidebarOpen(false);
-        setKeyboardHint(false);
-        return;
-      }
-      
-      // Show/hide keyboard hints
-      if (e.key === '?') {
-        e.preventDefault();
-        setKeyboardHint(prev => !prev);
-        return;
-      }
-      
-      // Guard against undefined keys (F-keys, etc.)
-      if (!e.key) return;
-      const key = e.key.toLowerCase();
-
-      // G for Gallery
-      if (!e.ctrlKey && !e.altKey && key === 'g') {
-        e.preventDefault();
-        navigate('/gallery');
-        return;
-      }
-      
-      // S for Simulator
-      if (!e.ctrlKey && !e.altKey && key === 's') {
-        e.preventDefault();
-        navigate('/simulator');
-        return;
-      }
-      
-      // L for Login
-      if (!e.ctrlKey && !e.altKey && key === 'l' && !user) {
-        e.preventDefault();
-        navigate('/login');
-        return;
-      }
-      
-      // H for Home
-      if (!e.ctrlKey && !e.altKey && key === 'h') {
-        e.preventDefault();
-        navigate('/');
-        return;
       }
     };
-    
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [user, navigate]);
+  }, []);
 
   // Feedback event from auth or theme
   const feedbackEvent = authEvent || themeEvent;
