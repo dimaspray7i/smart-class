@@ -138,6 +138,8 @@ export default function SubjectManagement() {
     mutationFn: (newSubject) => adminAPI.createSubject(newSubject),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-subjects'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       setIsCreateOpen(false);
       setFormData({});
       setErrors({});
@@ -153,6 +155,8 @@ export default function SubjectManagement() {
     mutationFn: ({ id, ...updatedData }) => adminAPI.updateSubject(id, updatedData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-subjects'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       setIsEditOpen(false);
       setSelectedSubject(null);
       setFormData({});
@@ -169,6 +173,8 @@ export default function SubjectManagement() {
     mutationFn: (id) => adminAPI.deleteSubject(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-subjects'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       showToast('Mata pelajaran berhasil dihapus!', 'success');
       setConfirmDelete(null);
     },
@@ -181,6 +187,8 @@ export default function SubjectManagement() {
     mutationFn: (ids) => adminAPI.bulkDeleteSubjects(ids),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-subjects'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       setSelectedIds([]);
       showToast('Mata pelajaran berhasil dihapus!', 'success');
       setConfirmBulkDelete(false);

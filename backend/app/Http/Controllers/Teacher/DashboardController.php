@@ -356,7 +356,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * 📅 Get today's schedule for teacher
+     * 📅 Get today's or specific day's schedule for teacher
      * 
      * @param Request $request
      * @return JsonResponse
@@ -365,11 +365,15 @@ class DashboardController extends Controller
     {
         try {
             $teacherId = $request->user()->id;
-            $schedule = $this->teacherService->getTodaySchedule($teacherId);
+            $day = $request->query('day');
+            $classId = $request->query('class_id') ? (int) $request->query('class_id') : null;
+            $subjectId = $request->query('subject_id') ? (int) $request->query('subject_id') : null;
+            
+            $schedule = $this->teacherService->getTodaySchedule($teacherId, $day, $classId, $subjectId);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Jadwal hari ini berhasil diambil.',
+                'message' => 'Jadwal berhasil diambil.',
                 'code' => 'SCHEDULE_SUCCESS',
                 'data' => $schedule,
             ], 200);

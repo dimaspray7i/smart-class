@@ -338,7 +338,7 @@ export default function PKLManagement() {
                         </div>
                         <div>
                           <p className="font-retro-display font-black text-base-black">{val}</p>
-                          <p className="font-retro-mono text-[10px] text-base-black/50">NIS: {row.profile?.nis || '-'}</p>
+                          <p className="font-retro-mono text-[10px] text-base-black/50">NIS: {row.profile?.nis || row.nis || '-'}</p>
                         </div>
                       </div>
                     )

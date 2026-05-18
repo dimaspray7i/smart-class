@@ -186,28 +186,6 @@ export function ThemeProvider({ children }) {
     setThemeEvent({ type: 'reset', message: 'Using system preference 🖥️' });
   }, [systemPrefersDark]);
 
-  // ═══════════════════════════════════════════════════════════
-  // ⌨️ KEYBOARD SHORTCUTS SUPPORT
-  // ═══════════════════════════════════════════════════════════
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      const { toggle } = RETRO_THEME_CONFIG.shortcuts;
-      
-      // Ctrl+T to toggle theme (but not in input fields)
-      if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === toggle.key) {
-        const target = e.target;
-        const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-        
-        if (!isInput) {
-          e.preventDefault();
-          toggleTheme();
-        }
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleTheme]);
 
   // ═══════════════════════════════════════════════════════════
   // 🎨 MEMOIZED CONTEXT VALUE (Prevents unnecessary re-renders)

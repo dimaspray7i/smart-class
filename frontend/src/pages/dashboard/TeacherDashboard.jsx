@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +13,7 @@ import { api } from '../../api';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import Toast from '../../components/ui/Toast';
+import QRCodeDisplay from '../../components/ui/QRCodeDisplay';
 
 // ═══════════════════════════════════════════════════════════
 // 🎨 ANIMATION VARIANTS
@@ -128,7 +129,7 @@ export default function TeacherDashboard() {
   const queryClient = useQueryClient();
   const [toast, setToast] = useState(null);
   const [isQROpen, setIsQROpen] = useState(false);
-  const [qrCode, setQrCode] = useState('');
+  const [qrSession, setQrSession] = useState(null);
 
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type });
@@ -140,6 +141,7 @@ export default function TeacherDashboard() {
     queryKey: ['teacher-dashboard', user?.id],
     queryFn: () => api.get('/teacher/dashboard'),
     staleTime: 5 * 60 * 1000,
+    refetchInterval: 30000,
   });
 
   const { data: todaySessions } = useQuery({
@@ -148,6 +150,7 @@ export default function TeacherDashboard() {
       params: { date: new Date().toISOString().split('T')[0], status: 'active' }
     }),
     enabled: !!user,
+    refetchInterval: 30000,
   });
 
   const { data: pendingPermissions } = useQuery({
@@ -166,29 +169,17 @@ export default function TeacherDashboard() {
   const generateFromSchedule = useMutation({
     mutationFn: (scheduleId) => api.post(`/teacher/attendance/generate/${scheduleId}`),
     onSuccess: (res) => {
-      if (res?.data?.code) {
-        setQrCode(res.data.code);
+      queryClient.invalidateQueries({ queryKey: ['teacher-sessions-today'] });
+      if (res?.data) {
+        setQrSession(res.data);
         setIsQROpen(true);
-        queryClient.invalidateQueries({ queryKey: ['teacher-sessions-today'] });
-        showToast('✅ Sesi absensi dibuat dari jadwal!', 'success');
       }
+      showToast('✅ Sesi absensi dibuat dari jadwal!', 'success');
     },
     onError: (err) => showToast(`❌ ${err.response?.data?.message || 'Gagal membuat sesi'}`, 'error')
   });
 
-  // ─── KEYBOARD SHORTCUTS ───────────────────────────────────
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.ctrlKey && !e.altKey) {
-        if (e.key.toLowerCase() === 'r') { e.preventDefault(); refetch(); showToast('🔄 Data diperbarui!', 'info'); }
-        if (e.key.toLowerCase() === 'a') { e.preventDefault(); navigate('/dashboard/teacher/attendance'); }
-        if (e.key.toLowerCase() === 's') { e.preventDefault(); navigate('/dashboard/teacher/students'); }
-        if (e.key.toLowerCase() === 'i') { e.preventDefault(); navigate('/dashboard/teacher/permissions'); }
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [navigate, refetch, showToast]);
+
 
   // ─── DERIVED ──────────────────────────────────────────────
   const stats = dashboard?.data?.stats || {};
@@ -408,7 +399,7 @@ export default function TeacherDashboard() {
                     <p className="font-retro-mono text-[10px] text-base-black/50">{sched.class?.name} • {sched.start_time}–{sched.end_time}</p>
                   </div>
                   {idx === 0 && (
-                    <Button size="sm" onClick={() => generateFromSchedule.mutate(sched.id)} disabled={generateFromSchedule.isLoading}>
+                    <Button size="sm" onClick={() => generateFromSchedule.mutate(sched.id)} disabled={generateFromSchedule.isPending}>
                       <Sparkles className="w-3 h-3 mr-1" /> Gen QR
                     </Button>
                   )}
@@ -467,15 +458,21 @@ export default function TeacherDashboard() {
       </div>
 
       {/* ── QR Modal ───────────────────────────────────────── */}
-      <Modal isOpen={isQROpen} onClose={() => setIsQROpen(false)} title="🎯 QR Code Absensi" maxWidth="sm">
-        <div className="text-center p-6">
-          <div className="w-56 h-56 bg-base-gray border-4 border-base-black mx-auto mb-4 flex items-center justify-center font-retro-display text-5xl font-black rounded-retro">
-            {qrCode}
+      <Modal isOpen={isQROpen} onClose={() => setIsQROpen(false)} title="🎯 QR Code Absensi" size="sm">
+        <div className="pb-2">
+          <QRCodeDisplay
+            code={qrSession?.code}
+            sessionId={qrSession?.id}
+            validUntil={qrSession?.valid_until}
+            attendedCount={qrSession?.attended_count || 0}
+            totalStudents={qrSession?.total_students || 0}
+            sessionStatus={qrSession?.session_status || 'active'}
+          />
+          <div className="mt-4">
+            <Button onClick={() => navigate('/dashboard/teacher/attendance')} className="w-full">
+              <Activity className="w-4 h-4 mr-2" /> Monitor Sesi Lengkap
+            </Button>
           </div>
-          <p className="font-retro-mono text-sm text-base-black/70 mb-4">Minta siswa pindai kode QR atau masukkan kode secara manual</p>
-          <Button onClick={() => navigate('/dashboard/teacher/attendance')} className="w-full">
-            <Activity className="w-4 h-4 mr-2" /> Monitor Sesi Lengkap
-          </Button>
         </div>
       </Modal>
     </motion.div>

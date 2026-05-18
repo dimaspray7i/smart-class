@@ -204,6 +204,8 @@ export default function ScheduleManagement() {
     mutationFn: (newSchedule) => adminAPI.createSchedule(newSchedule),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       setIsCreateOpen(false);
       setFormData({});
       setErrors({});
@@ -224,6 +226,8 @@ export default function ScheduleManagement() {
     mutationFn: ({ id, ...updatedData }) => adminAPI.updateSchedule(id, updatedData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       setIsEditOpen(false);
       setSelectedSchedule(null);
       setFormData({});
@@ -245,6 +249,8 @@ export default function ScheduleManagement() {
     mutationFn: (id) => adminAPI.deleteSchedule(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       showToast('✅ Jadwal berhasil dihapus!', 'success');
       setConfirmDelete(null);
     },
@@ -257,6 +263,8 @@ export default function ScheduleManagement() {
     mutationFn: (ids) => adminAPI.bulkDeleteSchedules(ids),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       setSelectedIds([]);
       showToast('✅ Jadwal berhasil dihapus!', 'success');
       setConfirmBulkDelete(false);

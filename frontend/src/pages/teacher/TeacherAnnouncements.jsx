@@ -176,7 +176,7 @@ export default function TeacherAnnouncements() {
           </label>
           <div className="flex justify-end gap-3">
             <Button variant="outline" type="button" onClick={() => setIsOpen(false)}>Batal</Button>
-            <Button type="submit" disabled={save.isLoading}>{save.isLoading ? 'Menyimpan...' : editing ? 'Perbarui' : 'Publikasi'}</Button>
+            <Button type="submit" disabled={save.isPending}>{save.isPending ? 'Menyimpan...' : editing ? 'Perbarui' : 'Publikasi'}</Button>
           </div>
         </form>
       </Modal>

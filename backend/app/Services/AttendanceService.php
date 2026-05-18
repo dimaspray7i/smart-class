@@ -671,7 +671,7 @@ class AttendanceService
     /**
      * Close attendance session
      */
-    public function closeSession(int $sessionId, int $teacherId): array
+    public function closeSession(int $sessionId, int $teacherId, array $options = []): array
     {
         try {
             $session = AttendanceSession::find($sessionId);
@@ -692,12 +692,57 @@ class AttendanceService
                 ];
             }
 
-            $session->close();
+            if (!$session->is_active) {
+                return [
+                    'success' => false,
+                    'message' => 'Sesi sudah dalam keadaan tertutup.',
+                    'code' => 'SESSION_ALREADY_CLOSED',
+                ];
+            }
+
+            // Auto-mark absent if requested
+            if (!empty($options['auto_mark_absent'])) {
+                $classStudentIds = DB::table('class_user')
+                    ->where('class_id', $session->class_id)
+                    ->where('role_in_class', 'siswa')
+                    ->where('is_active', true)
+                    ->pluck('user_id');
+
+                $attendedIds = Attendance::where('code_used', $session->code)
+                    ->pluck('user_id');
+
+                $absentIds = $classStudentIds->diff($attendedIds);
+                $today = Carbon::today()->toDateString();
+
+                foreach ($absentIds as $studentId) {
+                    Attendance::firstOrCreate(
+                        ['user_id' => $studentId, 'date' => $today],
+                        [
+                            'status' => 'Alpha',
+                            'code_used' => $session->code,
+                            'device_info' => 'auto-marked',
+                            'verification_method' => 'auto',
+                        ]
+                    );
+                }
+            }
+
+            $session->update([
+                'is_active' => false,
+                'status' => 'closed',
+            ]);
+
+            $attended = Attendance::where('code_used', $session->code)->count();
 
             return [
                 'success' => true,
                 'message' => 'Sesi absensi ditutup.',
                 'code' => 'SESSION_CLOSED',
+                'data' => [
+                    'session_id' => $session->id,
+                    'attended_count' => $attended,
+                    'closed_at' => now()->toDateTimeString(),
+                ],
             ];
 
         } catch (Exception $e) {
@@ -715,36 +760,115 @@ class AttendanceService
     }
 
     /**
+     * Reopen a closed attendance session
+     */
+    public function reopenSession(int $sessionId, int $teacherId, array $options = []): array
+    {
+        try {
+            $session = AttendanceSession::find($sessionId);
+
+            if (!$session) {
+                return ['success' => false, 'message' => 'Sesi tidak ditemukan.', 'code' => 'SESSION_NOT_FOUND'];
+            }
+
+            if ($session->generated_by !== $teacherId) {
+                return ['success' => false, 'message' => 'Tidak memiliki akses ke sesi ini.', 'code' => 'FORBIDDEN'];
+            }
+
+            if ($session->is_active) {
+                return ['success' => false, 'message' => 'Sesi masih dalam keadaan aktif.', 'code' => 'SESSION_ALREADY_ACTIVE'];
+            }
+
+            // Generate a fresh code
+            $newCode = strtoupper(\Illuminate\Support\Str::random(6));
+            $extraMinutes = (int)($options['extra_minutes'] ?? 15);
+            $newValidUntil = now()->addMinutes($extraMinutes);
+
+            $session->update([
+                'is_active'    => true,
+                'status'       => 'reopened',
+                'code'         => $newCode,
+                'valid_from'   => now(),
+                'valid_until'  => $newValidUntil,
+                'reopened_by'  => $teacherId,
+                'reopened_at'  => now(),
+                'reopen_notes' => $options['notes'] ?? null,
+                'reopen_count' => DB::raw('reopen_count + 1'),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Sesi berhasil dibuka ulang.',
+                'code'    => 'SESSION_REOPENED',
+                'data'    => [
+                    'id'          => $session->id,
+                    'code'        => $newCode,
+                    'valid_until' => $newValidUntil->format('H:i:s'),
+                    'extra_minutes' => $extraMinutes,
+                    'reopen_count'  => $session->fresh()->reopen_count,
+                ],
+            ];
+
+        } catch (Exception $e) {
+            Log::error('AttendanceService::reopenSession failed', [
+                'session_id' => $sessionId,
+                'error'      => $e->getMessage(),
+            ]);
+            return ['success' => false, 'message' => 'Gagal membuka ulang sesi.', 'code' => 'SERVER_ERROR'];
+        }
+    }
+
+    /**
      * Monitor attendance session (get real-time stats)
      */
-    public function monitorSession(int $sessionId): array
+    public function monitorSession(int $sessionId, int $teacherId = 0, array $options = []): array
     {
-        $session = AttendanceSession::with(['class', 'teacher', 'pklLocation:id,company_name'])->find($sessionId);
+        $session = AttendanceSession::with(['class', 'subject', 'teacher:id,name', 'pklLocation:id,company_name'])->find($sessionId);
 
         if (!$session) {
             return [
                 'success' => false,
                 'message' => 'Sesi tidak ditemukan.',
-                'code' => 'SESSION_NOT_FOUND',
+                'code'    => 'SESSION_NOT_FOUND',
+            ];
+        }
+
+        // Teachers can only monitor their own sessions
+        if ($teacherId > 0 && $session->generated_by !== $teacherId) {
+            return [
+                'success' => false,
+                'message' => 'Tidak memiliki akses ke sesi ini.',
+                'code'    => 'FORBIDDEN',
             ];
         }
 
         $attendances = Attendance::where('code_used', $session->code)
             ->with('user:id,name,avatar_url')
+            ->latest()
             ->get();
+
+        $totalStudents = $session->class
+            ? DB::table('class_user')
+                ->where('class_id', $session->class_id)
+                ->where('role_in_class', 'siswa')
+                ->where('is_active', true)
+                ->count()
+            : 0;
 
         return [
             'success' => true,
             'data' => [
-                'session' => $session,
-                'total_students' => $session->class->students()->count(),
+                'session'        => $session,
+                'total_students' => $totalStudents,
                 'attended_count' => $attendances->count(),
+                'late_count'     => $attendances->where('status', 'Terlambat')->count(),
                 'remaining_uses' => $session->remaining_uses,
-                'is_valid' => $session->is_valid,
+                'is_valid'       => $session->is_valid,
                 'remaining_time' => $session->remaining_time,
                 'is_pkl_session' => $session->pkl_location_id !== null,
-                'pkl_location' => $session->pklLocation,
-                'attendances' => $attendances,
+                'pkl_location'   => $session->pklLocation,
+                'attendances'    => $options['include_students'] ?? false ? $attendances : [],
+                'status'         => $session->status ?? ($session->is_active ? 'active' : 'closed'),
             ],
         ];
     }
@@ -954,38 +1078,64 @@ class AttendanceService
     {
         try {
             $query = \App\Models\AttendanceSession::where('generated_by', $teacherId)
-                ->with(['class:id,name']);
+                ->with(['class:id,name', 'subject:id,name', 'schedule:id,day,start_time,end_time']);
 
-            // Apply Filters
-            if (isset($filters['is_active'])) {
-                $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
+            // Apply filters
+            if (isset($filters['status']) && $filters['status'] !== '') {
+                if ($filters['status'] === 'active') {
+                    $query->where('is_active', true);
+                } elseif ($filters['status'] === 'closed') {
+                    $query->where('is_active', false);
+                }
             }
             if (!empty($filters['class_id'])) {
                 $query->where('class_id', $filters['class_id']);
             }
+            if (!empty($filters['date'])) {
+                $query->whereDate('created_at', $filters['date']);
+            }
+            if (!empty($filters['date_from'])) {
+                $query->whereDate('created_at', '>=', $filters['date_from']);
+            }
+            if (!empty($filters['date_to'])) {
+                $query->whereDate('created_at', '<=', $filters['date_to']);
+            }
 
             $sessions = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
+            // Append attendance counts
+            $items = collect($sessions->items())->map(function ($s) {
+                $s->attended_count = Attendance::where('code_used', $s->code)->count();
+                $s->late_count     = Attendance::where('code_used', $s->code)->where('status', 'Terlambat')->count();
+                $s->total_students = DB::table('class_user')
+                    ->where('class_id', $s->class_id)
+                    ->where('role_in_class', 'siswa')
+                    ->where('is_active', true)
+                    ->count();
+                $s->session_status = $s->status ?? ($s->is_active ? 'active' : 'closed');
+                return $s;
+            });
+
             return [
                 'success' => true,
-                'data' => $sessions->items(),
-                'meta' => [
+                'data'    => $items,
+                'meta'    => [
                     'current_page' => $sessions->currentPage(),
-                    'per_page' => $sessions->perPage(),
-                    'total' => $sessions->total(),
-                    'last_page' => $sessions->lastPage(),
+                    'per_page'     => $sessions->perPage(),
+                    'total'        => $sessions->total(),
+                    'last_page'    => $sessions->lastPage(),
                 ],
             ];
         } catch (\Exception $e) {
             Log::error('AttendanceService::getSessions failed', [
                 'teacher_id' => $teacherId,
-                'error' => $e->getMessage(),
+                'error'      => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
                 'message' => 'Gagal memuat data sesi absensi.',
-                'code' => 'SERVER_ERROR',
+                'code'    => 'SERVER_ERROR',
             ];
         }
     }

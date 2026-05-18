@@ -184,7 +184,7 @@ export default function AttendanceManagement() {
                   </div>
                   <div>
                     <p className="font-retro-display font-black text-base-black">{row.user?.name}</p>
-                    <p className="font-retro-mono text-[10px] text-base-black/50">NIS: {row.user?.profile?.nis || '-'}</p>
+                    <p className="font-retro-mono text-[10px] text-base-black/50">NIS: {row.user?.profile?.nis || row.user?.nis || '-'}</p>
                   </div>
                 </div>
               )

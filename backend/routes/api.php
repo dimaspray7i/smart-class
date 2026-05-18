@@ -125,6 +125,8 @@ Route::middleware('api')->group(function () {
             Route::get('/me/retro-profile', [AuthController::class, 'retroProfile']);
             Route::put('/profile', [AuthController::class, 'updateProfile']);
             Route::put('/profile/retro', [AuthController::class, 'updateRetroProfile']);
+            Route::post('/profile/avatar', [AuthController::class, 'uploadAvatar']);
+            Route::post('/profile/avatar/remove', [AuthController::class, 'removeAvatar']);
             Route::post('/token/refresh', [AuthController::class, 'refreshToken']);
             Route::post('/token/retro-refresh', [AuthController::class, 'retroRefreshToken']);
             
@@ -225,7 +227,6 @@ Route::middleware('api')->group(function () {
             Route::get('/subjects', [TeacherDashboard::class, 'mySubjects']);
             Route::get('/schedule/today', [TeacherDashboard::class, 'todaySchedule']);
             
-            // Attendance Control - Retro Features
             Route::prefix('attendance')->group(function () {
                 Route::get('/sessions', [TeacherAttendance::class, 'sessions']);
                 Route::post('/generate/{schedule_id}', [TeacherAttendance::class, 'generateFromSchedule']);
@@ -236,6 +237,9 @@ Route::middleware('api')->group(function () {
                 Route::post('/sessions/{id}/generate-code', [TeacherAttendance::class, 'generateCode']);
                 Route::post('/session/{id}/generate-retro-qr', [TeacherAttendance::class, 'generateRetroQR']);
                 Route::post('/session/{id}/close', [TeacherAttendance::class, 'closeSession']);
+                Route::post('/sessions/{id}/close', [TeacherAttendance::class, 'closeSession']);
+                Route::post('/session/{id}/reopen', [TeacherAttendance::class, 'reopenSession']);
+                Route::post('/sessions/{id}/reopen', [TeacherAttendance::class, 'reopenSession']);
                 Route::get('/session/{id}/monitor', [TeacherAttendance::class, 'monitor']);
                 Route::get('/session/{id}/monitor/retro', [TeacherAttendance::class, 'retroMonitor']);
                 Route::get('/session/{id}/live-stats', [TeacherAttendance::class, 'liveStats']);

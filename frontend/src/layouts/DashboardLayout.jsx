@@ -262,7 +262,6 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
-  const [keyboardHint, setKeyboardHint] = useState(false);
   
   const { user, logout, authEvent } = useAuth();
   const { isDark, themeEvent } = useTheme();
@@ -290,42 +289,17 @@ export default function DashboardLayout() {
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
-  // Keyboard shortcuts support
+  // Escape key down listener for accessible Drawer close
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
-      
       if (e.key === 'Escape') {
         setSidebarOpen(false);
-        setKeyboardHint(false);
-        return;
-      }
-      
-      if (e.key === '?') {
-        e.preventDefault();
-        setKeyboardHint(prev => !prev);
-        return;
-      }
-
-      if (e.ctrlKey && e.key === '[') {
-        e.preventDefault();
-        setSidebarCollapsed(prev => !prev);
-        return;
-      }
-      
-      if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === 'd') {
-        e.preventDefault();
-        const dashboardPath = user?.role === 'admin' ? '/dashboard/admin' : 
-                             user?.role === 'guru' ? '/dashboard/teacher' : 
-                             '/dashboard/student';
-        navigate(dashboardPath);
-        return;
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [user, navigate, logout]);
+  }, []);
 
   // ═══════════════════════════════════════════════════════════
   // 🎨 MAIN RENDER - RETRO FUTURISTIC DASHBOARD LAYOUT
@@ -394,31 +368,7 @@ export default function DashboardLayout() {
       </div>
 
       
-      {/* Keyboard Shortcut Hint */}
-      <AnimatePresence>
-        {keyboardHint && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 retro-card bg-base-white border-4 border-base-black px-4 py-3 flex items-center gap-3 max-w-md"
-          >
-            <Zap className="w-5 h-5 text-retro-orange" />
-            <div className="flex-1">
-              <p className="font-retro-display font-black text-base-black text-sm mb-1">Keyboard Shortcuts</p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] font-retro-mono text-base-black/70">
-                <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">Ctrl+D</kbd> Dashboard</span>
-                <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">Ctrl+S</kbd> Settings</span>
-                <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">Ctrl+L</kbd> Logout</span>
-                <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">?</kbd> Toggle hints</span>
-              </div>
-            </div>
-            <button onClick={() => setKeyboardHint(false)} className="p-1 retro-btn retro-btn-sm">
-              <X className="w-4 h-4" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
       
       {/* Auth/Theme Event Feedback Toast */}
       <AnimatePresence>

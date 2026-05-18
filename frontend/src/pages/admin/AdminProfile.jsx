@@ -16,7 +16,7 @@ import Toast from '../../components/ui/Toast';
 const pageVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.05 } } };
 const cardVariants = { hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 120 } } };
 
-export default function TeacherProfile() {
+export default function AdminProfile() {
   const { user, setUser } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
@@ -31,7 +31,7 @@ export default function TeacherProfile() {
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   
-  // Preference states (cached in state, saved on changes)
+  // Preference states
   const [themeMode, setThemeMode] = useState(user?.theme_preferences?.mode || 'light');
   const [lang, setLang] = useState(user?.theme_preferences?.language || 'id');
   const [tz, setTz] = useState(user?.theme_preferences?.timezone || 'WIB');
@@ -47,7 +47,7 @@ export default function TeacherProfile() {
 
   // Fetch full details
   const { data: profileResponse, isLoading: isProfileLoading, refetch: refetchProfile } = useQuery({
-    queryKey: ['teacher-profile'],
+    queryKey: ['admin-profile'],
     queryFn: () => api.get('/auth/me'),
     onSuccess: (res) => {
       const p = res.data;
@@ -69,7 +69,7 @@ export default function TeacherProfile() {
 
   // Fetch devices lists
   const { data: devicesResponse, isLoading: isDevicesLoading, refetch: refetchDevices } = useQuery({
-    queryKey: ['teacher-devices'],
+    queryKey: ['admin-devices'],
     queryFn: () => api.get('/auth/devices'),
     enabled: activeTab === 'activity'
   });
@@ -78,7 +78,7 @@ export default function TeacherProfile() {
   const updateProfile = useMutation({
     mutationFn: (data) => api.put('/auth/profile/retro', data),
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['teacher-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-profile'] });
       if (res.data?.data?.user) {
         setUser(res.data.data.user);
       }
@@ -93,7 +93,7 @@ export default function TeacherProfile() {
 
   // Password mutation
   const updatePassword = useMutation({
-    mutationFn: (data) => api.put('/auth/profile', data), // Uses general put profile which changes pw on backend
+    mutationFn: (data) => api.put('/auth/profile', data),
     onSuccess: () => {
       setPwForm({ current_password: '', password: '', password_confirmation: '' });
       showToast('✅ Kata sandi berhasil diubah!');
@@ -110,7 +110,7 @@ export default function TeacherProfile() {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['teacher-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-profile'] });
       if (res.data?.data?.user) {
         setUser(res.data.data.user);
       }
@@ -123,7 +123,7 @@ export default function TeacherProfile() {
   const removeAvatarMutation = useMutation({
     mutationFn: () => api.post('/auth/profile/avatar/remove'),
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['teacher-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-profile'] });
       if (res.data?.data?.user) {
         setUser(res.data.data.user);
       }
@@ -239,10 +239,10 @@ export default function TeacherProfile() {
 
       {/* Modern Glassmorphic Top Header */}
       <motion.div variants={cardVariants} className="retro-card bg-base-white/80 border-4 border-base-black p-6 backdrop-blur-md relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-32 h-32 bg-retro-blue/10 rounded-full blur-3xl" />
+        <div className="absolute right-0 top-0 w-32 h-32 bg-retro-orange/10 rounded-full blur-3xl" />
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h1 className="retro-heading retro-heading-xl text-retro-blue flex items-center gap-3">
+            <h1 className="retro-heading retro-heading-xl text-retro-orange flex items-center gap-3">
               <User className="w-9 h-9" /> Akun Profil
             </h1>
             <p className="font-retro-mono text-sm text-base-black/70 mt-1">
@@ -250,8 +250,8 @@ export default function TeacherProfile() {
             </p>
           </div>
           <div className="flex gap-2">
-            <span className="retro-badge retro-badge-blue">GURU</span>
-            <span className="retro-badge retro-badge-lime">VERIFIED</span>
+            <span className="retro-badge retro-badge-orange">ADMIN</span>
+            <span className="retro-badge retro-badge-lime">SYSTEM CONTROL</span>
           </div>
         </div>
       </motion.div>
@@ -278,7 +278,7 @@ export default function TeacherProfile() {
                 }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-retro border-2 border-base-black font-retro-display font-black text-sm transition-all duration-150 ${
                   active 
-                    ? 'bg-retro-blue text-base-white shadow-[3px_3px_0px_0px_rgba(17,17,17,1)]' 
+                    ? 'bg-retro-orange text-base-white shadow-[3px_3px_0px_0px_rgba(17,17,17,1)]' 
                     : 'bg-base-white text-base-black hover:bg-base-gray/50 hover:translate-x-1'
                 }`}
               >
@@ -306,12 +306,12 @@ export default function TeacherProfile() {
                   
                   {/* Photo Profile Uploader */}
                   <div className="relative group flex-shrink-0">
-                    <div className="w-28 h-28 rounded-retro-lg border-4 border-base-black bg-retro-blue/10 overflow-hidden flex items-center justify-center relative shadow-[4px_4px_0px_0px_rgba(17,17,17,1)]">
+                    <div className="w-28 h-28 rounded-retro-lg border-4 border-base-black bg-retro-orange/10 overflow-hidden flex items-center justify-center relative shadow-[4px_4px_0px_0px_rgba(17,17,17,1)]">
                       {p?.avatar_url ? (
                         <img src={p.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="font-retro-display font-black text-5xl text-retro-blue">
-                          {p?.name?.[0]?.toUpperCase() || 'U'}
+                        <span className="font-retro-display font-black text-5xl text-retro-orange">
+                          {p?.name?.[0]?.toUpperCase() || 'A'}
                         </span>
                       )}
                       
@@ -359,7 +359,7 @@ export default function TeacherProfile() {
                     </p>
                     <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
                       <span className="px-2.5 py-0.5 bg-retro-orange/20 border-2 border-retro-orange rounded-full text-[10px] font-black uppercase">
-                        NIP: {p?.profile?.nip || '—'}
+                        ROLE: {p?.role || 'admin'}
                       </span>
                       <span className="px-2.5 py-0.5 bg-retro-blue/20 border-2 border-retro-blue rounded-full text-[10px] font-black uppercase">
                         {p?.profile?.gender === 'L' ? 'Laki-Laki' : p?.profile?.gender === 'P' ? 'Perempuan' : 'Belum Ditentukan'}
@@ -470,7 +470,7 @@ export default function TeacherProfile() {
                           rows={3}
                           value={form.bio}
                           onChange={e => setForm({ ...form, bio: e.target.value })}
-                          placeholder="Ceritakan bidang pengajaran Anda..."
+                          placeholder="Ceritakan tentang diri Anda..."
                           className="w-full py-2.5 px-3 border-2 border-base-black rounded-retro font-retro-mono text-sm bg-base-white focus:outline-none focus:border-retro-orange resize-none"
                         />
                       </div>
@@ -637,7 +637,7 @@ export default function TeacherProfile() {
               >
                 <div>
                   <h3 className="font-retro-display font-black text-xl text-base-black flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-retro-blue" /> Preferensi Akun
+                    <Settings className="w-5 h-5 text-retro-orange" /> Preferensi Akun
                   </h3>
                   <p className="font-retro-mono text-xs text-base-black/60 mt-1">
                     Sesuaikan tema antarmuka, bahasa regional, dan preferensi notifikasi Anda.
@@ -716,7 +716,7 @@ export default function TeacherProfile() {
                     </p>
                     <div className="space-y-2">
                       {[
-                        { id: 'email', label: 'Notifikasi Email', desc: 'Terima laporan kelas harian dan info izin siswa via email' },
+                        { id: 'email', label: 'Notifikasi Email', desc: 'Terima laporan sistem harian dan audit log via email' },
                         { id: 'push', label: 'Push Notification', desc: 'Aktifkan notifikasi realtime di browser Anda' }
                       ].map(notif => {
                         const enabled = notifs[notif.id];

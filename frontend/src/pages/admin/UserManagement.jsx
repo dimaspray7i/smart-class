@@ -281,22 +281,19 @@ export default function UserManagement() {
     return () => clearTimeout(handler);
   }, [search]);
 
-  // ═════════════════════════════════════════════════════════
-  // KEYBOARD SHORTCUTS (NEW FEATURE)
-  // ═════════════════════════════════════════════════════════
+  // Escape key down listener to close modals
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'n') { e.preventDefault(); setIsCreateOpen(true); }
-        if (e.key === 'e' && selectedUser) { e.preventDefault(); openEditModal(selectedUser); }
-        if (e.key === 'Delete' && selectedIds.length > 0) { e.preventDefault(); handleBulkDelete(); }
+      if (e.key === 'Escape') {
+        setIsCreateOpen(false);
+        setIsEditOpen(false);
+        setIsViewOpen(false);
+        setConfirmDelete(null);
       }
-      if (e.key === 'Escape') { setIsCreateOpen(false); setIsEditOpen(false); setIsViewOpen(false); setConfirmDelete(null); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedUser, selectedIds]);
+  }, []);
 
   // ═════════════════════════════════════════════════════════
   // DATA FETCHING (EXPANDED)
@@ -394,7 +391,12 @@ export default function UserManagement() {
       });
       return adminAPI.createUser(formDataObj);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setIsCreateOpen(false); setFormData({}); setErrors({}); showToast('✅ User created successfully!', 'success'); },
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] }); 
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
+      setIsCreateOpen(false); setFormData({}); setErrors({}); showToast('✅ User created successfully!', 'success'); 
+    },
     onError: (err) => { setErrors(err.errors || err.response?.data?.errors || {}); showToast(`❌ ${err.message || err.response?.data?.message || 'Failed to create user'}`, 'error'); }
   });
 
@@ -410,17 +412,22 @@ export default function UserManagement() {
       });
       return adminAPI.updateUser(id, formDataObj);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setIsEditOpen(false); setSelectedUser(null); setFormData({}); setErrors({}); showToast('✅ User updated successfully!', 'success'); },
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] }); 
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
+      setIsEditOpen(false); setSelectedUser(null); setFormData({}); setErrors({}); showToast('✅ User updated successfully!', 'success'); 
+    },
     onError: (err) => { setErrors(err.errors || err.response?.data?.errors || {}); showToast(`❌ ${err.message || err.response?.data?.message || 'Failed to update user'}`, 'error'); }
   });
 
-  const deleteUserMutation = useMutation({ mutationFn: (id) => adminAPI.deleteUser(id), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); showToast('✅ User deleted!', 'success'); setConfirmDelete(null); }, onError: (err) => showToast(`❌ ${err.message || 'Failed to delete'}`, 'error') });
-  const bulkDeleteMutation = useMutation({ mutationFn: (ids) => adminAPI.deleteUser(null, { ids }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setSelectedIds([]); showToast('✅ Selected users deleted!', 'success'); setConfirmBulkAction(null); }, onError: (err) => showToast(`❌ ${err.message || 'Bulk delete failed'}`, 'error') });
-  const bulkActivateMutation = useMutation({ mutationFn: (ids) => adminAPI.bulkUserAction('activate', ids), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setSelectedIds([]); showToast('✅ Selected users activated!', 'success'); setConfirmBulkAction(null); }, onError: (err) => showToast(`❌ ${err.message || 'Bulk activate failed'}`, 'error') });
-  const bulkDeactivateMutation = useMutation({ mutationFn: (ids) => adminAPI.bulkUserAction('deactivate', ids), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setSelectedIds([]); showToast('✅ Selected users deactivated!', 'success'); setConfirmBulkAction(null); }, onError: (err) => showToast(`❌ ${err.message || 'Bulk deactivate failed'}`, 'error') });
+  const deleteUserMutation = useMutation({ mutationFn: (id) => adminAPI.deleteUser(id), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] }); queryClient.invalidateQueries({ queryKey: ['admin-analytics'] }); showToast('✅ User deleted!', 'success'); setConfirmDelete(null); }, onError: (err) => showToast(`❌ ${err.message || 'Failed to delete'}`, 'error') });
+  const bulkDeleteMutation = useMutation({ mutationFn: (ids) => adminAPI.deleteUser(null, { ids }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] }); queryClient.invalidateQueries({ queryKey: ['admin-analytics'] }); setSelectedIds([]); showToast('✅ Selected users deleted!', 'success'); setConfirmBulkAction(null); }, onError: (err) => showToast(`❌ ${err.message || 'Bulk delete failed'}`, 'error') });
+  const bulkActivateMutation = useMutation({ mutationFn: (ids) => adminAPI.bulkUserAction('activate', ids), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] }); queryClient.invalidateQueries({ queryKey: ['admin-analytics'] }); setSelectedIds([]); showToast('✅ Selected users activated!', 'success'); setConfirmBulkAction(null); }, onError: (err) => showToast(`❌ ${err.message || 'Bulk activate failed'}`, 'error') });
+  const bulkDeactivateMutation = useMutation({ mutationFn: (ids) => adminAPI.bulkUserAction('deactivate', ids), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] }); queryClient.invalidateQueries({ queryKey: ['admin-analytics'] }); setSelectedIds([]); showToast('✅ Selected users deactivated!', 'success'); setConfirmBulkAction(null); }, onError: (err) => showToast(`❌ ${err.message || 'Bulk deactivate failed'}`, 'error') });
   const resetPasswordMutation = useMutation({ mutationFn: (id) => adminAPI.resetPassword(id, 'password123'), onSuccess: () => showToast('✅ Password reset to "password123"', 'success'), onError: (err) => showToast(`❌ ${err.message || 'Reset failed'}`, 'error') });
   const exportUsersMutation = useMutation({ mutationFn: (params) => adminAPI.exportUsers('csv', params), onSuccess: (blob) => { const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `users-${new Date().toISOString().split('T')[0]}.csv`; a.click(); showToast('✅ Export started!', 'success'); }, onError: () => showToast('❌ Export failed', 'error') });
-  const importUsersMutation = useMutation({ mutationFn: (file) => adminAPI.importUsers(file), onSuccess: (res) => { setIsImportOpen(false); queryClient.invalidateQueries({ queryKey: ['admin-users'] }); showToast(`✅ Imported ${res.data?.imported || 0} users!`, 'success'); }, onError: (err) => showToast(`❌ ${err.response?.data?.message || 'Import failed'}`, 'error') });
+  const importUsersMutation = useMutation({ mutationFn: (file) => adminAPI.importUsers(file), onSuccess: (res) => { setIsImportOpen(false); queryClient.invalidateQueries({ queryKey: ['admin-users'] }); queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] }); queryClient.invalidateQueries({ queryKey: ['admin-analytics'] }); showToast(`✅ Imported ${res.data?.imported || 0} users!`, 'success'); }, onError: (err) => showToast(`❌ ${err.response?.data?.message || 'Import failed'}`, 'error') });
 
   // ═════════════════════════════════════════════════════════
   // HANDLERS (EXPANDED)
@@ -707,7 +714,7 @@ export default function UserManagement() {
               render: (profile, user) => (
                 <div className="space-y-1">
                   <p className="font-bold text-[10px]">
-                    {user.role === 'siswa' ? `NIS: ${profile?.nis || '-'}` : `NIP: ${profile?.nip || '-'}`}
+                    {user.role === 'siswa' ? `NIS: ${profile?.nis || user.nis || '-'}` : `NIP: ${profile?.nip || user.nip || '-'}`}
                   </p>
                   {user.role === 'siswa' && user.classes?.[0] && (
                     <p className="text-[9px] text-retro-blue font-black uppercase">
@@ -898,12 +905,12 @@ export default function UserManagement() {
               </div>
               <div className="space-y-3">
                 {selectedUser.role === 'siswa' && (<>
-                  <RetroDetailItem label="NIS" value={selectedUser.profile?.nis || '-'} copyable />
+                  <RetroDetailItem label="NIS" value={selectedUser.profile?.nis || selectedUser.nis || '-'} copyable />
                   <RetroDetailItem label="Tingkat Kelas" value={selectedUser.profile?.class_level ? `Kelas ${selectedUser.profile.class_level}` : '-'} />
                   {selectedUser.classes?.[0] && <RetroDetailItem label="Kelas Terdaftar" value={selectedUser.classes[0].name} />}
                 </>)}
                 {selectedUser.role === 'guru' && (<>
-                  <RetroDetailItem label="NIP" value={selectedUser.profile?.nip || '-'} copyable />
+                  <RetroDetailItem label="NIP" value={selectedUser.profile?.nip || selectedUser.nip || '-'} copyable />
                   <RetroDetailItem label="Mata Pelajaran" value={selectedUser.profile?.subjects?.map(s => `${s.code} ${s.name}`).join(', ') || '-'} multiline />
                 </>)}
                 {selectedUser.profile?.bio && <RetroDetailItem label="Bio" value={selectedUser.profile.bio} multiline />}

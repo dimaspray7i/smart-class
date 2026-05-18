@@ -175,20 +175,6 @@ export default function ThemeToggle({ size = 'md', showTooltip = true, tooltipPo
     setTimeout(() => setIsPressed(false), 100);
   };
 
-  // Keyboard shortcut support
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Ctrl/Cmd + T to toggle theme
-      if ((e.ctrlKey || e.metaKey) && e.key === 't') {
-        e.preventDefault();
-        handleToggle();
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isDark]);
-
   // Auto-hide tooltip after delay
   useEffect(() => {
     if (showTooltipState) {
@@ -206,7 +192,6 @@ export default function ThemeToggle({ size = 'md', showTooltip = true, tooltipPo
       {showTooltip && (
         <RetroTooltip show={showTooltipState} position={tooltipPosition}>
           {isDark ? '☀️ Switch to Light' : '🌙 Switch to Dark'}
-          <span className="text-base-black/40 ml-1">[Ctrl+T]</span>
         </RetroTooltip>
       )}
       
@@ -221,7 +206,7 @@ export default function ThemeToggle({ size = 'md', showTooltip = true, tooltipPo
         onMouseLeave={() => setShowTooltipState(false)}
         className={`relative retro-card bg-base-white border-4 border-base-black ${sizeClasses[size]} flex items-center justify-center overflow-hidden group cursor-pointer shadow-[4px_4px_0px_0px_#111111] hover:shadow-[6px_6px_0px_0px_#FF5C00] transition-shadow duration-200`}
         aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-        title={isDark ? 'Switch to light mode (Ctrl+T)' : 'Switch to dark mode (Ctrl+T)'}
+        title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       >
         {/* Decorative Corner Accents */}
         <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-retro-orange" />
@@ -313,14 +298,6 @@ export default function ThemeToggle({ size = 'md', showTooltip = true, tooltipPo
         </div>
       </motion.button>
       
-      {/* Keyboard Shortcut Hint (Desktop Only) */}
-      <div className="hidden lg:block absolute -bottom-6 left-1/2 -translate-x-1/2">
-        <span className="font-retro-mono text-[9px] text-base-black/40">
-          <kbd className="px-1 py-0.5 rounded-sm bg-base-gray border border-base-black/30 font-retro-mono">Ctrl</kbd>
-          <span className="mx-0.5">+</span>
-          <kbd className="px-1 py-0.5 rounded-sm bg-base-gray border border-base-black/30 font-retro-mono">T</kbd>
-        </span>
-      </div>
     </div>
   );
 }

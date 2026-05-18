@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Models\Device;
 use Carbon\Carbon;
@@ -437,6 +438,9 @@ class AuthController extends Controller
                 'github_url' => 'nullable|url|max:255',
                 'linkedin_url' => 'nullable|url|max:255',
                 'avatar' => 'nullable|image|max:5120',
+                'address' => 'nullable|string|max:1000',
+                'gender' => 'nullable|in:L,P',
+                'date_of_birth' => 'nullable|date',
                 'theme_preferences' => 'nullable|array',
                 'theme_preferences.primary_color' => 'nullable|regex:/^#[0-9A-F]{6}$/i',
                 'theme_preferences.secondary_color' => 'nullable|regex:/^#[0-9A-F]{6}$/i',
@@ -447,24 +451,43 @@ class AuthController extends Controller
 
             // Handle avatar upload
             if ($request->hasFile('avatar')) {
+                // Delete old avatar if exists
+                if ($user->avatar_url) {
+                    $oldPath = str_replace(asset('storage/'), '', $user->avatar_url);
+                    Storage::disk('public')->delete($oldPath);
+                }
                 $path = $request->file('avatar')->store('avatars', 'public');
                 $validated['avatar_url'] = asset('storage/' . $path);
             }
 
             // Update user
-            $user->update(array_filter([
-                'name' => $validated['name'] ?? null,
-                'email' => $validated['email'] ?? null,
-                'phone' => $validated['phone'] ?? null,
-            ]));
+            $userData = [];
+            foreach (['name', 'email', 'phone'] as $field) {
+                if ($request->has($field)) {
+                    $userData[$field] = $validated[$field] ?? null;
+                }
+            }
+            if (isset($validated['avatar_url'])) {
+                $userData['avatar_url'] = $validated['avatar_url'];
+            }
+            if (!empty($userData)) {
+                $user->update($userData);
+            }
 
             // Update profile
-            if ($user->profile) {
-                $user->profile->update(array_filter([
-                    'bio' => $validated['bio'] ?? null,
-                    'github_url' => $validated['github_url'] ?? null,
-                    'linkedin_url' => $validated['linkedin_url'] ?? null,
-                ]));
+            $profileData = [];
+            foreach (['bio', 'github_url', 'linkedin_url', 'address', 'gender', 'date_of_birth'] as $field) {
+                if ($request->has($field)) {
+                    $profileData[$field] = $validated[$field] ?? null;
+                }
+            }
+            
+            if (!empty($profileData)) {
+                if ($user->profile) {
+                    $user->profile->update($profileData);
+                } else {
+                    $user->profile()->create(array_merge($profileData, ['user_id' => $user->id]));
+                }
             }
 
             // Update theme preferences
@@ -497,6 +520,87 @@ class AuthController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Gagal update retro profile.',
+                'code' => 'SERVER_ERROR',
+            ], 500);
+        }
+    }
+
+    /**
+     * Dedicated method to upload user avatar
+     */
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $request->validate([
+                'avatar' => 'required|image|max:2048', // 2MB max
+            ]);
+
+            if ($request->hasFile('avatar')) {
+                // Delete old avatar if exists
+                if ($user->avatar_url) {
+                    $oldPath = str_replace(asset('storage/'), '', $user->avatar_url);
+                    Storage::disk('public')->delete($oldPath);
+                }
+
+                $path = $request->file('avatar')->store('avatars', 'public');
+                $avatarUrl = asset('storage/' . $path);
+
+                $user->update(['avatar_url' => $avatarUrl]);
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Avatar berhasil diunggah! 🖼️',
+                    'data' => [
+                        'avatar_url' => $avatarUrl,
+                        'user' => $user->load(['profile'])->toArray()
+                    ]
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'File avatar tidak ditemukan.',
+                'code' => 'FILE_NOT_FOUND'
+            ], 400);
+
+        } catch (\Exception $e) {
+            Log::error('Upload avatar failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengunggah avatar.',
+                'code' => 'SERVER_ERROR',
+            ], 500);
+        }
+    }
+
+    /**
+     * Dedicated method to remove user avatar
+     */
+    public function removeAvatar(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            if ($user->avatar_url) {
+                $oldPath = str_replace(asset('storage/'), '', $user->avatar_url);
+                Storage::disk('public')->delete($oldPath);
+                $user->update(['avatar_url' => null]);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Avatar berhasil dihapus! 🗑️',
+                'data' => [
+                    'user' => $user->load(['profile'])->toArray()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Remove avatar failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menghapus avatar.',
                 'code' => 'SERVER_ERROR',
             ], 500);
         }

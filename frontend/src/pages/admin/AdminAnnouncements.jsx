@@ -81,16 +81,30 @@ export default function AdminAnnouncements() {
 
   const save = useMutation({
     mutationFn: (data) => editing ? api.put(`/admin/announcements/${editing.id}`, data) : api.post('/admin/announcements', data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-announcements'] }); setIsOpen(false); setEditing(null); showToast('✅ Pengumuman disimpan!'); },
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['admin-announcements'] }); 
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
+      setIsOpen(false); setEditing(null); showToast('✅ Pengumuman disimpan!'); 
+    },
     onError: () => showToast('❌ Gagal menyimpan', 'error'),
   });
   const remove = useMutation({
     mutationFn: (id) => api.delete(`/admin/announcements/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-announcements'] }); showToast('✅ Pengumuman dihapus'); },
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['admin-announcements'] }); 
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
+      showToast('✅ Pengumuman dihapus'); 
+    },
   });
   const pin = useMutation({
     mutationFn: (id) => api.patch(`/admin/announcements/${id}/pin`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-announcements'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-announcements'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
+    },
   });
 
   const openCreate = () => { setEditing(null); setForm({ title: '', content: '', target: 'all', priority: 'normal', is_pinned: false }); setIsOpen(true); };
@@ -191,7 +205,7 @@ export default function AdminAnnouncements() {
           </label>
           <div className="flex justify-end gap-3">
             <Button variant="outline" type="button" onClick={() => setIsOpen(false)}>Batal</Button>
-            <Button type="submit" disabled={save.isLoading}><Send className="w-4 h-4 mr-1" />{save.isLoading ? 'Menyimpan...' : editing ? 'Perbarui' : 'Publikasi'}</Button>
+            <Button type="submit" disabled={save.isPending}><Send className="w-4 h-4 mr-1" />{save.isPending ? 'Menyimpan...' : editing ? 'Perbarui' : 'Publikasi'}</Button>
           </div>
         </form>
       </Modal>

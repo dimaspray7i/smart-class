@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -299,28 +299,20 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
   const [showDemoModal, setShowDemoModal] = useState(false);
-  const [keyboardHint, setKeyboardHint] = useState(false);
   
   const { login, clearError } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Keyboard shortcuts
+  // Escape key down listener to close modal
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') setShowDemoModal(false);
-      if (e.key === '/' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        document.getElementById('email')?.focus();
-      }
-      if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        setKeyboardHint(!keyboardHint);
-      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [keyboardHint]);
+  }, []);
 
   // Load saved credentials
   useEffect(() => {
@@ -355,7 +347,8 @@ export default function LoginPage() {
         guru: '/dashboard/teacher', 
         admin: '/dashboard/admin',
       };
-      navigate(redirects[role] || '/dashboard', { replace: true });
+      const from = location.state?.from ? (location.state.from.pathname + location.state.from.search) : (redirects[role] || '/dashboard');
+      navigate(from, { replace: true });
     } else {
       setError(result.error || 'Gagal masuk. Silakan coba lagi.');
       // Retro shake animation on error
@@ -407,26 +400,7 @@ export default function LoginPage() {
         {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
       </motion.button>
 
-      {/* Keyboard Hint */}
-      <AnimatePresence>
-        {keyboardHint && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 retro-card bg-base-white border-2 border-base-black px-4 py-2 flex items-center gap-3"
-          >
-            <Keyboard className="w-4 h-4 text-retro-orange" />
-            <span className="font-retro-mono text-xs text-base-black">
-              Tekan <kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border border-base-black font-retro-mono">/</kbd> untuk fokus email • 
-              <kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border border-base-black font-retro-mono ml-1">?</kbd> untuk pintasan
-            </span>
-            <button onClick={() => setKeyboardHint(false)} className="ml-2 p-1 hover:bg-base-gray rounded-sm">
-              <X className="w-3 h-3" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {/* Main Content */}
       <div className="relative z-10 flex items-center justify-center min-h-screen px-4 py-12">
@@ -625,11 +599,6 @@ export default function LoginPage() {
               <span className="font-retro-mono text-[10px] text-base-black">Coba Masuk Akun Demo</span>
               <ChevronRight className="w-3 h-3 text-retro-orange" />
             </button>
-            
-            {/* Keyboard Shortcut Hint */}
-            <p className="font-retro-mono text-[9px] text-base-black/40 mt-4">
-              Tekan <kbd className="px-1 py-0.5 rounded-sm bg-base-gray border border-base-black/30">/</kbd> untuk fokus • <kbd className="px-1 py-0.5 rounded-sm bg-base-gray border border-base-black/30">?</kbd> untuk pintasan
-            </p>
           </div>
 
           {/* Decorative Corner Sticker */}

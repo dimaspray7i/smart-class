@@ -472,19 +472,33 @@ class TeacherService
     }
 
     /**
-     * Get today's schedule for teacher
+     * Get schedule for teacher (defaults to today) with filtering options
      */
-    public function getTodaySchedule(int $teacherId): array
+    public function getTodaySchedule(int $teacherId, ?string $day = null, ?int $classId = null, ?int $subjectId = null): array
     {
-        $day = strtolower(now()->locale('id')->dayName);
-        if ($day === 'minggu') {
-            $day = 'senin'; // Fallback for Sunday testing
+        $query = Schedule::where('teacher_id', $teacherId)
+            ->where('is_active', true);
+
+        if ($day && strtolower($day) !== 'all') {
+            $query->where('day', strtolower($day));
+        } elseif (!$day) {
+            $currentDay = strtolower(now()->locale('id')->dayName);
+            if ($currentDay === 'minggu') {
+                $currentDay = 'senin'; // Fallback for Sunday testing
+            }
+            $query->where('day', $currentDay);
         }
 
-        return Schedule::where('teacher_id', $teacherId)
-            ->where('day', $day)
-            ->where('is_active', true)
-            ->with(['class', 'subject'])
+        if ($classId) {
+            $query->where('class_id', $classId);
+        }
+
+        if ($subjectId) {
+            $query->where('subject_id', $subjectId);
+        }
+
+        return $query->with(['class', 'subject'])
+            ->orderByRaw("FIELD(day, 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu')")
             ->orderBy('start_time')
             ->get()
             ->map(function ($schedule) {
@@ -494,6 +508,7 @@ class TeacherService
                 
                 return [
                     'id' => $schedule->id,
+                    'day' => $schedule->day,
                     'subject' => [
                         'id' => $schedule->subject->id,
                         'name' => $schedule->subject->name,

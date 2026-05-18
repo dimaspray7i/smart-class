@@ -251,10 +251,6 @@ class AttendanceController extends Controller
 
     /**
      * 🚪 Close attendance session
-     * 
-     * @param Request $request
-     * @param int $id
-     * @return JsonResponse
      */
     public function closeSession(Request $request, int $id): JsonResponse
     {
@@ -262,7 +258,7 @@ class AttendanceController extends Controller
             $teacherId = $request->user()->id;
             
             $validated = $request->validate([
-                'reason' => 'nullable|string|max:500',
+                'reason'           => 'nullable|string|max:500',
                 'auto_mark_absent' => 'nullable|boolean',
             ]);
 
@@ -270,37 +266,87 @@ class AttendanceController extends Controller
 
             if (!$result['success']) {
                 return response()->json([
-                    'status' => 'error',
+                    'status'  => 'error',
                     'message' => $result['message'],
-                    'code' => $result['code'] ?? 'CLOSE_SESSION_FAILED',
+                    'code'    => $result['code'] ?? 'CLOSE_SESSION_FAILED',
                 ], 400);
             }
 
             return response()->json([
-                'status' => 'success',
+                'status'  => 'success',
                 'message' => $result['message'],
-                'code' => 'SESSION_CLOSED',
-                'data' => $result['data'] ?? null,
+                'code'    => 'SESSION_CLOSED',
+                'data'    => $result['data'] ?? null,
             ], 200);
 
         } catch (ValidationException $e) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Validasi gagal.',
-                'code' => 'VALIDATION_ERROR',
-                'errors' => $e->errors(),
+                'code'    => 'VALIDATION_ERROR',
+                'errors'  => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             Log::error('AttendanceController::closeSession failed', [
                 'teacher_id' => $request->user()?->id,
                 'session_id' => $id,
-                'error' => $e->getMessage(),
+                'error'      => $e->getMessage(),
+            ]);
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal menutup sesi absensi.',
+                'code'    => 'CLOSE_SESSION_ERROR',
+            ], 500);
+        }
+    }
+
+    /**
+     * 🔄 Reopen a closed attendance session
+     */
+    public function reopenSession(Request $request, int $id): JsonResponse
+    {
+        try {
+            $teacherId = $request->user()->id;
+
+            $validated = $request->validate([
+                'extra_minutes' => 'nullable|integer|min:1|max:120',
+                'notes'         => 'nullable|string|max:500',
             ]);
 
+            $result = $this->attendanceService->reopenSession($id, $teacherId, $validated);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => $result['message'],
+                    'code'    => $result['code'] ?? 'REOPEN_FAILED',
+                ], 400);
+            }
+
             return response()->json([
-                'status' => 'error',
-                'message' => 'Gagal menutup sesi absensi.',
-                'code' => 'CLOSE_SESSION_ERROR',
+                'status'  => 'success',
+                'message' => $result['message'],
+                'code'    => 'SESSION_REOPENED',
+                'data'    => $result['data'],
+            ], 200);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Validasi gagal.',
+                'code'    => 'VALIDATION_ERROR',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('AttendanceController::reopenSession failed', [
+                'teacher_id' => $request->user()?->id,
+                'session_id' => $id,
+                'error'      => $e->getMessage(),
+            ]);
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal membuka ulang sesi.',
+                'code'    => 'REOPEN_ERROR',
             ], 500);
         }
     }

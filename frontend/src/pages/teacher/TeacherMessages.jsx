@@ -145,7 +145,7 @@ export default function TeacherMessages() {
                 <form onSubmit={handleSend} className="p-3 border-t-4 border-base-black flex gap-2">
                   <input type="text" placeholder="Tulis pesan..." value={text} onChange={e => setText(e.target.value)}
                     className="flex-1 py-2 px-3 border-2 border-base-black rounded-retro font-retro-mono text-sm bg-base-white focus:outline-none focus:border-retro-orange" />
-                  <button type="submit" disabled={!text.trim() || sendMsg.isLoading}
+                  <button type="submit" disabled={!text.trim() || sendMsg.isPending}
                     className="p-2.5 bg-retro-blue text-base-white border-2 border-base-black rounded-retro hover:bg-retro-blue/90 disabled:opacity-50 shadow-[2px_2px_0px_0px_#111]">
                     <Send className="w-4 h-4" />
                   </button>
