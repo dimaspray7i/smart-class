@@ -62,7 +62,7 @@ class AttendanceController extends Controller
      */
     public function history(Request $request): JsonResponse
     {
-        $history = $this->attendanceService->getHistory(
+        $history = $this->attendanceService->getStudentHistory(
             $request->user()->id,
             $request->only(['month', 'year', 'status', 'start_date', 'end_date', 'pkl_only', 'per_page'])
         );

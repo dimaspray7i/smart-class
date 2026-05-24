@@ -200,9 +200,9 @@ class AttendanceService
     }
 
     /**
-     * Get attendance history with filters
+     * Get attendance history with filters (STUDENT version)
      */
-    public function getHistory(int $userId, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function getStudentHistory(int $userId, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = Attendance::where('user_id', $userId)
             ->with('pklLocation:id,company_name,address')
@@ -1154,5 +1154,365 @@ class AttendanceService
             ->get();
 
         return $students->toArray();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // TEACHER-FACING METHODS (used by AttendanceController)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Get teacher attendance history (paginated)
+     * Called by AttendanceController::history()
+     */
+    public function getHistory(int $teacherId, array $filters = [], int $perPage = 20): array
+    {
+        try {
+            // Resolve class IDs the teacher is responsible for
+            $classIds = DB::table('schedules')
+                ->where('teacher_id', $teacherId)
+                ->where('is_active', true)
+                ->pluck('class_id')
+                ->unique()
+                ->toArray();
+
+            if (!empty($filters['class_id'])) {
+                $classIds = array_intersect($classIds, [(int) $filters['class_id']]);
+            }
+
+            if (empty($classIds)) {
+                return [
+                    'success' => true,
+                    'data'    => collect(),
+                    'meta'    => ['current_page' => 1, 'per_page' => $perPage, 'total' => 0, 'last_page' => 1],
+                ];
+            }
+
+            $studentIds = DB::table('class_user')
+                ->whereIn('class_id', $classIds)
+                ->where('role_in_class', 'siswa')
+                ->where('is_active', true)
+                ->pluck('user_id');
+
+            $query = Attendance::whereIn('user_id', $studentIds)
+                ->with(['user:id,name,avatar_url', 'pklLocation:id,company_name'])
+                ->orderBy('date', 'desc')
+                ->orderBy('created_at', 'desc');
+
+            if (!empty($filters['start_date'])) {
+                $query->whereDate('date', '>=', $filters['start_date']);
+            }
+            if (!empty($filters['end_date'])) {
+                $query->whereDate('date', '<=', $filters['end_date']);
+            }
+            if (!empty($filters['status']) && in_array($filters['status'], ['Hadir', 'Terlambat', 'Izin', 'Sakit', 'Alpha'])) {
+                $query->where('status', $filters['status']);
+            }
+            if (!empty($filters['student_id'])) {
+                $query->where('user_id', (int) $filters['student_id']);
+            }
+            if (!empty($filters['search'])) {
+                $search = $filters['search'];
+                $query->whereHas('user', fn($q) => $q->where('name', 'like', "%{$search}%"));
+            }
+
+            $paginated = $query->paginate($perPage);
+
+            return [
+                'success' => true,
+                'data'    => $paginated->items(),
+                'meta'    => [
+                    'current_page' => $paginated->currentPage(),
+                    'per_page'     => $paginated->perPage(),
+                    'total'        => $paginated->total(),
+                    'last_page'    => $paginated->lastPage(),
+                ],
+            ];
+
+        } catch (Exception $e) {
+            Log::error('AttendanceService::getHistory (teacher) failed', [
+                'teacher_id' => $teacherId,
+                'error'      => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Gagal memuat riwayat absensi.',
+                'code'    => 'SERVER_ERROR',
+            ];
+        }
+    }
+
+    /**
+     * Get students taught by teacher (with optional class filter & search)
+     * Called by AttendanceController::students()
+     */
+    public function getStudents(int $teacherId, ?string $classId = null, ?string $search = null, int $perPage = 50): array
+    {
+        try {
+            // Get class IDs from schedules
+            $scheduleClassIds = DB::table('schedules')
+                ->where('teacher_id', $teacherId)
+                ->where('is_active', true)
+                ->pluck('class_id')
+                ->unique()
+                ->toArray();
+
+            // Get class IDs from class_user assignments (wali_kelas or guru_pengampu)
+            $classUserIds = DB::table('class_user')
+                ->where('user_id', $teacherId)
+                ->where('is_active', true)
+                ->whereIn('role_in_class', ['wali_kelas', 'guru_pengampu'])
+                ->pluck('class_id')
+                ->unique()
+                ->toArray();
+
+            $classIds = array_unique(array_merge($scheduleClassIds, $classUserIds));
+
+            if ($classId) {
+                $classIds = in_array((int) $classId, $classIds) ? [(int) $classId] : [];
+            }
+
+            if (empty($classIds)) {
+                return [
+                    'success' => true,
+                    'data'    => collect(),
+                    'meta'    => ['current_page' => 1, 'per_page' => $perPage, 'total' => 0, 'last_page' => 1],
+                ];
+            }
+
+            $query = User::where('role', 'siswa')
+                ->whereHas('classes', fn($q) => $q->whereIn('classes.id', $classIds))
+                ->with(['profile', 'classes' => fn($q) => $q->whereIn('classes.id', $classIds)->select('classes.id', 'classes.name')]);
+
+            if ($search) {
+                $query->where(fn($q) => $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"));
+            }
+
+            $paginated = $query->orderBy('name')->paginate($perPage);
+
+            $items = collect($paginated->items())->map(function ($student) use ($teacherId) {
+                $total = Attendance::where('user_id', $student->id)
+                    ->whereHas('session', fn($q) => $q->where('generated_by', $teacherId))
+                    ->count();
+                $hadir = Attendance::where('user_id', $student->id)
+                    ->whereHas('session', fn($q) => $q->where('generated_by', $teacherId))
+                    ->whereIn('status', ['Hadir', 'Terlambat'])
+                    ->count();
+
+                $currentClass = $student->classes->first();
+
+                return [
+                    'id'              => $student->id,
+                    'name'            => $student->name,
+                    'email'           => $student->email,
+                    'avatar_url'      => $student->avatar_url,
+                    'nis'             => $student->profile?->nis,
+                    'class_id'        => $currentClass ? $currentClass->id : null,
+                    'class'           => $currentClass ? ['id' => $currentClass->id, 'name' => $currentClass->name] : null,
+                    'classes'         => $student->classes->map(fn($c) => ['id' => $c->id, 'name' => $c->name]),
+                    'attendance_rate' => $total > 0 ? round(($hadir / $total) * 100, 1) : 0,
+                    'total_sessions'  => $total,
+                ];
+            });
+
+            return [
+                'success' => true,
+                'data'    => $items,
+                'meta'    => [
+                    'current_page' => $paginated->currentPage(),
+                    'per_page'     => $paginated->perPage(),
+                    'total'        => $paginated->total(),
+                    'last_page'    => $paginated->lastPage(),
+                ],
+            ];
+
+        } catch (Exception $e) {
+            Log::error('AttendanceService::getStudents failed', [
+                'teacher_id' => $teacherId,
+                'error'      => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Gagal memuat daftar siswa.',
+                'code'    => 'SERVER_ERROR',
+            ];
+        }
+    }
+
+    /**
+     * Get detailed attendance for a specific student (teacher view)
+     * Called by AttendanceController::studentAttendance()
+     */
+    public function getStudentAttendance(int $teacherId, int $studentId, string $startDate, string $endDate, bool $includeStats = true): array
+    {
+        try {
+            $student = User::with(['profile', 'classes'])->find($studentId);
+
+            if (!$student || $student->role !== 'siswa') {
+                return ['success' => false, 'message' => 'Siswa tidak ditemukan.', 'code' => 'NOT_FOUND'];
+            }
+
+            // Verify teacher has access to this student
+            $teacherClassIds = DB::table('schedules')
+                ->where('teacher_id', $teacherId)
+                ->where('is_active', true)
+                ->pluck('class_id')
+                ->unique()
+                ->toArray();
+
+            $studentClassIds = DB::table('class_user')
+                ->where('user_id', $studentId)
+                ->where('role_in_class', 'siswa')
+                ->where('is_active', true)
+                ->pluck('class_id')
+                ->toArray();
+
+            $commonClasses = array_intersect($teacherClassIds, $studentClassIds);
+
+            if (empty($commonClasses)) {
+                return ['success' => false, 'message' => 'Tidak memiliki akses ke siswa ini.', 'code' => 'FORBIDDEN'];
+            }
+
+            $records = Attendance::where('user_id', $studentId)
+                ->whereBetween('date', [$startDate, $endDate])
+                ->with(['session' => fn($q) => $q->select('id', 'class_id', 'subject_id', 'code', 'generated_by'), 'pklLocation:id,company_name'])
+                ->orderBy('date', 'desc')
+                ->get()
+                ->map(fn($a) => [
+                    'id'         => $a->id,
+                    'date'       => $a->date,
+                    'status'     => $a->status,
+                    'check_in'   => $a->created_at?->format('H:i'),
+                    'notes'      => $a->notes,
+                    'pkl_location' => $a->pklLocation?->company_name,
+                ]);
+
+            $result = [
+                'success' => true,
+                'data'    => [
+                    'student'   => [
+                        'id'       => $student->id,
+                        'name'     => $student->name,
+                        'email'    => $student->email,
+                        'avatar_url' => $student->avatar_url,
+                        'nis'      => $student->profile?->nis,
+                        'classes'  => $student->classes->map(fn($c) => ['id' => $c->id, 'name' => $c->name]),
+                    ],
+                    'records'   => $records,
+                    'date_range' => ['from' => $startDate, 'to' => $endDate],
+                ],
+            ];
+
+            if ($includeStats) {
+                $total  = $records->count();
+                $hadir  = $records->whereIn('status', ['Hadir', 'Terlambat'])->count();
+                $alpha  = $records->where('status', 'Alpha')->count();
+                $izin   = $records->whereIn('status', ['Izin', 'Sakit'])->count();
+
+                $result['data']['stats'] = [
+                    'total'           => $total,
+                    'hadir'           => $hadir,
+                    'alpha'           => $alpha,
+                    'izin'            => $izin,
+                    'attendance_rate' => $total > 0 ? round(($hadir / $total) * 100, 1) : 0,
+                ];
+            }
+
+            return $result;
+
+        } catch (Exception $e) {
+            Log::error('AttendanceService::getStudentAttendance failed', [
+                'teacher_id' => $teacherId,
+                'student_id' => $studentId,
+                'error'      => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'message' => 'Gagal memuat data absensi siswa.', 'code' => 'SERVER_ERROR'];
+        }
+    }
+
+    /**
+     * Export attendance data
+     * Called by AttendanceController::export()
+     */
+    public function exportData(int $teacherId, array $options): array
+    {
+        try {
+            $classIds = DB::table('schedules')
+                ->where('teacher_id', $teacherId)
+                ->where('is_active', true)
+                ->pluck('class_id')
+                ->unique()
+                ->toArray();
+
+            if (!empty($options['class_id'])) {
+                $classIds = array_intersect($classIds, [(int) $options['class_id']]);
+            }
+
+            $studentIds = DB::table('class_user')
+                ->whereIn('class_id', $classIds)
+                ->where('role_in_class', 'siswa')
+                ->where('is_active', true)
+                ->pluck('user_id');
+
+            $query = Attendance::whereIn('user_id', $studentIds)
+                ->with('user:id,name,email')
+                ->orderBy('date', 'desc');
+
+            if (!empty($options['start_date'])) {
+                $query->whereDate('date', '>=', $options['start_date']);
+            }
+            if (!empty($options['end_date'])) {
+                $query->whereDate('date', '<=', $options['end_date']);
+            }
+
+            $records = $query->get();
+
+            if ($options['format'] === 'json') {
+                return [
+                    'success' => true,
+                    'data'    => $records->map(fn($r) => [
+                        'student'    => $r->user?->name,
+                        'email'      => $r->user?->email,
+                        'date'       => $r->date,
+                        'status'     => $r->status,
+                        'check_in'   => $r->created_at?->format('H:i'),
+                    ]),
+                ];
+            }
+
+            // CSV
+            $rows   = [['Nama Siswa', 'Email', 'Tanggal', 'Status', 'Jam Masuk']];
+            foreach ($records as $r) {
+                $rows[] = [
+                    $r->user?->name ?? '-',
+                    $r->user?->email ?? '-',
+                    $r->date,
+                    $r->status,
+                    $r->created_at?->format('H:i') ?? '-',
+                ];
+            }
+
+            $csv  = '';
+            foreach ($rows as $row) {
+                $csv .= implode(',', array_map(fn($v) => '"' . str_replace('"', '""', $v) . '"', $row)) . "\n";
+            }
+
+            return [
+                'success'      => true,
+                'file_content' => $csv,
+                'filename'     => 'absensi_' . now()->format('Ymd_His') . '.csv',
+                'content_type' => 'text/csv',
+            ];
+
+        } catch (Exception $e) {
+            Log::error('AttendanceService::exportData failed', [
+                'teacher_id' => $teacherId,
+                'error'      => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'message' => 'Gagal export data.', 'code' => 'SERVER_ERROR'];
+        }
     }
 }

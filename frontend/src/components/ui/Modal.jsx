@@ -251,12 +251,15 @@ export default function Modal({ isOpen, onClose, title, size = 'md', children, s
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className={sizeClasses[size] || sizeClasses.md} showSticker={showSticker}>
         <div className="flex flex-col h-full max-h-[90vh]">
-          {title && (
+          {title ? (
             <div className="px-6 pt-6">
               <DialogHeader>
                 <DialogTitle>{title}</DialogTitle>
+                <DialogDescription className="sr-only">Detail informasi untuk {title}</DialogDescription>
               </DialogHeader>
             </div>
+          ) : (
+            <DialogDescription className="sr-only">Kotak dialog modal</DialogDescription>
           )}
           <div className="flex-1 overflow-y-auto px-6 py-4">
             {children}

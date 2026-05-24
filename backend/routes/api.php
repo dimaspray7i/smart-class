@@ -16,6 +16,9 @@ use App\Http\Controllers\Student\SkillController as StudentSkill;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboard;
 use App\Http\Controllers\Teacher\AttendanceController as TeacherAttendance;
 use App\Http\Controllers\Teacher\PermissionController as TeacherPermission;
+use App\Http\Controllers\Teacher\MessageController as TeacherMessage;
+use App\Http\Controllers\Teacher\AnnouncementController as TeacherAnnouncement;
+use App\Http\Controllers\Teacher\MaterialController as TeacherMaterial;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
 use App\Http\Controllers\Admin\UserController as AdminUser;
 use App\Http\Controllers\Admin\ClassController as AdminClass;
@@ -283,6 +286,29 @@ Route::middleware('api')->group(function () {
                 Route::get('/students/progress', [TeacherAttendance::class, 'studentProgress']);
                 Route::get('/export/summary', [TeacherAttendance::class, 'exportSummary']);
             });
+
+            // Messages - Teacher Messaging
+            Route::prefix('messages')->group(function () {
+                Route::get('/conversations', [TeacherMessage::class, 'conversations']);
+                Route::get('/{contactId}', [TeacherMessage::class, 'show']);
+                Route::post('/', [TeacherMessage::class, 'store']);
+            });
+
+            // Announcements
+            Route::prefix('announcements')->group(function () {
+                Route::get('/', [TeacherAnnouncement::class, 'index']);
+                Route::post('/', [TeacherAnnouncement::class, 'store']);
+                Route::put('/{id}', [TeacherAnnouncement::class, 'update']);
+                Route::delete('/{id}', [TeacherAnnouncement::class, 'destroy']);
+                Route::patch('/{id}/pin', [TeacherAnnouncement::class, 'pin']);
+            });
+
+            // Materials
+            Route::prefix('materials')->group(function () {
+                Route::get('/', [TeacherMaterial::class, 'index']);
+                Route::post('/', [TeacherMaterial::class, 'store']);
+                Route::delete('/{id}', [TeacherMaterial::class, 'destroy']);
+            });
         });
 
     // ═══════════════════════════════════════════════════════════
@@ -304,7 +330,6 @@ Route::middleware('api')->group(function () {
             // ═══════════════════════════════════════════════════
             // 👥 USER MANAGEMENT - RETRO STYLE
             // ═══════════════════════════════════════════════════
-            Route::apiResource('users', AdminUser::class);
             Route::get('/users/export', [AdminUser::class, 'export']);
             Route::get('/users/export/csv', [AdminUser::class, 'exportCSV']);
             Route::get('/users/export/json', [AdminUser::class, 'exportJSON']);
@@ -319,6 +344,8 @@ Route::middleware('api')->group(function () {
             // User Analytics (Retro Charts)
             Route::get('/users/analytics', [AdminUser::class, 'analytics']);
             Route::get('/users/analytics/retro', [AdminUser::class, 'retroAnalytics']);
+
+            Route::apiResource('users', AdminUser::class);
             
             // ═══════════════════════════════════════════════════
             // 🏫 CLASS MANAGEMENT - RETRO STYLE
@@ -348,7 +375,6 @@ Route::middleware('api')->group(function () {
                 Route::put('/{id}', [AdminSubject::class, 'update']);              // Update (full)
                 Route::patch('/{id}', [AdminSubject::class, 'update']);            // Update (partial)
                 Route::delete('/{id}', [AdminSubject::class, 'destroy']);          // Delete single
-                Route::delete('/', [AdminSubject::class, 'destroy']);              // Delete bulk
                 
                 // Export endpoints
                 Route::get('/export', [AdminSubject::class, 'export']);
@@ -384,7 +410,6 @@ Route::middleware('api')->group(function () {
                 Route::put('/{id}', [AdminSchedule::class, 'update']);
                 Route::patch('/{id}', [AdminSchedule::class, 'update']);
                 Route::delete('/{id}', [AdminSchedule::class, 'destroy']);
-                Route::delete('/', [AdminSchedule::class, 'destroy']);
                 
                 Route::get('/export', [AdminSchedule::class, 'export']);
                 Route::get('/export/csv', [AdminSchedule::class, 'exportCSV']);
@@ -429,7 +454,6 @@ Route::middleware('api')->group(function () {
                 Route::put('/{id}', [PklLocationController::class, 'update']);
                 Route::patch('/{id}', [PklLocationController::class, 'update']);
                 Route::delete('/{id}', [PklLocationController::class, 'destroy']);
-                Route::delete('/', [PklLocationController::class, 'destroy']);
                 
                 Route::patch('/{id}/approve', [PklLocationController::class, 'approve']);
                 Route::patch('/{id}/retro-approve', [PklLocationController::class, 'retroApprove']);
@@ -468,7 +492,7 @@ Route::middleware('api')->group(function () {
                 return response()->json(['status' => 'success', 'message' => '🧹 Cache cleared', 'retro_effect' => '✨ Sparkles!'], 200);
             });
             Route::post('/cache/clear/section/{section}', function ($section) {
-                Cache::tags([$section])->flush();
+                Cache::flush();
                 return response()->json(['status' => 'success', 'message' => "Cache section '{$section}' cleared"], 200);
             });
             

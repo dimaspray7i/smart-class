@@ -12,8 +12,6 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Geolocation;
-
 class PklLocationController extends Controller
 {
     /**
@@ -565,14 +563,10 @@ class PklLocationController extends Controller
     public function getStudents(Request $request): JsonResponse
     {
         $query = User::role('siswa')
-            ->whereHas('classes', function($q) {
-                // Filter by the actual class level assigned to the student
-                $q->where('classes.level', 'XII')
-                  ->where('class_user.is_active', true);
-            })
             ->whereHas('profile', function($q) {
-                // Strictly RPL major only (stored in profile)
-                $q->where('major', 'RPL');
+                // Filter by RPL major and Grade XII
+                $q->where('major', 'RPL')
+                  ->where('class_level', 'XII');
             })
             ->with([
                 'profile' => fn($q) => $q->select('user_id', 'nis', 'major', 'class_level'),
@@ -720,7 +714,7 @@ class PklLocationController extends Controller
     /**
      * Export PKL locations to CSV.
      */
-    public function export(Request $request): JsonResponse
+    public function export(Request $request): \Illuminate\Http\Response
     {
         $query = PklLocation::query();
 

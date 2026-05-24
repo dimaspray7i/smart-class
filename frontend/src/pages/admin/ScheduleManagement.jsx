@@ -117,8 +117,24 @@ export default function ScheduleManagement() {
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
   const [sidebarOpen, setSidebarOpen] = useState(false); // 🆕 Mobile sidebar state
+  const [page, setPage] = useState(1);
 
   const debouncedSearch = useDebounce(search, 500);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, classFilter, dayFilter, teacherFilter]);
+
+  // Filter teachers based on selected subject in Create/Edit form
+  const filteredTeachers = useMemo(() => {
+    if (!formData.subject_id) return teachers;
+    const targetSubjectId = Number(formData.subject_id);
+    return teachers.filter(t => {
+      const teacherSubjects = t.profile?.subjects || [];
+      return teacherSubjects.some(s => s.id === targetSubjectId);
+    });
+  }, [teachers, formData.subject_id]);
 
   // Fetch dependencies for forms sequentially to avoid deadlock/timeout on single-threaded PHP built-in server
   useEffect(() => {
@@ -160,9 +176,9 @@ export default function ScheduleManagement() {
 
   // Fetch schedules with filters (ORIGINAL PRESERVED)
   const { data, isLoading, isError, isFetching } = useQuery({
-    queryKey: ['admin-schedules', debouncedSearch, classFilter, dayFilter, teacherFilter],
+    queryKey: ['admin-schedules', page, debouncedSearch, classFilter, dayFilter, teacherFilter],
     queryFn: () => adminAPI.getSchedules({
-        page: 1,
+        page,
         search: debouncedSearch || undefined,
         class_id: classFilter === 'all' ? undefined : classFilter,
         day: dayFilter === 'all' ? undefined : dayFilter,
@@ -601,7 +617,7 @@ export default function ScheduleManagement() {
               currentPage: meta.current_page || 1,
               totalPages: meta.last_page || 1,
               totalItems: meta.total || 0,
-              onPageChange: (p) => { /* Implement pagination if needed */ }
+              onPageChange: (p) => setPage(p)
             }}
           />
         ) : viewMode === 'grid' ? (
@@ -772,7 +788,27 @@ export default function ScheduleManagement() {
                   <Select 
                     label="Mata Pelajaran"
                     value={formData.subject_id}
-                    onChange={(e) => setFormData({...formData, subject_id: e.target.value})}
+                    onChange={(e) => {
+                      const newSubjectId = e.target.value;
+                      const targetSubjectId = Number(newSubjectId);
+                      const eligibleTeachers = teachers.filter(t => 
+                        (t.profile?.subjects || []).some(s => s.id === targetSubjectId)
+                      );
+                      
+                      let nextTeacherId = '';
+                      if (eligibleTeachers.length === 1) {
+                        nextTeacherId = eligibleTeachers[0].id;
+                      } else if (formData.teacher_id) {
+                        const keepsTeacher = eligibleTeachers.some(t => t.id === Number(formData.teacher_id));
+                        if (keepsTeacher) nextTeacherId = formData.teacher_id;
+                      }
+                      
+                      setFormData(prev => ({
+                        ...prev,
+                        subject_id: newSubjectId,
+                        teacher_id: nextTeacherId
+                      }));
+                    }}
                     options={[
                       { value: '', label: 'Pilih Mata Pelajaran' },
                       ...subjects.map(s => ({ value: s.id, label: `${s.code} - ${s.name}` }))
@@ -780,17 +816,34 @@ export default function ScheduleManagement() {
                     required
                     error={errors.subject_id}
                   />
-                  <Select 
-                    label="Guru"
-                    value={formData.teacher_id}
-                    onChange={(e) => setFormData({...formData, teacher_id: e.target.value})}
-                    options={[
-                      { value: '', label: 'Pilih Guru' },
-                      ...teachers.map(t => ({ value: t.id, label: t.name }))
-                    ]}
-                    required
-                    error={errors.teacher_id}
-                  />
+                  {formData.subject_id && filteredTeachers.length === 1 ? (
+                    <div className="space-y-1.5">
+                      <label className="font-retro-mono text-xs uppercase text-base-black font-black flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Guru Pengampu</label>
+                      <div className="w-full px-3 py-2 border-2 border-base-black rounded-retro bg-base-gray/20 font-retro-mono text-sm text-base-black/70 cursor-not-allowed">
+                        {filteredTeachers[0].name}
+                      </div>
+                      <p className="text-[10px] text-base-black/50 font-retro-mono mt-1 italic">Diisi otomatis berdasarkan mapel terpilih.</p>
+                    </div>
+                  ) : formData.subject_id && filteredTeachers.length > 1 ? (
+                    <Select 
+                      label="Pilih Guru Pengampu"
+                      value={formData.teacher_id}
+                      onChange={(e) => setFormData({...formData, teacher_id: e.target.value})}
+                      options={[
+                        { value: '', label: 'Terdapat beberapa guru, silakan pilih' },
+                        ...filteredTeachers.map(t => ({ value: t.id, label: t.name }))
+                      ]}
+                      required
+                      error={errors.teacher_id}
+                    />
+                  ) : formData.subject_id && filteredTeachers.length === 0 ? (
+                    <div className="space-y-1.5">
+                      <label className="font-retro-mono text-xs uppercase text-base-black font-black flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Guru Pengampu</label>
+                      <div className="w-full px-3 py-2 border-2 border-danger rounded-retro bg-danger/10 font-retro-mono text-sm text-danger cursor-not-allowed">
+                        Tidak ada guru yang mengampu mapel ini
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="space-y-6">

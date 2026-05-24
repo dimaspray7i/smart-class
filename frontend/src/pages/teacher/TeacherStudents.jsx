@@ -14,17 +14,31 @@ export default function TeacherStudents() {
   const [classFilter, setClassFilter] = useState('all');
   const [selectedStudent, setSelectedStudent] = useState(null);
 
-  const { data: students, isLoading } = useQuery({
+  const { data: students, isLoading, isError, error } = useQuery({
     queryKey: ['teacher-students'],
-    queryFn: () => api.get('/teacher/students'),
+    queryFn: async () => {
+      const res = await api.get('/teacher/students');
+      // Debug: log raw response to console
+      if (import.meta.env.DEV) {
+        console.log('[TeacherStudents] API response:', res);
+      }
+      return res;
+    },
+    retry: 1,
   });
   const { data: classes } = useQuery({
     queryKey: ['teacher-classes'],
     queryFn: () => api.get('/teacher/classes'),
+    retry: 1,
   });
 
   const filteredStudents = useMemo(() => {
-    let list = students?.data || [];
+    // Handle both nested (res.data) and flat array responses
+    const rawData = students?.data ?? students ?? [];
+    let list = Array.isArray(rawData) ? rawData : [];
+    if (import.meta.env.DEV) {
+      console.log('[TeacherStudents] rawData:', rawData, 'list:', list);
+    }
     if (classFilter !== 'all') list = list.filter(s => String(s.class_id) === classFilter);
     if (search) list = list.filter(s =>
       s.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -33,7 +47,17 @@ export default function TeacherStudents() {
     return list;
   }, [students, search, classFilter]);
 
-  const classList = classes?.data || [];
+  // Total all students (unfiltered) for stat card
+  const allStudents = useMemo(() => {
+    const rawData = students?.data ?? students ?? [];
+    return Array.isArray(rawData) ? rawData : [];
+  }, [students]);
+
+  // Classes list - handle API nesting
+  const classList = useMemo(() => {
+    const rawData = classes?.data ?? classes ?? [];
+    return Array.isArray(rawData) ? rawData : [];
+  }, [classes]);
 
   return (
     <motion.div variants={pageVariants} initial="hidden" animate="visible" className="space-y-6">
@@ -47,7 +71,7 @@ export default function TeacherStudents() {
 
       <motion.div variants={cardVariants} className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {[
-          ['Total Siswa', filteredStudents.length, '#6C5CE7', Users],
+          ['Total Siswa', allStudents.length, '#6C5CE7', Users],
           ['Kelas Aktif', classList.length, '#2E2BBF', CalendarCheck],
           ['Rata Kehadiran', '—', '#00B894', TrendingUp],
         ].map(([label, value, color, Icon]) => (
@@ -89,6 +113,10 @@ export default function TeacherStudents() {
             <tbody>
               {isLoading ? (
                 <tr><td colSpan="6" className="p-10 text-center font-retro-mono text-base-black/50">Memuat data siswa...</td></tr>
+              ) : isError ? (
+                <tr><td colSpan="6" className="p-10 text-center font-retro-mono text-danger">
+                  ❌ Gagal memuat data siswa. {error?.message || 'Periksa koneksi server.'}
+                </td></tr>
               ) : filteredStudents.length > 0 ? filteredStudents.map((student, i) => (
                 <motion.tr key={student.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
                   className="border-b-2 border-base-black border-dashed hover:bg-retro-yellow/10 transition-colors">

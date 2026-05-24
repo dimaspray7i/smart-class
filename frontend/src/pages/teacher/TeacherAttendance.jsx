@@ -448,7 +448,7 @@ export default function TeacherAttendance() {
           <SessionRow key={s.id} session={s}
             onShowQR={handleShowQR}
             onGenQR={id => generateQR.mutate(id)}
-            onClose={id => { if (confirm('Tutup sesi ini?')) closeSession.mutate(id); }}
+            onClose={id => closeSession.mutate(id)}
             onReopen={handleReopen}
           />
         )) : (

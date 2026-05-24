@@ -68,7 +68,48 @@ class UserController extends Controller
         }
 
         // Load relationships for detailed view
-        $user->load(['profile', 'profile.subjects', 'classes']);
+        $user->load([
+            'profile', 
+            'profile.subjects', 
+            'classes' => function($q) {
+                $q->withCount('students as students_count');
+            },
+            'taughtSchedules.class',
+            'taughtSchedules.subject'
+        ]);
+
+        if ($user->role === 'guru') {
+            // Get class IDs from class_user
+            $classUserIds = $user->classes->pluck('id')->toArray();
+            
+            // Get class IDs from schedules
+            $scheduleClassIds = $user->taughtSchedules->pluck('class_id')->toArray();
+            
+            // Merge and get unique class IDs
+            $allClassIds = array_unique(array_merge($classUserIds, $scheduleClassIds));
+            
+            $user->classes_count = count($allClassIds);
+            
+            // Count total unique students in those classes
+            $user->students_count = \App\Models\User::where('role', 'siswa')
+                ->whereHas('classes', fn($q) => $q->whereIn('classes.id', $allClassIds))
+                ->count();
+                
+            $user->subjects = $user->profile?->subjects ?? [];
+            
+            // Get today and upcoming schedules
+            $day = strtolower(now()->locale('id')->dayName);
+            if ($day === 'minggu') $day = 'senin';
+            
+            $user->recent_schedules = $user->taughtSchedules
+                ->where('day', $day)
+                ->where('is_active', true)
+                ->sortBy('start_time')
+                ->take(5)
+                ->values();
+        } else {
+            $user->classes_count = $user->classes->count();
+        }
 
         return response()->json([
             'status' => 'success',

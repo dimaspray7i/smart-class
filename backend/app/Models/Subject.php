@@ -170,7 +170,7 @@ class Subject extends Model
      */
     public function classes(): BelongsToMany
     {
-        return $this->belongsToMany(ClassModel::class, 'class_subject')
+        return $this->belongsToMany(ClassModel::class, 'class_subject', 'subject_id', 'class_model_id')
             ->withTimestamps();
     }
 
@@ -183,15 +183,7 @@ class Subject extends Model
             ->withTimestamps();
     }
 
-    /**
-     * Subject is taught by many users (teachers) through their profiles
-     */
-    public function teachers(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'profile_subject', 'subject_id', 'profile_id')
-            ->through(Profile::class)
-            ->withTimestamps();
-    }
+
 
     // ═══════════════════════════════════════════════════════════
     // 🔍 SCOPES (Query Builders)

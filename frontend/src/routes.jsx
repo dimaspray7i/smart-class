@@ -430,10 +430,8 @@ import SubjectManagement from './pages/admin/SubjectManagement';
 import ScheduleManagement from './pages/admin/ScheduleManagement';
 import SettingsPage from './pages/admin/SettingsPage';
 import PKLManagement from './pages/admin/PKLManagement';
-import AttendanceManagement from './pages/admin/AttendanceManagement';
 import AdminTeachers from './pages/admin/AdminTeachers';
 import AdminStudents from './pages/admin/AdminStudents';
-import AdminPermissions from './pages/admin/AdminPermissions';
 import AdminAnnouncements from './pages/admin/AdminAnnouncements';
 import AdminReports from './pages/admin/AdminReports';
 import AdminSecurity from './pages/admin/AdminSecurity';
@@ -533,9 +531,7 @@ export const router = createBrowserRouter([
           { path: 'classes', element: <ClassManagement /> },
           { path: 'subjects', element: <SubjectManagement /> },
           { path: 'schedules', element: <ScheduleManagement /> },
-          { path: 'attendance', element: <AttendanceManagement /> },
           { path: 'pkl', element: <PKLManagement /> },
-          { path: 'permissions', element: <AdminPermissions /> },
           { path: 'announcements', element: <AdminAnnouncements /> },
           { path: 'reports', element: <AdminReports /> },
           { path: 'security', element: <AdminSecurity /> },
