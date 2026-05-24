@@ -287,13 +287,22 @@ class DashboardController extends Controller
         try {
             $teacherId = $request->user()->id;
             
-            // Get class IDs
-            $classIds = DB::table('class_user')
+            // Get class IDs from schedules
+            $scheduleClassIds = DB::table('schedules')
+                ->where('teacher_id', $teacherId)
+                ->where('is_active', true)
+                ->pluck('class_id')
+                ->toArray();
+
+            // Get class IDs from class_user assignments (wali_kelas or guru_pengampu)
+            $classUserIds = DB::table('class_user')
                 ->where('user_id', $teacherId)
                 ->whereIn('role_in_class', ['wali_kelas', 'guru_pengampu'])
                 ->where('is_active', true)
                 ->pluck('class_id')
                 ->toArray();
+                
+            $classIds = array_unique(array_merge($scheduleClassIds, $classUserIds));
                 
             $classes = ClassModel::whereIn('id', $classIds)->get();
             

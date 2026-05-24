@@ -257,7 +257,7 @@ class ClassModel extends Model
     public function scopeWithCounts($query)
     {
         return $query->withCount([
-            'students as students_count' => fn($q) => $q->wherePivot('is_active', true),
+            'students as students_count',
             'schedules as schedules_count' => fn($q) => $q->where('is_active', true),
             'subjectsRelation as subjects_count', // Use correct relationship name
         ]);

@@ -63,7 +63,9 @@ export default function TeacherReports() {
   });
   const { data: classes } = useQuery({ queryKey: ['teacher-classes'], queryFn: () => api.get('/teacher/classes') });
 
-  const data = analytics?.data || {};
+  // Handle nested API response (axios -> response.data -> { status, data, meta })
+  const rawData = analytics?.data?.data ?? analytics?.data ?? analytics ?? {};
+  const data = rawData;
   const byClass = data.by_class || [];
 
   return (
@@ -96,7 +98,7 @@ export default function TeacherReports() {
         <select value={classFilter} onChange={e => setClassFilter(e.target.value)}
           className="py-1.5 px-3 border-2 border-base-black rounded-retro font-retro-mono text-sm bg-base-white focus:outline-none focus:border-retro-orange">
           <option value="all">Semua Kelas</option>
-          {(classes?.data || []).map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+          {(Array.isArray(classes?.data?.data) ? classes.data.data : Array.isArray(classes?.data) ? classes.data : []).map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
         </select>
       </motion.div>
 

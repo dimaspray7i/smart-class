@@ -20,7 +20,7 @@ class AttendanceController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = Attendance::with(['user.profile', 'pklLocation', 'session.schedule.subject']);
+            $query = Attendance::with(['user.profile', 'pklLocation']);
 
             // Filter by date
             if ($request->has('date')) {
@@ -68,7 +68,7 @@ class AttendanceController extends Controller
     {
         try {
             $validated = $request->validate([
-                'status' => 'required|in:present,late,absent,permit,sick',
+                'status' => 'required|in:Hadir,Terlambat,Alpha,Izin,Sakit',
                 'notes' => 'nullable|string'
             ]);
 

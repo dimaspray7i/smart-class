@@ -154,6 +154,17 @@ export default function PKLManagement() {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => adminAPI.deletePklLocation(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['pkl-locations']);
+      showToast('✅ Lokasi PKL berhasil dihapus!', 'success');
+    },
+    onError: (err) => {
+      showToast(`❌ ${err.message || 'Gagal menghapus lokasi PKL'}`, 'error');
+    }
+  });
+
   const stats = useMemo(() => {
     const locations = ensureArray(locationsData);
     const students = ensureArray(studentsData);
@@ -296,7 +307,16 @@ export default function PKLManagement() {
                       </div>
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleOpenModal(loc)}>Ubah</Button>
-                        <Button variant="danger" size="sm" icon={Trash2} />
+                        <Button 
+                          variant="danger" 
+                          size="sm" 
+                          icon={Trash2} 
+                          onClick={() => {
+                            if (window.confirm(`Apakah Anda yakin ingin menghapus lokasi PKL ${loc.company_name}?`)) {
+                              deleteMutation.mutate(loc.id);
+                            }
+                          }}
+                        />
                       </div>
                     </div>
                   </RetroCard>

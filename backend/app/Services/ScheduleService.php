@@ -202,6 +202,22 @@ class ScheduleService
             }
         }
 
+        // 3. Check Room Conflict (if room is provided)
+        if (!empty($data['room'])) {
+            $roomSchedules = Schedule::where('room', $data['room'])
+                ->where('day', $data['day'])
+                ->where('is_active', true)
+                ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+                ->with(['class', 'subject'])
+                ->get();
+
+            foreach ($roomSchedules as $schedule) {
+                if ($this->timeOverlaps($data['start_time'], $data['end_time'], $schedule->start_time, $schedule->end_time)) {
+                    return "Ruangan {$data['room']} sudah dipakai oleh kelas {$schedule->class->name} ({$schedule->subject->name}) pada jam tersebut.";
+                }
+            }
+        }
+
         return false;
     }
 

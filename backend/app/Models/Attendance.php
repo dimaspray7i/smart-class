@@ -73,6 +73,14 @@ class Attendance extends Model
         return $this->belongsTo(PklLocation::class);
     }
 
+    /**
+     * Attendance belongs to an AttendanceSession via code_used → code
+     */
+    public function session(): BelongsTo
+    {
+        return $this->belongsTo(AttendanceSession::class, 'code_used', 'code');
+    }
+
     // ═══════════════════════════════════════════════════════════
     // SCOPES
     // ═══════════════════════════════════════════════════════════

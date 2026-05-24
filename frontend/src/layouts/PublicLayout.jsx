@@ -327,35 +327,6 @@ export default function PublicLayout() {
       {location.pathname !== '/login' && (
         <RetroPublicHeader onMenuClick={() => setSidebarOpen(true)} />
       )}
-      
-      {/* Keyboard Shortcut Hint */}
-      <AnimatePresence>
-        {keyboardHint && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 retro-card bg-base-white border-4 border-base-black px-4 py-3 flex items-center gap-3 max-w-md"
-          >
-            <Zap className="w-5 h-5 text-retro-orange" />
-            <div className="flex-1">
-              <p className="font-retro-display font-black text-base-black text-sm mb-1">Public Page Shortcuts</p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] font-retro-mono text-base-black/70">
-                <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">H</kbd> Home</span>
-                <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">G</kbd> Gallery</span>
-                <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">S</kbd> Simulator</span>
-                <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">L</kbd> Login</span>
-                <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">?</kbd> Toggle hints</span>
-                <span><kbd className="px-1.5 py-0.5 rounded-sm bg-base-gray border-2 border-base-black">Esc</kbd> Close</span>
-              </div>
-            </div>
-            <button onClick={() => setKeyboardHint(false)} className="p-1 retro-btn retro-btn-sm">
-              <X className="w-4 h-4" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
       {/* Auth/Theme Event Feedback Toast */}
       <AnimatePresence>
         {feedbackEvent && (

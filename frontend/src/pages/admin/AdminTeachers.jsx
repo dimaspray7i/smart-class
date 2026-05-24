@@ -16,7 +16,7 @@ const cardVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 
 
 const EMPTY_FORM = {
   name: '', email: '', password: '', phone: '',
-  nip: '', role: 'guru', status: 'active',
+  nip: '', role: 'guru', status: 'active', subjects: []
 };
 
 function StatCard({ label, value, icon: Icon, color }) {
@@ -33,7 +33,16 @@ function StatCard({ label, value, icon: Icon, color }) {
   );
 }
 
-function TeacherDetailModal({ teacher }) {
+function TeacherDetailModal({ teacherId }) {
+  const { data: response, isLoading } = useQuery({
+    queryKey: ['admin-teacher-detail', teacherId],
+    queryFn: () => api.get(`/admin/users/${teacherId}`),
+    enabled: !!teacherId
+  });
+  
+  if (isLoading) return <div className="p-10 text-center"><RefreshCw className="w-6 h-6 animate-spin mx-auto text-retro-orange mb-2" /><p className="font-retro-mono text-sm text-base-black/50">Memuat detail...</p></div>;
+  
+  const teacher = response?.data?.data || response?.data;
   if (!teacher) return null;
   return (
     <div className="space-y-4">
@@ -101,12 +110,17 @@ export default function AdminTeachers() {
 
   const setField = useCallback((key, val) => setForm(f => ({ ...f, [key]: val })), []);
 
-  // ─── Queries ───────────────────────────────────────────
   const { data: teachers, isLoading, refetch } = useQuery({
     queryKey: ['admin-teachers', page, search],
     queryFn: () => api.get('/admin/users', { params: { role: 'guru', page, search: search || undefined, per_page: 15 } }),
     keepPreviousData: true,
   });
+
+  const { data: subjectsData } = useQuery({
+    queryKey: ['admin-subjects-list'],
+    queryFn: () => api.get('/admin/subjects', { params: { per_page: 100 } }),
+  });
+  const subjectList = subjectsData?.data?.data || subjectsData?.data || [];
 
   // ─── Mutations ─────────────────────────────────────────
   const createTeacher = useMutation({
@@ -132,8 +146,9 @@ export default function AdminTeachers() {
     onError: () => showToast('❌ Gagal menghapus', 'error'),
   });
 
-  const list = teachers?.data?.data || teachers?.data || [];
-  const meta = teachers?.data?.meta || {};
+  const responseData = teachers?.data || teachers || {};
+  const list = Array.isArray(responseData.data) ? responseData.data : (Array.isArray(responseData) ? responseData : []);
+  const meta = responseData.meta || responseData;
   const totalPages = meta.last_page || 1;
 
   const stats = useMemo(() => ({
@@ -148,6 +163,10 @@ export default function AdminTeachers() {
     e.preventDefault();
     if (!form.name || !form.email || !form.password) {
       showToast('❌ Nama, email, dan password wajib diisi', 'error');
+      return;
+    }
+    if (form.subjects.length === 0) {
+      showToast('❌ Minimal pilih satu mata pelajaran', 'error');
       return;
     }
     createTeacher.mutate(form);
@@ -291,8 +310,8 @@ export default function AdminTeachers() {
 
       {/* ── Detail Modal ─────────────────────────────────── */}
       <Modal isOpen={!!selectedTeacher} onClose={() => setSelectedTeacher(null)}
-        title={`👨‍🏫 ${selectedTeacher?.name}`} size="md">
-        <TeacherDetailModal teacher={selectedTeacher} />
+        title={`👨‍🏫 Detail Guru`} size="md">
+        <TeacherDetailModal teacherId={selectedTeacher?.id} />
       </Modal>
 
       {/* ── Create Modal ─────────────────────────────────── */}
@@ -304,6 +323,32 @@ export default function AdminTeachers() {
               <input type="text" value={form.name} onChange={e => setField('name', e.target.value)} required
                 placeholder="Contoh: Budi Santoso, S.Pd"
                 className="w-full py-2 px-3 border-2 border-base-black rounded-retro font-retro-mono text-sm focus:outline-none focus:border-retro-orange" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block font-retro-mono text-xs font-black uppercase tracking-wider mb-1">Mata Pelajaran yang Diampu *</label>
+              <div className="flex flex-wrap gap-2 p-2 border-2 border-base-black rounded-retro bg-base-gray/10 max-h-40 overflow-y-auto">
+                {subjectList.length === 0 ? (
+                  <span className="text-xs text-base-black/50 p-2">Memuat atau belum ada mata pelajaran...</span>
+                ) : (
+                  subjectList.map(sub => (
+                    <label key={sub.id} className="flex items-center gap-2 p-2 border-2 border-dashed border-base-black rounded-retro cursor-pointer hover:bg-retro-yellow/20 transition-colors">
+                      <input 
+                        type="checkbox" 
+                        className="retro-checkbox w-4 h-4 accent-retro-orange"
+                        checked={form.subjects.includes(sub.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setField('subjects', [...form.subjects, sub.id]);
+                          } else {
+                            setField('subjects', form.subjects.filter(id => id !== sub.id));
+                          }
+                        }}
+                      />
+                      <span className="font-retro-mono text-xs">{sub.name}</span>
+                    </label>
+                  ))
+                )}
+              </div>
             </div>
             <div>
               <label className="block font-retro-mono text-xs font-black uppercase tracking-wider mb-1">Email *</label>

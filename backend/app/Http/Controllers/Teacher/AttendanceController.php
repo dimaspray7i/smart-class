@@ -606,6 +606,153 @@ class AttendanceController extends Controller
     }
 
     /**
+     * 📊 Get attendance analytics for teacher (used by TeacherReports)
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function analytics(Request $request): JsonResponse
+    {
+        try {
+            $teacherId = $request->user()->id;
+            $period    = $request->query('period', 'month');  // week | month | semester
+            $classId   = $request->query('class_id');
+
+            // ── Date range ────────────────────────────────────────────
+            $now = now();
+            $startDate = match ($period) {
+                'week'     => $now->copy()->startOfWeek(),
+                'semester' => $now->copy()->subMonths(6)->startOfDay(),
+                default    => $now->copy()->startOfMonth(),   // month
+            };
+            $endDate = $now->copy()->endOfDay();
+
+            // ── Teacher's classes (via schedules & class_user) ─────────────────────
+            $scheduleClassIds = \Illuminate\Support\Facades\DB::table('schedules')
+                ->where('teacher_id', $teacherId)
+                ->when($classId, fn($q) => $q->where('class_id', $classId))
+                ->distinct()
+                ->pluck('class_id')
+                ->toArray();
+
+            $classUserIds = \Illuminate\Support\Facades\DB::table('class_user')
+                ->where('user_id', $teacherId)
+                ->where('is_active', true)
+                ->whereIn('role_in_class', ['wali_kelas', 'guru_pengampu'])
+                ->when($classId, fn($q) => $q->where('class_id', $classId))
+                ->pluck('class_id')
+                ->toArray();
+
+            $classQuery = array_values(array_unique(array_merge($scheduleClassIds, $classUserIds)));
+
+            $totalStudents = \App\Models\User::where('role', 'siswa')
+                ->whereHas('classes', fn($q) => $q->whereIn('classes.id', $classQuery))
+                ->count();
+
+            // ── Attendance sessions in range ──────────────────────────
+            $sessions = \App\Models\AttendanceSession::where('generated_by', $teacherId)
+                ->whereBetween('created_at', [$startDate->toDateTimeString(), $endDate->toDateTimeString()])
+                ->when($classId, fn($q) => $q->where('class_id', $classId))
+                ->count();
+
+            // ── Attendance records for rate ───────────────────────────
+            $records = \App\Models\Attendance::whereHas('session', function ($q) use ($teacherId, $startDate, $endDate, $classId) {
+                $q->where('generated_by', $teacherId)
+                  ->whereBetween('created_at', [$startDate->toDateTimeString(), $endDate->toDateTimeString()])
+                  ->when($classId, fn($sq) => $sq->where('class_id', $classId));
+            });
+
+            $totalRecords = (clone $records)->count();
+            $hadirCount   = (clone $records)->whereIn('status', ['Hadir', 'Terlambat'])->count();
+            $avgAttendance = $totalRecords > 0 ? round(($hadirCount / $totalRecords) * 100, 1) : 0;
+
+            // ── Processed permissions ─────────────────────────────────
+            $processedPermissions = \App\Models\Permission::where('teacher_id', $teacherId)
+                ->whereIn('status', ['approved', 'rejected'])
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->count();
+
+            // ── Kehadiran per kelas ───────────────────────────────────
+            $byClass = [];
+            $classModels = \App\Models\ClassModel::whereIn('id', $classQuery)->get();
+            foreach ($classModels as $cls) {
+                $clsRecords = \App\Models\Attendance::whereHas('session', function ($q) use ($teacherId, $startDate, $endDate, $cls) {
+                    $q->where('generated_by', $teacherId)
+                      ->where('class_id', $cls->id)
+                      ->whereBetween('created_at', [$startDate->toDateTimeString(), $endDate->toDateTimeString()]);
+                });
+                $clsTotal  = (clone $clsRecords)->count();
+                $clsHadir  = (clone $clsRecords)->whereIn('status', ['Hadir', 'Terlambat'])->count();
+                $clsAlpa   = (clone $clsRecords)->where('status', 'Alpha')->count();
+                $clsIzin   = (clone $clsRecords)->whereIn('status', ['Izin', 'Sakit'])->count();
+
+                $byClass[] = [
+                    'class_id'   => $cls->id,
+                    'class_name' => $cls->name,
+                    'total'      => $clsTotal,
+                    'hadir'      => $clsHadir,
+                    'alpa'       => $clsAlpa,
+                    'izin'       => $clsIzin,
+                ];
+            }
+
+            // ── Top students by attendance rate ───────────────────────
+            $topStudents = \App\Models\User::where('role', 'siswa')
+                ->whereHas('classes', fn($q) => $q->whereIn('classes.id', $classQuery))
+                ->with('profile')
+                ->get()
+                ->map(function ($student) use ($teacherId, $startDate, $endDate) {
+                    $total = \App\Models\Attendance::where('user_id', $student->id)
+                        ->whereHas('session', fn($q) => $q->where('generated_by', $teacherId)
+                            ->whereBetween('created_at', [$startDate->toDateTimeString(), $endDate->toDateTimeString()]))
+                        ->count();
+                    $hadir = \App\Models\Attendance::where('user_id', $student->id)
+                        ->whereHas('session', fn($q) => $q->where('generated_by', $teacherId)
+                            ->whereBetween('created_at', [$startDate->toDateTimeString(), $endDate->toDateTimeString()]))
+                        ->whereIn('status', ['Hadir', 'Terlambat'])
+                        ->count();
+                    return [
+                        'id'              => $student->id,
+                        'name'            => $student->name,
+                        'attendance_rate' => $total > 0 ? round(($hadir / $total) * 100, 1) : 0,
+                    ];
+                })
+                ->sortByDesc('attendance_rate')
+                ->values()
+                ->take(10);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Data analitik berhasil diambil.',
+                'code'    => 'ANALYTICS_SUCCESS',
+                'data'    => [
+                    'period'                => $period,
+                    'avg_attendance'        => $avgAttendance,
+                    'total_students'        => $totalStudents,
+                    'total_sessions'        => $sessions,
+                    'processed_permissions' => $processedPermissions,
+                    'by_class'              => $byClass,
+                    'top_students'          => $topStudents,
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('AttendanceController::analytics failed', [
+                'teacher_id' => $request->user()?->id,
+                'error'      => $e->getMessage(),
+                'trace'      => config('app.debug') ? $e->getTraceAsString() : null,
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal memuat data analitik.',
+                'code'    => 'ANALYTICS_ERROR',
+                'debug'   => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
+        }
+    }
+
+    /**
      * 📤 Export attendance data
      * 
      * @param Request $request
