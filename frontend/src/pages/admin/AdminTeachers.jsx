@@ -39,11 +39,15 @@ function TeacherDetailModal({ teacherId }) {
     queryFn: () => api.get(`/admin/users/${teacherId}`),
     enabled: !!teacherId
   });
-  
+
   if (isLoading) return <div className="p-10 text-center"><RefreshCw className="w-6 h-6 animate-spin mx-auto text-retro-orange mb-2" /><p className="font-retro-mono text-sm text-base-black/50">Memuat detail...</p></div>;
-  
-  const teacher = response?.data?.data || response?.data;
-  if (!teacher) return null;
+
+  // Normalize response: api returns { status, message, code, data: payload }
+  const payload = response?.data ?? response ?? null;
+  if (!payload) return null;
+
+  const teacher = payload.teacher ?? payload.user ?? payload;
+  const profile = payload.profile ?? (teacher?.profile ?? null);
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
@@ -59,12 +63,12 @@ function TeacherDetailModal({ teacherId }) {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        {[
-          ['NIP', teacher.profile?.nip || teacher.nip || '—', School],
+          {[
+          ['NIP', profile?.nip || teacher.nip || '—', School],
           ['Telepon', teacher.phone || '—', Phone],
-          ['Kelas Diampu', teacher.classes_count ?? 0, Users],
-          ['Total Siswa', teacher.students_count ?? 0, Users],
-          ['Mapel', teacher.subjects?.map(s => s.name).join(', ') || '—', BookOpen],
+          ['Kelas Diampu', payload.class_count ?? teacher.classes_count ?? 0, Users],
+          ['Total Siswa', payload.total_students ?? teacher.students_count ?? 0, Users],
+          ['Mapel', (payload.subjects ?? teacher.subjects ?? []).map(s => s.name).join(', ') || '—', BookOpen],
           ['Bergabung', teacher.created_at ? new Date(teacher.created_at).toLocaleDateString('id-ID') : '—', Calendar],
         ].map(([k, v, Icon]) => (
           <div key={k} className="p-3 border-2 border-dashed border-base-black rounded-retro">
@@ -76,11 +80,11 @@ function TeacherDetailModal({ teacherId }) {
           </div>
         ))}
       </div>
-      {teacher.recent_schedules?.length > 0 && (
+      {payload.recent_schedules?.length > 0 && (
         <div>
           <p className="font-retro-mono text-xs font-black uppercase mb-2">Jadwal Aktif</p>
           <div className="space-y-2 max-h-40 overflow-y-auto">
-            {teacher.recent_schedules.slice(0, 5).map((s, i) => (
+            {payload.recent_schedules.slice(0, 5).map((s, i) => (
               <div key={i} className="p-2 border-2 border-base-black rounded-retro flex items-center justify-between bg-base-gray/10">
                 <span className="font-retro-mono text-xs">{s.subject?.name} — {s.class?.name}</span>
                 <span className="font-retro-mono text-[10px] text-base-black/50">{s.day} {s.start_time}–{s.end_time}</span>

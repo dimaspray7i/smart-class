@@ -74,9 +74,11 @@ export default function AdminAnnouncements() {
 
   const showToast = useCallback((msg, type = 'success') => { setToast({ message: msg, type }); setTimeout(() => setToast(null), 3500); }, []);
 
-  const { data: announcements, isLoading } = useQuery({
+  const { data: announcements, isLoading, isError, error } = useQuery({
     queryKey: ['admin-announcements'],
     queryFn: () => api.get('/admin/announcements'),
+    retry: 1,
+    retryDelay: 500,
   });
 
   const save = useMutation({
@@ -144,6 +146,14 @@ export default function AdminAnnouncements() {
 
       {isLoading ? (
         <div className="retro-card bg-base-white border-4 border-base-black p-10 text-center font-retro-mono text-base-black/50">Memuat...</div>
+      ) : isError ? (
+        <div className="retro-card bg-base-white border-4 border-base-black p-10 text-center font-retro-mono text-base-black/50 space-y-4">
+          <p className="text-lg font-retro-display font-black">Gagal memuat pengumuman</p>
+          <p className="text-sm text-base-black/70">{error?.message || 'Silakan coba lagi.'}</p>
+          <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-announcements'] })}>
+            Muat ulang
+          </Button>
+        </div>
       ) : list.length > 0 ? (
         <>
           {pinned.length > 0 && (

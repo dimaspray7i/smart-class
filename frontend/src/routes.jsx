@@ -398,11 +398,18 @@ import LandingPage from './pages/LandingPage';
 // ═══════════════════════════════════════════════════════════
 // 👨‍🎓 STUDENT PAGE IMPORTS
 // ═══════════════════════════════════════════════════════════
+import StudentLayout from './layouts/StudentLayout';
 import StudentDashboard from './pages/dashboard/StudentDashboard';
-import AttendancePage from './pages/dashboard/AttendancePage';
-// Note: Projects and Skills pages would be imported here when created
-// import ProjectsPage from './pages/student/Projects';
-// import SkillsPage from './pages/student/Skills';
+import StudentSchedule from './pages/dashboard/student/StudentSchedule';
+import StudentAttendancePage from './pages/dashboard/student/StudentAttendancePage';
+import StudentQRScan from './pages/dashboard/student/StudentQRScan';
+import StudentGrades from './pages/dashboard/student/StudentGrades';
+import StudentTasks from './pages/dashboard/student/StudentTasks';
+import StudentPKL from './pages/dashboard/student/StudentPKL';
+import StudentPermissions from './pages/dashboard/student/StudentPermissions';
+import StudentAnnouncements from './pages/dashboard/student/StudentAnnouncements';
+import StudentProfile from './pages/dashboard/student/StudentProfile';
+import StudentSettings from './pages/dashboard/student/StudentSettings';
 
 // ═══════════════════════════════════════════════════════════
 // 👨‍🏫 TEACHER PAGE IMPORTS
@@ -457,8 +464,36 @@ export const router = createBrowserRouter([
   },
 
   // ─────────────────────────────────────────────────────────
-  // 🔐 DASHBOARD ROUTES (Protected - Auth Required)
-  // Layout: DashboardLayout (sidebar, admin header)
+  // 👨‍💻 STUDENT ROUTES (role: siswa) — Standalone StudentLayout
+  // Layout: StudentLayout only (neobrutalist sidebar + topbar)
+  // ─────────────────────────────────────────────────────────
+  {
+    path: '/dashboard/student',
+    element: (
+      <ProtectedRoute roles={['siswa']}>
+        <StudentLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <StudentDashboard /> },
+      { path: 'schedule', element: <StudentSchedule /> },
+      { path: 'attendance', element: <StudentAttendancePage /> },
+      { path: 'qrscan', element: <StudentQRScan /> },
+      { path: 'grades', element: <StudentGrades /> },
+      { path: 'tasks', element: <StudentTasks /> },
+      { path: 'pkl', element: <StudentPKL /> },
+      { path: 'permissions', element: <StudentPermissions /> },
+      { path: 'announcements', element: <StudentAnnouncements /> },
+      { path: 'profile', element: <StudentProfile /> },
+      { path: 'settings', element: <StudentSettings /> },
+      { path: 'projects', element: <ComingSoon title="Project Management" icon="💻" /> },
+      { path: 'skills', element: <ComingSoon title="Skill Tracker" icon="🧠" /> },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────
+  // 🔐 DASHBOARD ROUTES (Admin + Teacher — Protected)
+  // Layout: DashboardLayout (retro sidebar + topbar)
   // ─────────────────────────────────────────────────────────
   {
     path: '/dashboard',
@@ -468,24 +503,6 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      
-      // ════════════════════════════════════════════════════
-      // 👨‍💻 STUDENT ROUTES (role: siswa)
-      // ════════════════════════════════════════════════════
-      {
-        path: 'student',
-        element: (
-          <ProtectedRoute roles={['siswa']}>
-            <Outlet />
-          </ProtectedRoute>
-        ),
-        children: [
-          { index: true, element: <StudentDashboard /> },
-          { path: 'attendance', element: <AttendancePage /> },
-          { path: 'projects', element: <ComingSoon title="Project Management" icon="💻" /> },
-          { path: 'skills', element: <ComingSoon title="Skill Tracker" icon="🧠" /> },
-        ],
-      },
       
       // ════════════════════════════════════════════════════
       // 👨‍🏫 TEACHER ROUTES (role: guru)

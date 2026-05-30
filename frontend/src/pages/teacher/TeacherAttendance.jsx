@@ -218,11 +218,99 @@ export default function TeacherAttendance() {
     start_time: '07:00', end_time: '08:30', location: ''
   });
   const [reopenForm, setReopenForm] = useState({ extra_minutes: 15, notes: '' });
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportForm, setExportForm] = useState(() => {
+    const now = new Date();
+    const offset = (now.getDay() + 6) % 7;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - offset);
+    const saturday = new Date(monday);
+    saturday.setDate(monday.getDate() + 5);
+    const toIso = (date) => date.toISOString().split('T')[0];
+    return {
+      format: 'xlsx',
+      class_id: '',
+      subject_id: '',
+      period_type: 'week',
+      start_date: toIso(monday),
+      end_date: toIso(saturday),
+    };
+  });
 
   const showToast = useCallback((msg, type = 'success') => {
     setToast({ message: msg, type });
     setTimeout(() => setToast(null), 3500);
   }, []);
+
+  const mapPeriodToRange = (period) => {
+    const now = new Date();
+    const toIso = (date) => date.toISOString().split('T')[0];
+    switch (period) {
+      case 'month': {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return { start_date: toIso(start), end_date: toIso(end) };
+      }
+      case 'semester': {
+        const firstHalf = now.getMonth() < 6;
+        const start = new Date(now.getFullYear(), firstHalf ? 0 : 6, 1);
+        const end = new Date(now.getFullYear(), firstHalf ? 5 : 11, firstHalf ? 30 : 31);
+        return { start_date: toIso(start), end_date: toIso(end) };
+      }
+      case 'year': {
+        const start = new Date(now.getFullYear(), 0, 1);
+        const end = new Date(now.getFullYear(), 11, 31);
+        return { start_date: toIso(start), end_date: toIso(end) };
+      }
+      default: {
+        const offset = (now.getDay() + 6) % 7;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - offset);
+        const saturday = new Date(monday);
+        saturday.setDate(monday.getDate() + 5);
+        return { start_date: toIso(monday), end_date: toIso(saturday) };
+      }
+    }
+  };
+
+  const handlePeriodChange = (period_type) => {
+    const range = mapPeriodToRange(period_type);
+    setExportForm((prev) => ({ ...prev, period_type, ...range }));
+  };
+
+  const downloadExportFile = async () => {
+    setExportLoading(true);
+    try {
+      const response = await api.get('/teacher/attendance/export', {
+        params: exportForm,
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response], {
+        type:
+          exportForm.format === 'xlsx'
+            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            : 'text/csv;charset=utf-8',
+      });
+      const filename = `absensi_${exportForm.start_date}_${exportForm.end_date}.${exportForm.format}`;
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showToast('✅ Export absensi berhasil. File akan diunduh.');
+      setIsExportOpen(false);
+    } catch (error) {
+      console.error('Export error', error);
+      showToast('❌ Gagal export absensi. Coba lagi.', 'error');
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   // ─── Queries ───────────────────────────────────────────
   const { data: sessionsData, isLoading, refetch } = useQuery({
@@ -357,6 +445,9 @@ export default function TeacherAttendance() {
             <Button variant="outline" onClick={() => { refetch(); showToast('🔄 Diperbarui', 'info'); }}>
               <RefreshCw className="w-4 h-4 mr-1" />Refresh
             </Button>
+            <Button variant="secondary" onClick={() => setIsExportOpen(true)}>
+              <BookOpen className="w-4 h-4 mr-1" />Export
+            </Button>
             <Button onClick={() => setIsCreateOpen(true)}>
               <Plus className="w-4 h-4 mr-1" />Sesi Baru
             </Button>
@@ -434,6 +525,81 @@ export default function TeacherAttendance() {
         <button onClick={() => { setDateFilter(new Date().toISOString().split('T')[0]); setStatusFilter(''); }}
           className="font-retro-mono text-xs text-retro-orange hover:underline">Reset</button>
       </motion.div>
+
+      <Modal isOpen={isExportOpen} onClose={() => setIsExportOpen(false)} title="📤 Export Absensi" size="lg">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-retro-mono text-[10px] uppercase mb-1">Format</label>
+              <select value={exportForm.format} onChange={e => setExportForm(f => ({ ...f, format: e.target.value }))}
+                className="w-full py-2 px-3 rounded-retro border-2 border-base-black bg-white text-sm font-retro-mono focus:outline-none focus:border-retro-orange">
+                <option value="xlsx">Excel (.xlsx)</option>
+                <option value="csv">CSV (.csv)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block font-retro-mono text-[10px] uppercase mb-1">Periode</label>
+              <select value={exportForm.period_type} onChange={e => handlePeriodChange(e.target.value)}
+                className="w-full py-2 px-3 rounded-retro border-2 border-base-black bg-white text-sm font-retro-mono focus:outline-none focus:border-retro-orange">
+                <option value="week">Minggu Ini</option>
+                <option value="month">Bulan Ini</option>
+                <option value="semester">Semester Ini</option>
+                <option value="year">Tahun Ini</option>
+                <option value="custom">Rentang Kustom</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-retro-mono text-[10px] uppercase mb-1">Dari</label>
+              <input type="date" value={exportForm.start_date} onChange={e => setExportForm(f => ({ ...f, start_date: e.target.value }))}
+                className="w-full py-2 px-3 rounded-retro border-2 border-base-black bg-white text-sm font-retro-mono focus:outline-none focus:border-retro-orange" />
+            </div>
+            <div>
+              <label className="block font-retro-mono text-[10px] uppercase mb-1">Sampai</label>
+              <input type="date" value={exportForm.end_date} onChange={e => setExportForm(f => ({ ...f, end_date: e.target.value }))}
+                className="w-full py-2 px-3 rounded-retro border-2 border-base-black bg-white text-sm font-retro-mono focus:outline-none focus:border-retro-orange" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-retro-mono text-[10px] uppercase mb-1">Kelas</label>
+              <select value={exportForm.class_id} onChange={e => setExportForm(f => ({ ...f, class_id: e.target.value }))}
+                className="w-full py-2 px-3 rounded-retro border-2 border-base-black bg-white text-sm font-retro-mono focus:outline-none focus:border-retro-orange">
+                <option value="">Semua Kelas</option>
+                {classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>{cls.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block font-retro-mono text-[10px] uppercase mb-1">Mata Pelajaran</label>
+              <select value={exportForm.subject_id} onChange={e => setExportForm(f => ({ ...f, subject_id: e.target.value }))}
+                className="w-full py-2 px-3 rounded-retro border-2 border-base-black bg-white text-sm font-retro-mono focus:outline-none focus:border-retro-orange">
+                <option value="">Semua Mata Pelajaran</option>
+                {subjects.map((subject) => (
+                  <option key={subject.id} value={subject.id}>{subject.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="space-y-1">
+              <p className="font-retro-mono text-[10px] uppercase text-base-black/70">Export range</p>
+              <p className="font-retro-mono text-sm text-base-black/80">{exportForm.start_date} sampai {exportForm.end_date}</p>
+            </div>
+            <div className="flex gap-3 flex-wrap justify-end">
+              <Button variant="outline" onClick={() => setIsExportOpen(false)}>Batal</Button>
+              <Button loading={exportLoading} onClick={downloadExportFile}>
+                <BookOpen className="w-4 h-4 mr-1" />Unduh {exportForm.format.toUpperCase()}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
 
       {/* Sessions list */}
       <div className="space-y-4">

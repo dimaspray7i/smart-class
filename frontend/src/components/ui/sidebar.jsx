@@ -7,7 +7,8 @@ import {
   Sparkles, Star, Zap, ChevronRight, ArrowRight, Palette,
   Menu, Home, Briefcase, Award, Target, Clock, CheckCircle2,
   BarChart3, Megaphone, MessageSquare, User, FileText,
-  Bell, ShieldAlert, TrendingUp, UserCheck, UserCog
+  Bell, ShieldAlert, TrendingUp, UserCheck, UserCog,
+  QrCode, CheckSquare, BarChart2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
@@ -351,10 +352,20 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
     if (user.role === 'siswa') {
       return [
-        { icon: LayoutDashboard, label: ID.nav.dashboard, href: '/dashboard/student', description: 'Ikhtisar' },
-        { icon: CalendarCheck, label: ID.nav.attendance, href: '/dashboard/student/attendance', description: 'Presensi harian' },
-        { icon: FolderKanban, label: ID.nav.projects, href: '/dashboard/student/projects', description: 'Proyek saya' },
-        { icon: GraduationCap, label: ID.nav.skills, href: '/dashboard/student/skills', description: 'Perkembangan keahlian' },
+        // ─── Utama ────────────────────────────────────────────
+        { icon: LayoutDashboard, label: 'Dashboard',    href: '/dashboard/student',             description: 'Ikhtisar akademik', group: 'Utama' },
+        { icon: CalendarCheck,   label: 'Jadwal',       href: '/dashboard/student/schedule',    description: 'Jadwal pelajaran', group: 'Utama' },
+        { icon: CheckSquare,     label: 'Absensi',      href: '/dashboard/student/attendance',  description: 'Presensi harian', group: 'Utama' },
+        { icon: QrCode,          label: 'Scan QR',      href: '/dashboard/student/qrscan',      description: 'Absen via QR code', group: 'Utama', badge: 'LIVE' },
+        // ─── Akademik ─────────────────────────────────────────
+        { icon: BarChart2,       label: 'Nilai KHS',    href: '/dashboard/student/grades',      description: 'Kartu hasil studi', group: 'Akademik' },
+        { icon: BookOpen,        label: 'Tugas',        href: '/dashboard/student/tasks',       description: 'Upload tugas', group: 'Akademik' },
+        { icon: Briefcase,       label: 'PKL & Jurnal', href: '/dashboard/student/pkl',         description: 'Praktik kerja lapangan', group: 'Akademik' },
+        // ─── Lainnya ──────────────────────────────────────────
+        { icon: FileText,        label: 'Surat Izin',   href: '/dashboard/student/permissions', description: 'Pengajuan izin', group: 'Lainnya' },
+        { icon: Megaphone,       label: 'Pengumuman',   href: '/dashboard/student/announcements', description: 'Mading sekolah', group: 'Lainnya' },
+        { icon: User,            label: 'Profile',      href: '/dashboard/student/profile',     description: 'Profil saya', group: 'Lainnya' },
+        { icon: Settings,        label: 'Settings',     href: '/dashboard/student/settings',    description: 'Pengaturan', group: 'Lainnya' },
       ];
     } else if (user.role === 'guru') {
       return [

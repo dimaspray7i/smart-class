@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Helpers\GeoHelper;
+use App\Models\AttendanceRecord;
 
 class Attendance extends Model
 {
@@ -81,8 +82,12 @@ class Attendance extends Model
         return $this->belongsTo(AttendanceSession::class, 'code_used', 'code');
     }
 
+    public function record(): BelongsTo
+    {
+        return $this->belongsTo(AttendanceRecord::class, 'code_used', 'verification_code');
+    }
+
     // ═══════════════════════════════════════════════════════════
-    // SCOPES
     // ═══════════════════════════════════════════════════════════
 
     /**

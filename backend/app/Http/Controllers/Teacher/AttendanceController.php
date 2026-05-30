@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Services\AttendanceExportService;
 use App\Services\AttendanceService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -15,8 +16,10 @@ class AttendanceController extends Controller
     /**
      * Constructor dengan Dependency Injection
      */
-    public function __construct(protected AttendanceService $attendanceService)
-    {
+    public function __construct(
+        protected AttendanceService $attendanceService,
+        protected AttendanceExportService $attendanceExportService
+    ) {
         // Middleware handled at route level
     }
 
@@ -763,15 +766,19 @@ class AttendanceController extends Controller
         try {
             $teacherId = $request->user()->id;
             $validated = $request->validate([
-                'format' => 'required|in:csv,json,xlsx',
-                'data_type' => 'required|in:sessions,records,summary',
+                'format' => 'required|in:csv,xlsx',
+                'class_id' => 'nullable|exists:classes,id',
+                'subject_id' => 'nullable|exists:subjects,id',
                 'start_date' => 'nullable|date',
                 'end_date' => 'nullable|date|after_or_equal:start_date',
-                'class_id' => 'nullable|exists:classes,id',
-                'include_details' => 'nullable|boolean',
+                'period_type' => 'nullable|in:week,month,semester,year,custom',
+                'week' => 'nullable|integer|min:1|max:53',
+                'month' => 'nullable|integer|min:1|max:12',
+                'year' => 'nullable|integer|min:2000|max:2100',
+                'semester' => 'nullable|in:1,2',
             ]);
 
-            $result = $this->attendanceService->exportData($teacherId, $validated);
+            $result = $this->attendanceExportService->exportAttendance($teacherId, $validated);
 
             if (!$result['success']) {
                 return response()->json([
@@ -781,21 +788,18 @@ class AttendanceController extends Controller
                 ], 400);
             }
 
-            if ($validated['format'] === 'json') {
-                return response()->json([
-                    'status' => 'success',
-                    'message' => 'Data berhasil diexport.',
-                    'code' => 'EXPORT_SUCCESS',
-                    'data' => $result['data'],
-                ], 200);
+            $contentLength = isset($result['file_content']) ? mb_strlen($result['file_content'], '8bit') : null;
+            $headers = [
+                'Content-Type' => $result['content_type'],
+                'Content-Disposition' => "attachment; filename=\"{$result['filename']}\"",
+            ];
+            if ($contentLength !== null) {
+                $headers['Content-Length'] = (string) $contentLength;
             }
 
             return response()->streamDownload(function () use ($result) {
                 echo $result['file_content'];
-            }, $result['filename'], [
-                'Content-Type' => $result['content_type'],
-                'Content-Disposition' => "attachment; filename=\"{$result['filename']}\"",
-            ]);
+            }, $result['filename'], $headers);
 
         } catch (ValidationException $e) {
             return response()->json([
