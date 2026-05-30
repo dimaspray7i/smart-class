@@ -156,6 +156,24 @@ export function ThemeProvider({ children }) {
   }, []);
 
   // ═══════════════════════════════════════════════════════════
+  // ⌨️ GLOBAL THEME HOTKEYS
+  // ═══════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    const handleKeydown = (event) => {
+      const isCmdOrCtrl = event.ctrlKey || event.metaKey;
+      const key = (event.key || '').toLowerCase(); // Safe fallback for undefined key values
+
+      if (isCmdOrCtrl && key === RETRO_THEME_CONFIG.shortcuts.toggle.key) {
+        event.preventDefault();
+        setIsDark((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, []);
+
+  // ═══════════════════════════════════════════════════════════
   // 🎮 TOGGLE THEME FUNCTION (Retro-enhanced)
   // ═══════════════════════════════════════════════════════════
   const toggleTheme = useCallback(() => {

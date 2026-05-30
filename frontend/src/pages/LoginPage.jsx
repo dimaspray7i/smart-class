@@ -218,15 +218,33 @@ function RetroLoginInput({ label, name, type = "text", value, onChange, error, r
   );
 }
 
+// ═══════════════════════════════════════════════════════════
+// 💾 RETRO DEMO ACCOUNTS
+// ═══════════════════════════════════════════════════════════
+const DEMO_ACCOUNTS = [
+  { 
+    role: 'admin', 
+    email: 'adminrplsmkn1tm@gmail.com', 
+    pass: 'rpljuara', 
+    desc: 'Akses penuh ke semua fitur panel admin.' 
+  },
+  { 
+    role: 'guru', 
+    email: 'budi.guru@rpl.id', 
+    pass: 'password123', 
+    desc: 'Kelola kelas, pelajaran, dan pantau absensi.' 
+  },
+  { 
+    role: 'siswa', 
+    email: 'dimas.siswa@rpl.id', 
+    pass: 'password123', 
+    desc: 'Lakukan absensi mandiri & lihat jadwal pelajaran.' 
+  },
+];
+
 // Retro Demo Credentials Modal
 function DemoCredentialsModal({ isOpen, onClose }) {
   if (!isOpen) return null;
-  
-  const demos = [
-    { role: 'admin', email: 'rplsmkn1@gmail.com', pass: 'rpljuara', desc: 'Akses penuh ke semua fitur panel admin.' },
-    { role: 'guru', email: 'guru@rpl.id', pass: 'guru123', desc: 'Kelola kelas, pelajaran, dan pantau absensi.' },
-    { role: 'siswa', email: 'siswa@rpl.id', pass: 'siswa123', desc: 'Lakukan absensi mandiri & lihat jadwal pelajaran.' },
-  ];
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -254,21 +272,21 @@ function DemoCredentialsModal({ isOpen, onClose }) {
         </div>
         
         <div className="space-y-3">
-          {demos.map((demo, i) => (
+          {DEMO_ACCOUNTS.map((demo, i) => (
             <motion.div 
               key={demo.role}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="p-3 rounded-retro bg-base-gray border-2 border-base-black/30 animate-pulse-retro"
+              className="p-3 rounded-retro bg-base-gray border-2 border-base-black/30"
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="font-retro-display font-black text-sm capitalize text-retro-orange">{demo.role}</span>
                 <span className="retro-badge retro-badge-blue text-[9px]">Demo Smart</span>
               </div>
               <div className="space-y-1 font-retro-mono text-xs">
-                <p><span className="text-base-black/50">Email:</span> <span className="text-base-black">{demo.email}</span></p>
-                <p><span className="text-base-black/50">Sandi:</span> <span className="text-base-black">{demo.pass}</span></p>
+                <p><span className="text-base-black/50">Email:</span> <span className="text-base-black select-all cursor-pointer font-bold" title="Klik 2x untuk salin">{demo.email}</span></p>
+                <p><span className="text-base-black/50">Sandi:</span> <span className="text-base-black select-all cursor-pointer font-bold" title="Klik 2x untuk salin">{demo.pass}</span></p>
               </div>
               <p className="font-retro-mono text-[9px] text-base-black/50 mt-2">{demo.desc}</p>
             </motion.div>
@@ -279,7 +297,7 @@ function DemoCredentialsModal({ isOpen, onClose }) {
           ⚠️ Khusus untuk mode percobaan. Ganti kata sandi pada mode produksi!
         </p>
         
-        <div className="absolute -top-3 -right-3 retro-sticker bg-retro-yellow text-base-black text-[10px] px-2 py-0.5">
+        <div className="absolute -top-3 -right-3 retro-sticker bg-retro-yellow text-base-black text-[10px] px-2 py-0.5 animate-bounce">
           COBA SAYA!
         </div>
       </motion.div>
@@ -326,6 +344,16 @@ export default function LoginPage() {
       } catch (e) { console.error('Failed to load saved credentials'); }
     }
   }, []);
+
+  const handleRoleSelect = (role) => {
+    setSelectedRole(role);
+    const demo = DEMO_ACCOUNTS.find(d => d.role === role);
+    if (demo) {
+      setEmail(demo.email);
+      setPassword(demo.pass);
+      if (error) clearError();
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -443,7 +471,7 @@ export default function LoginPage() {
               icon={Shield} 
               color="orange"
               description="Admin Sistem"
-              onClick={() => setSelectedRole('admin')}
+              onClick={() => handleRoleSelect('admin')}
               isActive={selectedRole === 'admin'}
             />
             <RolePreviewCard 
@@ -451,7 +479,7 @@ export default function LoginPage() {
               icon={Users} 
               color="blue"
               description="Guru / Pengajar"
-              onClick={() => setSelectedRole('guru')}
+              onClick={() => handleRoleSelect('guru')}
               isActive={selectedRole === 'guru'}
             />
             <RolePreviewCard 
@@ -459,7 +487,7 @@ export default function LoginPage() {
               icon={School} 
               color="purple"
               description="Siswa / Murid"
-              onClick={() => setSelectedRole('siswa')}
+              onClick={() => handleRoleSelect('siswa')}
               isActive={selectedRole === 'siswa'}
             />
           </div>

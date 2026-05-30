@@ -1,6 +1,11 @@
 /* ═══════════════════════════════════════════════════════════
+   🎨 DESIGN SYSTEM IMPORT
+   ═══════════════════════════════════════════════════════════════════ */
+@import './design-system.css';
+
+/* ═══════════════════════════════════════════════════════════════════
    🎨 TAILWIND DIRECTIVES
-   ═══════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -86,14 +91,21 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
   }
     
-  /* Grid pattern overlay */
-  body.retro-grid-bg::after {
-    content: '';
-    @apply fixed inset-0 pointer-events-none z-[-2];
-    background-image: 
+  /* Grid pattern overlay — works on body AND any div with this class.
+     Uses background-image so the grid composites on top of bg-base-cream
+     without needing pseudo-elements that get hidden behind bg colors. */
+  .retro-grid-bg {
+    background-image:
       linear-gradient(var(--retro-grid-color) 1px, transparent 1px),
       linear-gradient(90deg, var(--retro-grid-color) 1px, transparent 1px);
     background-size: 32px 32px;
+  }
+
+  /* body-specific: also keep the old ::after approach so noise layer still works */
+  body.retro-grid-bg::after {
+    content: '';
+    @apply fixed inset-0 pointer-events-none z-[-2];
+    background-image: none; /* grid already on body itself */
   }
 
   /* Selection styling */
@@ -416,6 +428,46 @@
     background-size: 32px 32px;
   }
 
+  .rounded-blob {
+    border-radius: 42% 58% 55% 45% / 42% 46% 54% 58%;
+  }
+
+  .drop-shadow-retro {
+    filter: drop-shadow(0 0 14px rgba(17, 17, 17, 0.14));
+  }
+
+  .shadow-hard-sm {
+    box-shadow: 2px 2px 0px 0px #111111;
+  }
+
+  .shadow-hard-hover {
+    box-shadow: 6px 6px 0px 0px #111111;
+  }
+
+  .shadow-hard {
+    box-shadow: var(--shadow-hard);
+  }
+
+  .shadow-hard-lg {
+    box-shadow: 6px 6px 0px 0px var(--base-black);
+  }
+
+  .shadow-retro {
+    box-shadow: 4px 4px 0px 0px #111111;
+  }
+
+  .rounded-sticker {
+    border-radius: 1rem;
+  }
+
+  .shadow-sticker {
+    box-shadow: 3px 3px 0 0 var(--base-black), 6px 6px 0 0 rgba(255, 107, 0, 0.18);
+  }
+
+  .shadow-sticker-hover {
+    box-shadow: 2px 2px 0 0 var(--base-black), 4px 4px 0 0 rgba(255, 107, 0, 0.18);
+  }
+
   /* Animation utilities */
   .animate-float-retro {
     animation: float-retro 3s ease-in-out infinite;
@@ -564,4 +616,32 @@ a {
 
 ul, ol {
   @apply list-none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ✨ SKELETON SHIMMER ANIMATION & UTILITIES
+   ═══════════════════════════════════════════════════════════ */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, var(--base-gray) 25%, rgba(155, 81, 224, 0.1) 50%, var(--base-gray) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite linear;
+}
+
+html.dark .shimmer {
+  background: linear-gradient(90deg, var(--base-gray) 25%, rgba(255, 107, 0, 0.1) 50%, var(--base-gray) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite linear;
+}
+
+.skeleton-card {
+  @apply border-4 border-base-black bg-base-white p-6 shadow-hard-sm relative overflow-hidden;
 }

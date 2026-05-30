@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Edit2, Save, X, Camera, Mail, Phone, MapPin, 
   BookOpen, Award, Lock, Eye, EyeOff, CheckCircle2, 
-  Settings, Bell, Globe, Activity, Smartphone, LogOut, 
+  Settings, Bell, Globe, Sun, Moon, Activity, Smartphone, LogOut, 
   UserCheck, ShieldAlert, KeyRound, CalendarDays, Trash2,
   RefreshCw
 } from 'lucide-react';

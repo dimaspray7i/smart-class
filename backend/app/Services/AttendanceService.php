@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Attendance;
+use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\PklLocation;
 use App\Models\User;
@@ -10,6 +11,9 @@ use App\Helpers\GeoHelper;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Intervention\Image\ImageManagerStatic as Image;
 use Exception;
 
 class AttendanceService
@@ -406,6 +410,357 @@ class AttendanceService
         $result['max_radius'] = $schoolRadius;
         
         return $result;
+    }
+
+    /**
+     * Verify attendance code and create a pending attendance record.
+     */
+    public function verifyAttendanceCode(User $user, string $code, ?string $deviceInfo = null, ?string $browserInfo = null, ?string $ipAddress = null): array
+    {
+        $session = AttendanceSession::validCode($code)->first();
+
+        if (!$session) {
+            return [
+                'success' => false,
+                'message' => 'Kode absensi tidak valid atau sudah kedaluwarsa.',
+                'code' => 'INVALID_CODE',
+            ];
+        }
+
+        $record = AttendanceRecord::firstOrCreate(
+            [
+                'student_id' => $user->id,
+                'verification_code' => strtoupper($code),
+            ],
+            [
+                'attendance_session_id' => $session->id,
+                'device_info' => $deviceInfo,
+                'browser_info' => $browserInfo,
+                'ip_address' => $ipAddress,
+                'status' => 'pending',
+            ]
+        );
+
+        $record->update([
+            'attendance_session_id' => $session->id,
+            'device_info' => $deviceInfo ?? $record->device_info,
+            'browser_info' => $browserInfo ?? $record->browser_info,
+            'ip_address' => $ipAddress ?? $record->ip_address,
+        ]);
+
+        return [
+            'success' => true,
+            'message' => 'Kode absensi valid. Lanjutkan verifikasi wajah.',
+            'code' => 'CODE_VERIFIED',
+            'data' => [
+                'attendance_record_id' => $record->id,
+                'session' => [
+                    'id' => $session->id,
+                    'code' => $session->code,
+                    'valid_from' => $session->valid_from?->toDateTimeString(),
+                    'valid_until' => $session->valid_until?->toDateTimeString(),
+                    'radius_meters' => $session->radius_meters,
+                    'center_lat' => $session->center_lat,
+                    'center_lng' => $session->center_lng,
+                    'class_id' => $session->class_id,
+                    'class_name' => $session->class?->name,
+                    'subject_name' => $session->subject?->name,
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Verify student selfie against stored avatar.
+     */
+    public function verifyFace(User $user, int $recordId, string $selfiePath, ?string $deviceInfo = null, ?string $browserInfo = null, ?string $ipAddress = null): array
+    {
+        $record = AttendanceRecord::find($recordId);
+
+        if (!$record || $record->student_id !== $user->id) {
+            return [
+                'success' => false,
+                'message' => 'Rekaman absensi tidak ditemukan.',
+                'code' => 'RECORD_NOT_FOUND',
+            ];
+        }
+
+        if (!$user->avatar_url) {
+            return [
+                'success' => false,
+                'message' => 'Foto profil siswa belum tersedia. Unggah avatar terlebih dahulu.',
+                'code' => 'NO_PROFILE_PHOTO',
+            ];
+        }
+
+        $avatarPath = $this->resolveAvatarLocalPath($user->avatar_url);
+        if (!$avatarPath || !file_exists($avatarPath)) {
+            return [
+                'success' => false,
+                'message' => 'Foto profil tidak ditemukan di server.',
+                'code' => 'PROFILE_PHOTO_MISSING',
+            ];
+        }
+
+        try {
+            $faceScore = $this->getFaceSimilarityScore($selfiePath, $avatarPath);
+            $image = Image::make($selfiePath);
+
+            if ($this->isImageBlurred($image)) {
+                return [
+                    'success' => false,
+                    'message' => 'Gambar selfie buram. Silakan ulangi dengan foto yang lebih tajam.',
+                    'code' => 'BLURRY_IMAGE',
+                ];
+            }
+
+            if ($faceScore < 1) {
+                return [
+                    'success' => false,
+                    'message' => 'Wajah tidak terdeteksi dengan benar. Pastikan wajah terlihat jelas.',
+                    'code' => 'NO_FACE_DETECTED',
+                ];
+            }
+
+            $verified = $faceScore >= 80;
+            $record->update([
+                'selfie_photo' => $this->storeSelfieImage($selfiePath, $record->student_id, $record->id),
+                'face_score' => $faceScore,
+                'face_verified' => $verified,
+                'status' => $verified ? 'face_verified' : 'failed',
+                'device_info' => $deviceInfo ?? $record->device_info,
+                'browser_info' => $browserInfo ?? $record->browser_info,
+                'ip_address' => $ipAddress ?? $record->ip_address,
+            ]);
+
+            return [
+                'success' => $verified,
+                'message' => $verified ? 'Verifikasi wajah berhasil.' : 'Wajah tidak cocok dengan profil siswa.',
+                'code' => $verified ? 'FACE_VERIFIED' : 'FACE_MISMATCH',
+                'data' => [
+                    'attendance_record_id' => $record->id,
+                    'face_score' => $faceScore,
+                    'face_verified' => $verified,
+                    'selfie_photo' => $record->selfie_photo,
+                ],
+            ];
+        } catch (Exception $e) {
+            Log::error('AttendanceService::verifyFace failed', [
+                'user_id' => $user->id,
+                'record_id' => $recordId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Gagal memverifikasi wajah. Silakan coba lagi.',
+                'code' => 'FACE_VERIFY_ERROR',
+            ];
+        }
+    }
+
+    /**
+     * Verify student location against school geofence.
+     */
+    public function verifyAttendanceLocation(User $user, int $recordId, float $lat, float $lng, int $accuracy, ?string $deviceInfo = null, ?string $browserInfo = null, ?string $ipAddress = null): array
+    {
+        $record = AttendanceRecord::find($recordId);
+
+        if (!$record || $record->student_id !== $user->id) {
+            return [
+                'success' => false,
+                'message' => 'Rekaman absensi tidak ditemukan.',
+                'code' => 'RECORD_NOT_FOUND',
+            ];
+        }
+
+        if ($accuracy > 50) {
+            return [
+                'success' => false,
+                'message' => 'Akurasi GPS kurang baik. Pastikan lokasi aktif dan coba lagi.',
+                'code' => 'POOR_GPS_ACCURACY',
+            ];
+        }
+
+        $schoolLat = config('app.school_latitude', -6.200000);
+        $schoolLng = config('app.school_longitude', 106.816666);
+        $radius = config('app.attendance_radius_meters', 100);
+
+        $distance = GeoHelper::calculateDistance($lat, $lng, $schoolLat, $schoolLng);
+        $verified = $distance <= $radius;
+
+        $record->update([
+            'latitude' => $lat,
+            'longitude' => $lng,
+            'accuracy' => $accuracy,
+            'distance_from_school' => round($distance),
+            'location_verified' => $verified,
+            'status' => $verified ? ($record->face_verified ? 'location_verified' : $record->status) : 'failed',
+            'device_info' => $deviceInfo ?? $record->device_info,
+            'browser_info' => $browserInfo ?? $record->browser_info,
+            'ip_address' => $ipAddress ?? $record->ip_address,
+        ]);
+
+        return [
+            'success' => $verified,
+            'message' => $verified ? 'Lokasi valid. Lanjutkan check-in.' : 'Anda berada di luar area sekolah.',
+            'code' => $verified ? 'LOCATION_VERIFIED' : 'OUT_OF_GEOFENCE',
+            'data' => [
+                'attendance_record_id' => $record->id,
+                'latitude' => $lat,
+                'longitude' => $lng,
+                'accuracy' => $accuracy,
+                'distance_from_school' => round($distance),
+                'location_verified' => $verified,
+            ],
+        ];
+    }
+
+    /**
+     * Complete the check-in and save attendance.
+     */
+    public function completeCheckIn(User $user, int $recordId): array
+    {
+        $record = AttendanceRecord::find($recordId);
+
+        if (!$record || $record->student_id !== $user->id) {
+            return [
+                'success' => false,
+                'message' => 'Rekaman absensi tidak ditemukan.',
+                'code' => 'RECORD_NOT_FOUND',
+            ];
+        }
+
+        if (!$record->face_verified) {
+            return [
+                'success' => false,
+                'message' => 'Verifikasi wajah belum berhasil.',
+                'code' => 'FACE_NOT_VERIFIED',
+            ];
+        }
+
+        if (!$record->location_verified) {
+            return [
+                'success' => false,
+                'message' => 'Lokasi belum terverifikasi.',
+                'code' => 'LOCATION_NOT_VERIFIED',
+            ];
+        }
+
+        $today = today()->toDateString();
+        if (Attendance::where('user_id', $user->id)->where('date', $today)->exists()) {
+            return [
+                'success' => false,
+                'message' => 'Anda sudah absen hari ini.',
+                'code' => 'ALREADY_ATTENDED',
+            ];
+        }
+
+        $session = AttendanceSession::validCode($record->verification_code)->first();
+        if (!$session) {
+            return [
+                'success' => false,
+                'message' => 'Kode absensi tidak lagi valid.',
+                'code' => 'INVALID_CODE',
+            ];
+        }
+
+        $status = 'Hadir';
+        $scheduledStartTime = $this->getClassStartTime($user, $session->class_id);
+        if ($scheduledStartTime && now()->gt($scheduledStartTime)) {
+            $status = 'Terlambat';
+        }
+
+        $attendance = Attendance::create([
+            'user_id' => $user->id,
+            'date' => $today,
+            'lat' => $record->latitude,
+            'lng' => $record->longitude,
+            'status' => $status,
+            'photo_url' => $record->selfie_photo,
+            'code_used' => strtoupper($record->verification_code),
+            'device_info' => $record->device_info ?? 'web',
+            'verification_method' => 'auto',
+            'notes' => sprintf('Face score %d, distance %dm, accuracy %dm', $record->face_score, $record->distance_from_school ?? 0, $record->accuracy ?? 0),
+            'pkl_location_id' => $session->pkl_location_id,
+            'location_name' => $session->pklLocation?->company_name,
+        ]);
+
+        $session->increment('used_count');
+        $record->update(['status' => 'completed']);
+
+        return [
+            'success' => true,
+            'message' => 'Absensi berhasil dicatat.',
+            'code' => 'CHECKIN_SUCCESS',
+            'data' => $attendance,
+        ];
+    }
+
+    protected function resolveAvatarLocalPath(?string $avatarUrl): ?string
+    {
+        if (!$avatarUrl) {
+            return null;
+        }
+
+        $parsed = parse_url($avatarUrl);
+        $path = $parsed['path'] ?? null;
+        if (!$path) {
+            return null;
+        }
+
+        $relative = preg_replace('#^/storage/#', '', $path);
+        return $relative ? Storage::disk('public')->path($relative) : null;
+    }
+
+    protected function getFaceSimilarityScore(string $selfiePath, string $avatarPath): int
+    {
+        $selfie = Image::make($selfiePath)->resize(32, 32)->greyscale();
+        $avatar = Image::make($avatarPath)->resize(32, 32)->greyscale();
+
+        $selfieHash = $this->imageHash($selfie);
+        $avatarHash = $this->imageHash($avatar);
+        $distance = levenshtein($selfieHash, $avatarHash);
+        $score = max(0, 100 - ($distance / strlen($selfieHash)) * 100);
+
+        return (int) round($score);
+    }
+
+    protected function isImageBlurred($image): bool
+    {
+        $resized = $image->resize(64, 64)->greyscale();
+        $pixels = [];
+        for ($x = 0; $x < 64; $x++) {
+            for ($y = 0; $y < 64; $y++) {
+                $pixels[] = $resized->pickColor($x, $y)[0];
+            }
+        }
+
+        $mean = array_sum($pixels) / max(1, count($pixels));
+        $variance = array_sum(array_map(fn($v) => pow($v - $mean, 2), $pixels)) / max(1, count($pixels));
+
+        return $variance < 120;
+    }
+
+    protected function imageHash($image): string
+    {
+        $pixels = [];
+        for ($x = 0; $x < 8; $x++) {
+            for ($y = 0; $y < 8; $y++) {
+                $pixels[] = $image->pickColor($x, $y)[0];
+            }
+        }
+
+        $avg = array_sum($pixels) / count($pixels);
+        return implode('', array_map(fn($value) => $value >= $avg ? '1' : '0', $pixels));
+    }
+
+    protected function storeSelfieImage(string $selfiePath, int $studentId, int $recordId): string
+    {
+        $filename = sprintf('attendance_selfies/%s_%s_%s.jpg', $studentId, $recordId, time());
+        $image = Image::make($selfiePath)->orientate()->encode('jpg', 80);
+        Storage::disk('public')->put($filename, (string) $image);
+        return asset('storage/' . $filename);
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Attendance\StoreAttendanceRequest;
+use App\Models\AttendanceRecord;
 use App\Services\AttendanceService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -153,12 +154,141 @@ class AttendanceController extends Controller
         ], 200);
     }
 
-    /**
-     * Validate attendance location (for pre-check before submit)
-     * 
-     * @param Request $request
-     * @return JsonResponse
-     */
+    public function verifyCode(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|size:6',
+            'device' => 'nullable|string|in:web,android,ios',
+            'browser' => 'nullable|string|max:500',
+            'ip_address' => 'nullable|ip',
+        ]);
+
+        $result = $this->attendanceService->verifyAttendanceCode(
+            $request->user(),
+            strtoupper($validated['code']),
+            $validated['device'] ?? 'web',
+            $validated['browser'] ?? null,
+            $validated['ip_address'] ?? $request->ip()
+        );
+
+        $statusCode = $result['success'] ? 200 : 400;
+
+        return response()->json([
+            'status' => $result['success'] ? 'success' : 'error',
+            'message' => $result['message'],
+            'code' => $result['code'] ?? ($result['success'] ? 'CODE_VERIFIED' : 'CODE_INVALID'),
+            'data' => $result['data'] ?? null,
+        ], $statusCode);
+    }
+
+    public function verifyFace(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'attendance_record_id' => 'required|integer|exists:attendance_records,id',
+            'selfie' => 'required|image|mimes:jpeg,jpg,png|max:5120',
+            'device' => 'nullable|string|in:web,android,ios',
+            'browser' => 'nullable|string|max:500',
+            'ip_address' => 'nullable|ip',
+        ]);
+
+        $selfieFile = $request->file('selfie');
+        $filename = sprintf('attendance-selfie-%s-%s.%s', $request->user()->id, time(), $selfieFile->getClientOriginalExtension());
+        $storedPath = $selfieFile->storeAs('attendance_selfies', $filename, 'local');
+        $selfiePath = storage_path('app/' . $storedPath);
+
+        $result = $this->attendanceService->verifyFace(
+            $request->user(),
+            $validated['attendance_record_id'],
+            $selfiePath,
+            $validated['device'] ?? 'web',
+            $validated['browser'] ?? null,
+            $validated['ip_address'] ?? $request->ip()
+        );
+
+        $statusCode = $result['success'] ? 200 : 400;
+
+        return response()->json([
+            'status' => $result['success'] ? 'success' : 'error',
+            'message' => $result['message'],
+            'code' => $result['code'] ?? ($result['success'] ? 'FACE_VERIFIED' : 'FACE_FAILED'),
+            'data' => $result['data'] ?? null,
+        ], $statusCode);
+    }
+
+    public function verifyLocation(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'attendance_record_id' => 'required|integer|exists:attendance_records,id',
+            'lat' => 'required|numeric|between:-90,90',
+            'lng' => 'required|numeric|between:-180,180',
+            'accuracy' => 'required|integer|min:0|max:100',
+            'device' => 'nullable|string|in:web,android,ios',
+            'browser' => 'nullable|string|max:500',
+            'ip_address' => 'nullable|ip',
+        ]);
+
+        $result = $this->attendanceService->verifyAttendanceLocation(
+            $request->user(),
+            $validated['attendance_record_id'],
+            $validated['lat'],
+            $validated['lng'],
+            $validated['accuracy'],
+            $validated['device'] ?? 'web',
+            $validated['browser'] ?? null,
+            $validated['ip_address'] ?? $request->ip()
+        );
+
+        $statusCode = $result['success'] ? 200 : 400;
+
+        return response()->json([
+            'status' => $result['success'] ? 'success' : 'error',
+            'message' => $result['message'],
+            'code' => $result['code'] ?? ($result['success'] ? 'LOCATION_VERIFIED' : 'LOCATION_INVALID'),
+            'data' => $result['data'] ?? null,
+        ], $statusCode);
+    }
+
+    public function checkIn(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'attendance_record_id' => 'required|integer|exists:attendance_records,id',
+        ]);
+
+        $result = $this->attendanceService->completeCheckIn(
+            $request->user(),
+            $validated['attendance_record_id']
+        );
+
+        $statusCode = $result['success'] ? 200 : 400;
+
+        return response()->json([
+            'status' => $result['success'] ? 'success' : 'error',
+            'message' => $result['message'],
+            'code' => $result['code'] ?? ($result['success'] ? 'CHECKIN_SUCCESS' : 'CHECKIN_FAILED'),
+            'data' => $result['data'] ?? null,
+        ], $statusCode);
+    }
+
+    public function verifySelfie(Request $request): JsonResponse
+    {
+        return $this->verifyFace($request);
+    }
+
+    public function selfieHistory(Request $request): JsonResponse
+    {
+        $records = AttendanceRecord::where('student_id', $request->user()->id)
+            ->latest()
+            ->take(10)
+            ->get(['id', 'verification_code', 'face_verified', 'location_verified', 'status', 'selfie_photo', 'created_at']);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Riwayat selfie absensi berhasil diambil.',
+            'code' => 'SELFIE_HISTORY_SUCCESS',
+            'data' => $records,
+        ], 200);
+    }
+
     public function validateLocation(Request $request): JsonResponse
     {
         $validated = $request->validate([

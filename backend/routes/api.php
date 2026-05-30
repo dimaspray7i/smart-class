@@ -13,6 +13,14 @@ use App\Http\Controllers\Student\DashboardController as StudentDashboard;
 use App\Http\Controllers\Student\AttendanceController as StudentAttendance;
 use App\Http\Controllers\Student\ProjectController as StudentProject;
 use App\Http\Controllers\Student\SkillController as StudentSkill;
+use App\Http\Controllers\Student\ScheduleController as StudentSchedule;
+use App\Http\Controllers\Student\GradeController as StudentGrade;
+use App\Http\Controllers\Student\TaskController as StudentTask;
+use App\Http\Controllers\Student\PklController as StudentPkl;
+use App\Http\Controllers\Student\AnnouncementController as StudentAnnouncement;
+use App\Http\Controllers\Student\PermissionController as StudentPermission;
+use App\Http\Controllers\Student\ProfileController as StudentProfile;
+use App\Http\Controllers\Student\SettingsController as StudentSettings;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboard;
 use App\Http\Controllers\Teacher\AttendanceController as TeacherAttendance;
 use App\Http\Controllers\Teacher\PermissionController as TeacherPermission;
@@ -20,6 +28,7 @@ use App\Http\Controllers\Teacher\MessageController as TeacherMessage;
 use App\Http\Controllers\Teacher\AnnouncementController as TeacherAnnouncement;
 use App\Http\Controllers\Teacher\MaterialController as TeacherMaterial;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
+use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncement;
 use App\Http\Controllers\Admin\UserController as AdminUser;
 use App\Http\Controllers\Admin\ClassController as AdminClass;
 use App\Http\Controllers\Admin\SubjectController as AdminSubject;
@@ -175,7 +184,11 @@ Route::middleware('api')->group(function () {
                 // QR Code for Attendance (Retro Animated)
                 Route::get('/qr/generate', [StudentAttendance::class, 'generateQR']);
                 Route::post('/qr/verify', [StudentAttendance::class, 'verifyQR']);
-                
+                Route::post('/verify-code', [StudentAttendance::class, 'verifyCode']);
+                Route::post('/verify-face', [StudentAttendance::class, 'verifyFace']);
+                Route::post('/verify-location', [StudentAttendance::class, 'verifyLocation']);
+                Route::post('/check-in', [StudentAttendance::class, 'checkIn']);
+
                 // Selfie Verification (Retro Camera UI)
                 Route::post('/selfie/verify', [StudentAttendance::class, 'verifySelfie']);
                 Route::get('/selfie/history', [StudentAttendance::class, 'selfieHistory']);
@@ -200,6 +213,37 @@ Route::middleware('api')->group(function () {
                 Route::get('/{skill}/retro-activity', [StudentSkill::class, 'retroActivity']);
                 Route::get('/recommendations', [StudentSkill::class, 'recommendations']);
             });
+
+            // Schedules (Jadwal Pelajaran)
+            Route::get('/schedules', [StudentSchedule::class, 'index']);
+
+            // Grades (Nilai)
+            Route::get('/grades', [StudentGrade::class, 'index']);
+
+            // Tasks (Tugas & Upload)
+            Route::get('/tasks', [StudentTask::class, 'index']);
+            Route::post('/tasks/upload', [StudentTask::class, 'upload']);
+
+            // PKL & Journals
+            Route::get('/pkl', [StudentPkl::class, 'index']);
+            Route::post('/pkl/journal', [StudentPkl::class, 'uploadJournal']);
+
+            // Announcements (Pengumuman)
+            Route::get('/announcements', [StudentAnnouncement::class, 'index']);
+
+            // Permissions (Izin / Sakit)
+            Route::get('/permissions', [StudentPermission::class, 'index']);
+            Route::post('/permissions', [StudentPermission::class, 'store']);
+
+            // Profile
+            Route::get('/profile', [StudentProfile::class, 'show']);
+            Route::put('/profile', [StudentProfile::class, 'update']);
+            Route::post('/profile/avatar', [StudentProfile::class, 'uploadAvatar']);
+            Route::post('/profile/password', [StudentProfile::class, 'changePassword']);
+
+            // Settings
+            Route::get('/settings', [StudentSettings::class, 'index']);
+            Route::put('/settings', [StudentSettings::class, 'update']);
 
             // Student Profile - Retro Style
             Route::get('/profile/retro', function () {
@@ -312,6 +356,13 @@ Route::middleware('api')->group(function () {
         });
 
     // ═══════════════════════════════════════════════════════════
+    // 📤 Teacher attendance export usable by guru or admin
+    // ═══════════════════════════════════════════════════════════
+    Route::middleware(['auth:sanctum', 'role:guru|admin'])->group(function () {
+        Route::get('/v1/teacher/attendance/export', [TeacherAttendance::class, 'export']);
+    });
+
+    // ═══════════════════════════════════════════════════════════
     // 🛡️ ADMIN ROUTES (Role: admin) - FULL ACCESS
     // ═══════════════════════════════════════════════════════════
     Route::prefix('v1/admin')
@@ -327,8 +378,18 @@ Route::middleware('api')->group(function () {
             Route::get('/analytics/students/retro', [AdminDashboard::class, 'retroStudentAnalytics']);
             Route::get('/analytics/export', [AdminDashboard::class, 'exportAnalytics']);
             
-            // ═══════════════════════════════════════════════════
-            // 👥 USER MANAGEMENT - RETRO STYLE
+            // ═══════════════════════════════════════════════════            // 📢 ADMIN ANNOUNCEMENTS - BROADCAST & CRUD
+            // ═══════════════════════════════════════════════════════════════════
+            Route::prefix('announcements')->group(function () {
+                Route::get('/', [AdminAnnouncement::class, 'index']);
+                Route::get('/{id}', [AdminAnnouncement::class, 'show']);
+                Route::post('/', [AdminAnnouncement::class, 'store']);
+                Route::put('/{id}', [AdminAnnouncement::class, 'update']);
+                Route::patch('/{id}/pin', [AdminAnnouncement::class, 'pin']);
+                Route::delete('/{id}', [AdminAnnouncement::class, 'destroy']);
+            });
+            
+            // ═══════════════════════════════════════════════════════════════════            // 👥 USER MANAGEMENT - RETRO STYLE
             // ═══════════════════════════════════════════════════
             Route::get('/users/export', [AdminUser::class, 'export']);
             Route::get('/users/export/csv', [AdminUser::class, 'exportCSV']);

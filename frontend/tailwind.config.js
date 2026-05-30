@@ -5,6 +5,14 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+    'w-3', 'w-4', 'w-5', 'w-6', 'w-7', 'w-8', 'w-9', 'w-10',
+    'h-3', 'h-4', 'h-5', 'h-6', 'h-7', 'h-8', 'h-9', 'h-10',
+    'text-retro-yellow', 'fill-retro-yellow',
+    'text-retro-orange', 'text-retro-blue', 'text-retro-purple', 'text-retro-lime',
+    'bg-retro-orange/10', 'bg-retro-blue/10', 'bg-retro-purple/10', 'bg-retro-lime/10',
+    'shadow-hard-sm', 'shadow-hard-hover', 'rounded-blob', 'drop-shadow-retro'
+  ],
   theme: {
     extend: {
       // ═══════════════════════════════════════════════════════════
@@ -235,6 +243,10 @@ export default {
       // ═══════════════════════════════════════════════════════════
       fontFamily: {
         // Fallback fonts - user should install retro fonts separately
+        sans: ['"Poppins"', '"Space Grotesk"', '"Outfit"', 'sans-serif'],
+        display: ['"Bungee"', '"Anton"', '"Bebas Neue"', 'sans-serif'],
+        accent: ['"Lilita One"', '"Pacifico"', 'cursive'],
+        serif: ['"Playfair Display"', 'Georgia', 'serif'],
         'retro-display': ['"Bebas Neue"', '"Anton"', '"Impact"', 'sans-serif'],
         'retro-condensed': ['"Oswald"', '"Barlow Condensed"', 'sans-serif'],
         'retro-wide': ['"Righteous"', '"Rajdhani"', 'sans-serif'],

@@ -25,8 +25,9 @@ class InitialDataSeeder extends Seeder
         DB::table('personal_access_tokens')->truncate();
         DB::table('profiles')->truncate();
         DB::table('users')->truncate();
-        DB::table('subjects')->truncate();
-        DB::table('classes')->truncate();
+        // NOTE: Subject and Class tables are intentionally NOT truncated here
+        // to avoid accidental data loss in production. Seeding of subjects
+        // and classes has been removed to let migrations / manual data manage them.
 
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
@@ -48,74 +49,14 @@ class InitialDataSeeder extends Seeder
         $this->command->info("✅ Admin: {$admin->email} | Password: rpljuara");
 
         // ───────────────────────────────────────────────
-        // 3. SUBJECTS (Mata Pelajaran)
+        // NOTE: Mata pelajaran (subjects) seeding removed.
+        // Existing subjects should be managed via migrations or manual import.
         // ───────────────────────────────────────────────
-        $subjectsData = [
-            // Produktif
-            ['code' => 'RPL-101', 'name' => 'Dasar Pemrograman',             'category' => 'productive', 'credits' => 4],
-            ['code' => 'RPL-102', 'name' => 'Pemrograman Web Dasar',          'category' => 'productive', 'credits' => 4],
-            ['code' => 'RPL-103', 'name' => 'Pemrograman Web Lanjutan',       'category' => 'productive', 'credits' => 4],
-            ['code' => 'RPL-104', 'name' => 'Basis Data',                     'category' => 'productive', 'credits' => 4],
-            ['code' => 'RPL-105', 'name' => 'Pemrograman Berorientasi Objek', 'category' => 'productive', 'credits' => 4],
-            ['code' => 'RPL-106', 'name' => 'Rekayasa Perangkat Lunak',       'category' => 'productive', 'credits' => 4],
-            ['code' => 'RPL-107', 'name' => 'Pemrograman Mobile',             'category' => 'productive', 'credits' => 4],
-            ['code' => 'RPL-108', 'name' => 'Keamanan Siber',                 'category' => 'productive', 'credits' => 2],
-            ['code' => 'RPL-109', 'name' => 'Jaringan Komputer Dasar',        'category' => 'productive', 'credits' => 2],
-            ['code' => 'RPL-110', 'name' => 'Proyek Perangkat Lunak',         'category' => 'productive', 'credits' => 6],
-            // Normatif
-            ['code' => 'NOR-101', 'name' => 'Pendidikan Agama Islam',         'category' => 'normative',  'credits' => 3],
-            ['code' => 'NOR-102', 'name' => 'Pendidikan Pancasila',           'category' => 'normative',  'credits' => 2],
-            ['code' => 'NOR-103', 'name' => 'Bahasa Indonesia',               'category' => 'normative',  'credits' => 4],
-            ['code' => 'NOR-104', 'name' => 'Pendidikan Jasmani & Olahraga',  'category' => 'normative',  'credits' => 3],
-            ['code' => 'NOR-105', 'name' => 'Sejarah Indonesia',              'category' => 'normative',  'credits' => 2],
-            // Adaptif
-            ['code' => 'ADP-101', 'name' => 'Matematika',                    'category' => 'adaptive',   'credits' => 4],
-            ['code' => 'ADP-102', 'name' => 'Bahasa Inggris',                 'category' => 'adaptive',   'credits' => 4],
-            ['code' => 'ADP-103', 'name' => 'Fisika',                         'category' => 'adaptive',   'credits' => 2],
-            ['code' => 'ADP-104', 'name' => 'Kewirausahaan',                  'category' => 'adaptive',   'credits' => 2],
-            ['code' => 'ADP-105', 'name' => 'Seni Budaya',                    'category' => 'adaptive',   'credits' => 2],
-        ];
-
-        $subjects = [];
-        foreach ($subjectsData as $s) {
-            $subject = Subject::create([
-                'code'        => $s['code'],
-                'name'        => $s['name'],
-                'category'    => $s['category'],
-                'credits'     => $s['credits'],
-                'description' => null,
-                'is_active'   => true,
-            ]);
-            $subjects[$s['code']] = $subject;
-        }
-        $this->command->info('✅ ' . count($subjectsData) . ' mata pelajaran berhasil dibuat.');
 
         // ───────────────────────────────────────────────
-        // 4. CLASSES (Kelas)
+        // NOTE: Kelas (classes) seeding removed.
+        // Manage class records via migrations or manual admin interface.
         // ───────────────────────────────────────────────
-        $classesData = [
-            ['name' => 'RPL X-1',   'level' => 'X',   'capacity' => 36],
-            ['name' => 'RPL X-2',   'level' => 'X',   'capacity' => 36],
-            ['name' => 'RPL X-3',   'level' => 'X',   'capacity' => 36],
-            ['name' => 'RPL XI-1',  'level' => 'XI',  'capacity' => 36],
-            ['name' => 'RPL XI-2',  'level' => 'XI',  'capacity' => 36],
-            ['name' => 'RPL XI-3',  'level' => 'XI',  'capacity' => 36],
-            ['name' => 'RPL XII-1', 'level' => 'XII', 'capacity' => 36],
-            ['name' => 'RPL XII-2', 'level' => 'XII', 'capacity' => 36],
-            ['name' => 'RPL XII-3', 'level' => 'XII', 'capacity' => 36],
-        ];
-
-        foreach ($classesData as $c) {
-            ClassModel::create([
-                'name'        => $c['name'],
-                'slug'        => \Illuminate\Support\Str::slug($c['name']),
-                'level'       => $c['level'],
-                'description' => 'Kelas ' . $c['name'] . ' Program Keahlian RPL',
-                'capacity'    => $c['capacity'],
-                'is_active'   => true,
-            ]);
-        }
-        $this->command->info('✅ ' . count($classesData) . ' kelas berhasil dibuat.');
 
         // ───────────────────────────────────────────────
         // 5. SAMPLE TEACHER
@@ -133,12 +74,18 @@ class InitialDataSeeder extends Seeder
             'nip'     => '198501012010011001',
             'bio'     => 'Guru Produktif RPL',
         ]);
-        // Assign 3 subjects to teacher
-        $teacherProfile->subjects()->sync([
-            $subjects['RPL-101']->id,
-            $subjects['RPL-102']->id,
-            $subjects['RPL-104']->id,
-        ]);
+        // Assign subjects to teacher if subjects seeded exist
+        try {
+            if (class_exists(Subject::class)) {
+                $existing = Subject::whereIn('code', ['RPL-101','RPL-102','RPL-104'])->pluck('id')->toArray();
+                if (!empty($existing)) {
+                    $teacherProfile->subjects()->sync($existing);
+                }
+            }
+        } catch (\Throwable $e) {
+            // If subjects table doesn't exist or other DB issue, skip gracefully
+            $this->command->warn('⚠️ Skipping subject sync for sample teacher: ' . $e->getMessage());
+        }
         $this->command->info("✅ Sample guru: {$teacher->email} | Password: password123");
 
         // ───────────────────────────────────────────────
@@ -165,6 +112,8 @@ class InitialDataSeeder extends Seeder
                 'academic_year' => date('Y'),
                 'is_active'     => true,
             ]);
+        } else {
+            $this->command->warn('⚠️ Kelas RPL XI-1 tidak ditemukan. Lewati attach siswa ke kelas.');
         }
         $this->command->info("✅ Sample siswa: {$student->email} | Password: password123");
 

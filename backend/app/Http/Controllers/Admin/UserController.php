@@ -79,43 +79,96 @@ class UserController extends Controller
         ]);
 
         if ($user->role === 'guru') {
-            // Get class IDs from class_user
+            // Get class IDs from class_user and from schedules, merge unique
             $classUserIds = $user->classes->pluck('id')->toArray();
-            
-            // Get class IDs from schedules
             $scheduleClassIds = $user->taughtSchedules->pluck('class_id')->toArray();
-            
-            // Merge and get unique class IDs
-            $allClassIds = array_unique(array_merge($classUserIds, $scheduleClassIds));
-            
-            $user->classes_count = count($allClassIds);
-            
-            // Count total unique students in those classes
-            $user->students_count = \App\Models\User::where('role', 'siswa')
+            $allClassIds = array_values(array_unique(array_filter(array_merge($classUserIds, $scheduleClassIds))));
+
+            // Load classes with students count
+            $classes = \App\Models\ClassModel::whereIn('id', $allClassIds)
+                ->withCount(['students as students_count'])
+                ->get(['id', 'name', 'level', 'slug']);
+
+            // Total unique students across those classes
+            $totalStudents = \App\Models\User::where('role', 'siswa')
                 ->whereHas('classes', fn($q) => $q->whereIn('classes.id', $allClassIds))
-                ->count();
-                
-            $user->subjects = $user->profile?->subjects ?? [];
-            
-            // Get today and upcoming schedules
+                ->distinct()
+                ->count('users.id');
+
+            // Subjects taught (from profile)
+            $subjects = $user->profile?->subjects?->map(fn($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'code' => $s->code ?? null,
+            ])->values()->toArray() ?? [];
+
+            // Recent schedules for today
             $day = strtolower(now()->locale('id')->dayName);
             if ($day === 'minggu') $day = 'senin';
-            
-            $user->recent_schedules = $user->taughtSchedules
+
+            $recentSchedules = $user->taughtSchedules
                 ->where('day', $day)
                 ->where('is_active', true)
                 ->sortBy('start_time')
                 ->take(5)
-                ->values();
-        } else {
-            $user->classes_count = $user->classes->count();
+                ->values()
+                ->map(fn($s) => [
+                    'id' => $s->id,
+                    'day' => $s->day,
+                    'start_time' => $s->start_time,
+                    'end_time' => $s->end_time,
+                    'subject' => $s->subject ? ['id' => $s->subject->id, 'name' => $s->subject->name] : null,
+                    'class' => $s->class ? ['id' => $s->class->id, 'name' => $s->class->name] : null,
+                ])->toArray();
+
+            $payload = [
+                'teacher' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'avatar_url' => $user->avatar_url,
+                    'status' => $user->is_active ? 'active' : 'inactive',
+                    'created_at' => $user->created_at,
+                ],
+                'profile' => $user->profile ? $user->profile->only(['nis', 'nip', 'class_level', 'major', 'bio']) : null,
+                'subjects' => $subjects,
+                'class_count' => count($allClassIds),
+                'classes' => $classes->map(fn($c) => [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                    'level' => $c->level ?? null,
+                    'students_count' => $c->students_count ?? 0,
+                ])->values()->toArray(),
+                'total_students' => (int) $totalStudents,
+                'recent_schedules' => $recentSchedules,
+            ];
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Detail guru berhasil diambil.',
+                'code' => 'TEACHER_DETAIL_SUCCESS',
+                'data' => $payload,
+            ], 200);
         }
+
+        // Non-teacher users: return simplified payload
+        $payload = [
+            'user' => $user->only(['id', 'name', 'email', 'phone', 'avatar_url', 'is_active', 'created_at']),
+            'profile' => $user->profile ? $user->profile->only(['nis', 'nip', 'class_level', 'major', 'bio']) : null,
+            'class_count' => $user->classes->count(),
+            'classes' => $user->classes->map(fn($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'students_count' => $c->students()->count(),
+            ])->toArray(),
+        ];
 
         return response()->json([
             'status' => 'success',
             'message' => 'User berhasil diambil.',
             'code' => 'USER_SUCCESS',
-            'data' => $user,
+            'data' => $payload,
         ], 200);
     }
 

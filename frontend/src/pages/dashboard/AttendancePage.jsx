@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Camera, MapPin, CheckCircle, XCircle, Loader2, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
+import studentApi from '../../api/student';
 
 export default function AttendancePage() {
   const { user } = useAuth();
@@ -15,9 +16,19 @@ export default function AttendancePage() {
   const [code, setCode] = useState('');
   const [location, setLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
+  const [attendanceRecordId, setAttendanceRecordId] = useState(null);
+  const [verificationStep, setVerificationStep] = useState('idle');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [todayStatus, setTodayStatus] = useState(null);
+
+  const verificationLabels = {
+    code: 'Memvalidasi kode absensi',
+    face: 'Memverifikasi selfie',
+    location: 'Memverifikasi lokasi GPS',
+    checkin: 'Mencatat absensi',
+    done: 'Selesai',
+  };
 
   // Get today's attendance status on mount
   useEffect(() => {
@@ -137,7 +148,6 @@ export default function AttendancePage() {
   }, [searchParams]);
 
   const handleSubmit = async () => {
-    // Validasi
     if (!photo) {
       alert('Mohon ambil foto terlebih dahulu');
       return;
@@ -153,40 +163,78 @@ export default function AttendancePage() {
 
     setSubmitting(true);
     setResult(null);
+    setVerificationStep('code');
 
     try {
-      // Upload photo to get URL (simplified - in real app, upload to server first)
-      // For now, we'll send base64 or skip photo_url if backend doesn't support it
-      
-      const res = await api.post('/student/attendance', {
-        lat: location.lat,
-        lng: location.lng,
+      const codeResult = await studentApi.verifyAttendanceCode({
         code: code.toUpperCase(),
         device: 'web',
-        // photo_url: photo, // Uncomment if backend supports base64 or you have upload endpoint
+        browser: navigator.userAgent,
+        ip_address: undefined,
       });
 
-      if (res?.status === 'success') {
-        setResult({
-          success: true,
-          message: res.message,
-          data: res.data,
-          meta: res.meta,
-        });
-        setPhoto(null);
-        setCode('');
-        setLocation(null);
-        fetchTodayStatus(); // Refresh status
-        startCamera(); // Restart camera for next use
-      } else {
-        throw new Error(res?.message || 'Gagal submit absensi');
+      if (!codeResult?.status || codeResult.status !== 'success') {
+        throw new Error(codeResult?.message || 'Verifikasi kode gagal.');
       }
+
+      const recordId = codeResult.data?.attendance_record_id;
+      setAttendanceRecordId(recordId);
+      setVerificationStep('face');
+
+      const blob = await (await fetch(photo)).blob();
+      const selfieForm = new FormData();
+      selfieForm.append('attendance_record_id', recordId);
+      selfieForm.append('selfie', new File([blob], `attendance-selfie-${Date.now()}.jpg`, { type: blob.type }));
+      selfieForm.append('device', 'web');
+      selfieForm.append('browser', navigator.userAgent);
+
+      const faceResult = await studentApi.verifyAttendanceFace(selfieForm);
+      if (!faceResult?.status || faceResult.status !== 'success') {
+        throw new Error(faceResult?.message || 'Verifikasi wajah gagal.');
+      }
+
+      setVerificationStep('location');
+      const locationResult = await studentApi.verifyAttendanceLocation({
+        attendance_record_id: recordId,
+        lat: location.lat,
+        lng: location.lng,
+        accuracy: Math.round(location.accuracy || 0),
+        device: 'web',
+        browser: navigator.userAgent,
+      });
+
+      if (!locationResult?.status || locationResult.status !== 'success') {
+        throw new Error(locationResult?.message || 'Verifikasi lokasi gagal.');
+      }
+
+      setVerificationStep('checkin');
+      const checkInResult = await studentApi.checkInAttendance({
+        attendance_record_id: recordId,
+      });
+
+      if (!checkInResult?.status || checkInResult.status !== 'success') {
+        throw new Error(checkInResult?.message || 'Check-in gagal.');
+      }
+
+      setResult({
+        success: true,
+        message: checkInResult.message || 'Absensi berhasil dicatat.',
+        data: checkInResult.data,
+      });
+      setPhoto(null);
+      setCode('');
+      setLocation(null);
+      setAttendanceRecordId(null);
+      setVerificationStep('done');
+      fetchTodayStatus();
+      startCamera();
     } catch (err) {
       setResult({
         success: false,
-        message: err.message || 'Terjadi kesalahan saat submit absensi',
+        message: err.message || 'Terjadi kesalahan saat proses verifikasi absensi.',
         errors: err.errors,
       });
+      setVerificationStep('idle');
     } finally {
       setSubmitting(false);
     }
@@ -362,6 +410,14 @@ export default function AttendancePage() {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {submitting && verificationStep !== 'idle' && (
+            <div className="card bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 mb-4">
+              <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                Sedang melakukan: <strong>{verificationLabels[verificationStep] || 'Proses verifikasi'}</strong>
+              </p>
             </div>
           )}
 

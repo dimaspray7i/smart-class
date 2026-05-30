@@ -1,0 +1,279 @@
+
+  GET|HEAD        api ...................................... routes/web.php:20
+  GET|HEAD        api/docs ................................ routes/api.php:651
+  GET|HEAD        api/health ............................... routes/api.php:52
+  GET|HEAD        api/status ............................... routes/api.php:65
+  GET|HEAD        api/v1/admin/analytics ..... Admin\AnalyticsController@index
+  GET|HEAD        api/v1/admin/analytics/attendance Admin\AnalyticsController???
+  GET|HEAD        api/v1/admin/analytics/attendance/retro Admin\DashboardCont???
+  GET|HEAD        api/v1/admin/analytics/classes Admin\AnalyticsController@cl???
+  GET|HEAD        api/v1/admin/analytics/export Admin\AnalyticsController@exp???
+  GET|HEAD        api/v1/admin/analytics/export/csv Admin\AnalyticsController???
+  GET|HEAD        api/v1/admin/analytics/pkl Admin\AnalyticsController@pklAna???
+  GET|HEAD        api/v1/admin/analytics/realtime Admin\AnalyticsController@r???
+  GET|HEAD        api/v1/admin/analytics/students Admin\AnalyticsController@s???
+  GET|HEAD        api/v1/admin/analytics/students/retro Admin\DashboardContro???
+  GET|HEAD        api/v1/admin/analytics/subjects Admin\AnalyticsController@s???
+  GET|HEAD        api/v1/admin/attendance ... Admin\AttendanceController@index
+  PATCH           api/v1/admin/attendance/{id}/status Admin\AttendanceControl???
+  POST            api/v1/admin/cache/clear ................ routes/api.php:536
+  POST            api/v1/admin/cache/clear/section/{section} routes/api.php:5???
+  GET|HEAD        api/v1/admin/classes classes.index ??? Admin\ClassController@???
+  POST            api/v1/admin/classes classes.store ??? Admin\ClassController@???
+  GET|HEAD        api/v1/admin/classes/analytics Admin\ClassController@analyt???
+  GET|HEAD        api/v1/admin/classes/analytics/retro Admin\ClassController@???
+  POST            api/v1/admin/classes/bulk/delete Admin\ClassController@bulk???
+  POST            api/v1/admin/classes/bulk/export Admin\ClassController@bulk???
+  GET|HEAD        api/v1/admin/classes/export ... Admin\ClassController@export
+  GET|HEAD        api/v1/admin/classes/export/csv Admin\ClassController@expor???
+  GET|HEAD        api/v1/admin/classes/export/json Admin\ClassController@expo???
+  GET|HEAD        api/v1/admin/classes/grid ... Admin\ClassController@gridView
+  GET|HEAD        api/v1/admin/classes/list ... Admin\ClassController@listView
+  GET|HEAD        api/v1/admin/classes/{class} classes.show ??? Admin\ClassCont???
+  PUT|PATCH       api/v1/admin/classes/{class} classes.update ??? Admin\ClassCo???
+  DELETE          api/v1/admin/classes/{class} classes.destroy ??? Admin\ClassC???
+  GET|HEAD        api/v1/admin/classes/{class}/retro-preview Admin\ClassContr???
+  GET|HEAD        api/v1/admin/dashboard ..... Admin\DashboardController@index
+  GET|HEAD        api/v1/admin/dashboard/retro Admin\DashboardController@retr???
+  POST            api/v1/admin/database/backup ............ routes/api.php:564
+  POST            api/v1/admin/database/optimize .......... routes/api.php:560
+  POST            api/v1/admin/logs/clear ................. routes/api.php:546
+  GET|HEAD        api/v1/admin/logs/recent ................ routes/api.php:552
+  GET|HEAD        api/v1/admin/pkl-locations Admin\PklLocationController@index
+  POST            api/v1/admin/pkl-locations Admin\PklLocationController@store
+  GET|HEAD        api/v1/admin/pkl-locations/approved Admin\PklLocationContro???
+  POST            api/v1/admin/pkl-locations/bulk/delete Admin\PklLocationCon???
+  POST            api/v1/admin/pkl-locations/bulk/export Admin\PklLocationCon???
+  GET|HEAD        api/v1/admin/pkl-locations/grid Admin\PklLocationController???
+  GET|HEAD        api/v1/admin/pkl-locations/map-data Admin\PklLocationContro???
+  GET|HEAD        api/v1/admin/pkl-locations/{id} Admin\PklLocationController???
+  PUT             api/v1/admin/pkl-locations/{id} Admin\PklLocationController???
+  PATCH           api/v1/admin/pkl-locations/{id} Admin\PklLocationController???
+  DELETE          api/v1/admin/pkl-locations/{id} Admin\PklLocationController???
+  PATCH           api/v1/admin/pkl-locations/{id}/approve Admin\PklLocationCo???
+  PATCH           api/v1/admin/pkl-locations/{id}/retro-approve Admin\PklLoca???
+  GET|HEAD        api/v1/admin/pkl/analytics Admin\PklLocationController@anal???
+  POST            api/v1/admin/pkl/assign Admin\PklLocationController@assignS???
+  POST            api/v1/admin/pkl/assign/bulk Admin\PklLocationController@bu???
+  GET|HEAD        api/v1/admin/pkl/assignments/export Admin\PklLocationContro???
+  GET|HEAD        api/v1/admin/pkl/students Admin\PklLocationController@getSt???
+  GET|HEAD        api/v1/admin/pkl/students/search Admin\PklLocationControlle???
+  POST            api/v1/admin/pkl/unassign/{studentId} Admin\PklLocationCont???
+  GET|HEAD        api/v1/admin/schedules ...... Admin\ScheduleController@index
+  POST            api/v1/admin/schedules ...... Admin\ScheduleController@store
+  POST            api/v1/admin/schedules/bulk/delete Admin\ScheduleController???
+  POST            api/v1/admin/schedules/bulk/export Admin\ScheduleController???
+  GET|HEAD        api/v1/admin/schedules/by-class/{classId} Admin\ScheduleCon???
+  GET|HEAD        api/v1/admin/schedules/by-teacher/{teacherId} Admin\Schedul???
+  POST            api/v1/admin/schedules/check-conflict Admin\ScheduleControl???
+  GET|HEAD        api/v1/admin/schedules/check-conflict/retro Admin\ScheduleC???
+  GET|HEAD        api/v1/admin/schedules/export Admin\ScheduleController@expo???
+  GET|HEAD        api/v1/admin/schedules/export/csv Admin\ScheduleController@???
+  GET|HEAD        api/v1/admin/schedules/export/json Admin\ScheduleController???
+  POST            api/v1/admin/schedules/from-template Admin\ScheduleControll???
+  GET|HEAD        api/v1/admin/schedules/retro-weekly Admin\ScheduleControlle???
+  GET|HEAD        api/v1/admin/schedules/templates Admin\ScheduleController@t???
+  GET|HEAD        api/v1/admin/schedules/weekly-view Admin\ScheduleController???
+  GET|HEAD        api/v1/admin/schedules/{id} .. Admin\ScheduleController@show
+  PUT             api/v1/admin/schedules/{id} Admin\ScheduleController@update
+  PATCH           api/v1/admin/schedules/{id} Admin\ScheduleController@update
+  DELETE          api/v1/admin/schedules/{id} Admin\ScheduleController@destroy
+  GET|HEAD        api/v1/admin/settings ........ Admin\SettingController@index
+  PUT             api/v1/admin/settings ....... Admin\SettingController@update
+  GET|HEAD        api/v1/admin/settings/branding/preview Admin\SettingControl???
+  GET|HEAD        api/v1/admin/settings/categories Admin\SettingController@ca???
+  GET|HEAD        api/v1/admin/settings/export Admin\SettingController@export
+  GET|HEAD        api/v1/admin/settings/export/json Admin\SettingController@e???
+  GET|HEAD        api/v1/admin/settings/notification-templates Admin\SettingC???
+  POST            api/v1/admin/settings/notification-templates/{id}/test Admi???
+  POST            api/v1/admin/settings/reset .. Admin\SettingController@reset
+  POST            api/v1/admin/settings/reset/section/{section} Admin\Setting???
+  GET|HEAD        api/v1/admin/settings/retro Admin\SettingController@retroIn???
+  PUT             api/v1/admin/settings/section/{section} Admin\SettingContro???
+  GET|HEAD        api/v1/admin/subjects ........ Admin\SubjectController@index
+  POST            api/v1/admin/subjects ........ Admin\SubjectController@store
+  GET|HEAD        api/v1/admin/subjects/analytics Admin\SubjectController@ana???
+  POST            api/v1/admin/subjects/bulk/delete Admin\SubjectController@b???
+  POST            api/v1/admin/subjects/bulk/export Admin\SubjectController@b???
+  GET|HEAD        api/v1/admin/subjects/categories Admin\SubjectController@ca???
+  GET|HEAD        api/v1/admin/subjects/export Admin\SubjectController@export
+  GET|HEAD        api/v1/admin/subjects/export/csv Admin\SubjectController@ex???
+  GET|HEAD        api/v1/admin/subjects/export/json ....... routes/api.php:428
+  GET|HEAD        api/v1/admin/subjects/grid Admin\SubjectController@gridView
+  GET|HEAD        api/v1/admin/subjects/list ... Admin\SubjectController@index
+  GET|HEAD        api/v1/admin/subjects/{id} .... Admin\SubjectController@show
+  PUT             api/v1/admin/subjects/{id} .. Admin\SubjectController@update
+  PATCH           api/v1/admin/subjects/{id} .. Admin\SubjectController@update
+  DELETE          api/v1/admin/subjects/{id} . Admin\SubjectController@destroy
+  GET|HEAD        api/v1/admin/subjects/{id}/retro-preview Admin\SubjectContr???
+  GET|HEAD        api/v1/admin/system/info ................ routes/api.php:571
+  GET|HEAD        api/v1/admin/users users.index ??? Admin\UserController@index
+  POST            api/v1/admin/users users.store ??? Admin\UserController@store
+  GET|HEAD        api/v1/admin/users/analytics Admin\UserController@analytics
+  GET|HEAD        api/v1/admin/users/analytics/retro Admin\UserController@ret???
+  GET|HEAD        api/v1/admin/users/bulk/actions Admin\UserController@bulkAc???
+  POST            api/v1/admin/users/bulk/delete Admin\UserController@bulkDel???
+  POST            api/v1/admin/users/bulk/export Admin\UserController@bulkExp???
+  POST            api/v1/admin/users/bulk/update Admin\UserController@bulkUpd???
+  GET|HEAD        api/v1/admin/users/export ...... Admin\UserController@export
+  GET|HEAD        api/v1/admin/users/export/csv Admin\UserController@exportCSV
+  GET|HEAD        api/v1/admin/users/export/json Admin\UserController@exportJ???
+  GET|HEAD        api/v1/admin/users/{user} users.show ??? Admin\UserController???
+  PUT|PATCH       api/v1/admin/users/{user} users.update ??? Admin\UserControll???
+  DELETE          api/v1/admin/users/{user} users.destroy ??? Admin\UserControl???
+  POST            api/v1/admin/users/{user}/reset-password Admin\UserControll???
+  PATCH           api/v1/admin/users/{user}/retro-profile Admin\UserControlle???
+  PATCH           api/v1/admin/users/{user}/role Admin\UserController@updateR???
+  POST            api/v1/auth/2fa/disable ..... Auth\AuthController@disable2FA
+  POST            api/v1/auth/2fa/enable ....... Auth\AuthController@enable2FA
+  POST            api/v1/auth/2fa/verify ....... Auth\AuthController@verify2FA
+  GET|HEAD        api/v1/auth/devices ............ Auth\AuthController@devices
+  DELETE          api/v1/auth/devices/{id} .. Auth\AuthController@revokeDevice
+  POST            api/v1/auth/forgot-password Auth\AuthController@forgotPassw???
+  POST            api/v1/auth/login ................ Auth\AuthController@login
+  POST            api/v1/auth/login/retro ..... Auth\AuthController@loginRetro
+  POST            api/v1/auth/logout .............. Auth\AuthController@logout
+  GET|HEAD        api/v1/auth/me ...................... Auth\AuthController@me
+  GET|HEAD        api/v1/auth/me/retro-profile Auth\AuthController@retroProfi???
+  PUT             api/v1/auth/profile ...... Auth\AuthController@updateProfile
+  POST            api/v1/auth/profile/avatar Auth\AuthController@uploadAvatar
+  POST            api/v1/auth/profile/avatar/remove Auth\AuthController@remov???
+  PUT             api/v1/auth/profile/retro Auth\AuthController@updateRetroPr???
+  POST            api/v1/auth/reset-password Auth\AuthController@resetPassword
+  POST            api/v1/auth/token/refresh . Auth\AuthController@refreshToken
+  POST            api/v1/auth/token/retro-refresh Auth\AuthController@retroRe???
+  GET|HEAD        api/v1/public/gallery Public\StudentGalleryController@index
+  GET|HEAD        api/v1/public/gallery/grid Public\StudentGalleryController@???
+  GET|HEAD        api/v1/public/gallery/{slug} Public\StudentGalleryControlle???
+  GET|HEAD        api/v1/public/gallery/{slug}/retro-preview Public\StudentGa???
+  GET|HEAD        api/v1/public/info ...................... routes/api.php:107
+  GET|HEAD        api/v1/public/landing ....... Public\LandingController@index
+  GET|HEAD        api/v1/public/landing/retro-assets Public\LandingController???
+  GET|HEAD        api/v1/public/simulator/paths Public\SimulatorController@in???
+  GET|HEAD        api/v1/public/simulator/paths/categories Public\SimulatorCo???
+  GET|HEAD        api/v1/public/simulator/paths/{slug} Public\SimulatorContro???
+  GET|HEAD        api/v1/public/simulator/paths/{slug}/retro-flow Public\Simu???
+  POST            api/v1/public/simulator/sessions Public\SimulatorController???
+  POST            api/v1/public/simulator/sessions/{id}/choice Public\Simulat???
+  POST            api/v1/public/simulator/sessions/{id}/export Public\Simulat???
+  GET|HEAD        api/v1/public/simulator/sessions/{id}/result Public\Simulat???
+  GET|HEAD        api/v1/public/simulator/sessions/{id}/retro-result Public\S???
+  GET|HEAD        api/v1/public/stats ......... Public\LandingController@stats
+  GET|HEAD        api/v1/public/stats/animated Public\LandingController@anima???
+  GET|HEAD        api/v1/realtime/attendance/live ......... routes/api.php:619
+  GET|HEAD        api/v1/realtime/notifications ........... routes/api.php:622
+  GET|HEAD        api/v1/student/announcements Student\AnnouncementController???
+  POST            api/v1/student/attendance Student\AttendanceController@store
+  GET|HEAD        api/v1/student/attendance/history Student\AttendanceControl???
+  GET|HEAD        api/v1/student/attendance/history/export Student\Attendance???
+  GET|HEAD        api/v1/student/attendance/pkl-locations Student\AttendanceC???
+  GET|HEAD        api/v1/student/attendance/pkl-locations/map-preview Student???
+  GET|HEAD        api/v1/student/attendance/pkl-locations/retro Student\Atten???
+  GET|HEAD        api/v1/student/attendance/qr/generate Student\AttendanceCon???
+  POST            api/v1/student/attendance/qr/verify Student\AttendanceContr???
+  POST            api/v1/student/attendance/retro Student\AttendanceControlle???
+  GET|HEAD        api/v1/student/attendance/selfie/history Student\Attendance???
+  POST            api/v1/student/attendance/selfie/verify Student\AttendanceC???
+  GET|HEAD        api/v1/student/attendance/stats Student\AttendanceControlle???
+  GET|HEAD        api/v1/student/attendance/stats/retro Student\AttendanceCon???
+  GET|HEAD        api/v1/student/attendance/today Student\AttendanceControlle???
+  GET|HEAD        api/v1/student/attendance/today/retro Student\AttendanceCon???
+  GET|HEAD        api/v1/student/dashboard . Student\DashboardController@index
+  GET|HEAD        api/v1/student/dashboard/retro Student\DashboardController@???
+  GET|HEAD        api/v1/student/dashboard/widgets Student\DashboardControlle???
+  GET|HEAD        api/v1/student/grades ........ Student\GradeController@index
+  GET|HEAD        api/v1/student/permissions Student\PermissionController@ind???
+  POST            api/v1/student/permissions Student\PermissionController@sto???
+  GET|HEAD        api/v1/student/pkl ............. Student\PklController@index
+  POST            api/v1/student/pkl/journal Student\PklController@uploadJour???
+  GET|HEAD        api/v1/student/profile ...... Student\ProfileController@show
+  PUT             api/v1/student/profile .... Student\ProfileController@update
+  POST            api/v1/student/profile/avatar Student\ProfileController@upl???
+  POST            api/v1/student/profile/password Student\ProfileController@c???
+  GET|HEAD        api/v1/student/profile/retro ............ routes/api.php:244
+  GET|HEAD        api/v1/student/projects projects.index ??? Student\ProjectCon???
+  POST            api/v1/student/projects projects.store ??? Student\ProjectCon???
+  GET|HEAD        api/v1/student/projects/grid Student\ProjectController@grid???
+  GET|HEAD        api/v1/student/projects/list Student\ProjectController@list???
+  GET|HEAD        api/v1/student/projects/{project} projects.show ??? Student\P???
+  PUT|PATCH       api/v1/student/projects/{project} projects.update ??? Student???
+  DELETE          api/v1/student/projects/{project} projects.destroy ??? Studen???
+  POST            api/v1/student/projects/{project}/export Student\ProjectCon???
+  GET|HEAD        api/v1/student/projects/{project}/logs Student\ProjectContr???
+  POST            api/v1/student/projects/{project}/logs Student\ProjectContr???
+  GET|HEAD        api/v1/student/projects/{project}/retro-preview Student\Pro???
+  GET|HEAD        api/v1/student/schedules .. Student\ScheduleController@index
+  GET|HEAD        api/v1/student/settings ... Student\SettingsController@index
+  PUT             api/v1/student/settings .. Student\SettingsController@update
+  GET|HEAD        api/v1/student/skills ........ Student\SkillController@index
+  GET|HEAD        api/v1/student/skills/progress Student\SkillController@prog???
+  GET|HEAD        api/v1/student/skills/progress/animated Student\SkillContro???
+  GET|HEAD        api/v1/student/skills/recommendations Student\SkillControll???
+  GET|HEAD        api/v1/student/skills/retro Student\SkillController@retroIn???
+  POST            api/v1/student/skills/{skill}/activity Student\SkillControl???
+  GET|HEAD        api/v1/student/skills/{skill}/retro-activity Student\SkillC???
+  GET|HEAD        api/v1/student/tasks .......... Student\TaskController@index
+  POST            api/v1/student/tasks/upload .. Student\TaskController@upload
+  GET|HEAD        api/v1/teacher/analytics/attendance Teacher\AttendanceContr???
+  GET|HEAD        api/v1/teacher/analytics/attendance/retro Teacher\Attendanc???
+  GET|HEAD        api/v1/teacher/analytics/export/summary Teacher\AttendanceC???
+  GET|HEAD        api/v1/teacher/analytics/students/progress Teacher\Attendan???
+  GET|HEAD        api/v1/teacher/announcements Teacher\AnnouncementController???
+  POST            api/v1/teacher/announcements Teacher\AnnouncementController???
+  PUT             api/v1/teacher/announcements/{id} Teacher\AnnouncementContr???
+  DELETE          api/v1/teacher/announcements/{id} Teacher\AnnouncementContr???
+  PATCH           api/v1/teacher/announcements/{id}/pin Teacher\AnnouncementC???
+  POST            api/v1/teacher/attendance/bulk/export Teacher\AttendanceCon???
+  POST            api/v1/teacher/attendance/bulk/verify Teacher\AttendanceCon???
+  GET|HEAD        api/v1/teacher/attendance/export Teacher\AttendanceControll???
+  POST            api/v1/teacher/attendance/generate/{schedule_id} Teacher\At???
+  GET|HEAD        api/v1/teacher/attendance/history Teacher\AttendanceControl???
+  GET|HEAD        api/v1/teacher/attendance/history/export Teacher\Attendance???
+  POST            api/v1/teacher/attendance/session/create Teacher\Attendance???
+  POST            api/v1/teacher/attendance/session/retro-create Teacher\Atte???
+  POST            api/v1/teacher/attendance/session/{id}/close Teacher\Attend???
+  POST            api/v1/teacher/attendance/session/{id}/generate-code Teache???
+  POST            api/v1/teacher/attendance/session/{id}/generate-retro-qr Te???
+  GET|HEAD        api/v1/teacher/attendance/session/{id}/live-stats Teacher\A???
+  GET|HEAD        api/v1/teacher/attendance/session/{id}/monitor Teacher\Atte???
+  GET|HEAD        api/v1/teacher/attendance/session/{id}/monitor/retro Teache???
+  POST            api/v1/teacher/attendance/session/{id}/reopen Teacher\Atten???
+  GET|HEAD        api/v1/teacher/attendance/sessions Teacher\AttendanceContro???
+  POST            api/v1/teacher/attendance/sessions Teacher\AttendanceContro???
+  POST            api/v1/teacher/attendance/sessions/{id}/close Teacher\Atten???
+  POST            api/v1/teacher/attendance/sessions/{id}/generate-code Teach???
+  POST            api/v1/teacher/attendance/sessions/{id}/reopen Teacher\Atte???
+  PATCH           api/v1/teacher/attendance/{id}/retro-verify Teacher\Attenda???
+  PATCH           api/v1/teacher/attendance/{id}/verify Teacher\AttendanceCon???
+  GET|HEAD        api/v1/teacher/classes Teacher\DashboardController@myClasses
+  GET|HEAD        api/v1/teacher/dashboard . Teacher\DashboardController@index
+  GET|HEAD        api/v1/teacher/dashboard/classes Teacher\DashboardControlle???
+  GET|HEAD        api/v1/teacher/dashboard/retro Teacher\DashboardController@???
+  GET|HEAD        api/v1/teacher/dashboard/subjects Teacher\DashboardControll???
+  GET|HEAD        api/v1/teacher/materials .. Teacher\MaterialController@index
+  POST            api/v1/teacher/materials .. Teacher\MaterialController@store
+  DELETE          api/v1/teacher/materials/{id} Teacher\MaterialController@de???
+  POST            api/v1/teacher/messages .... Teacher\MessageController@store
+  GET|HEAD        api/v1/teacher/messages/conversations Teacher\MessageContro???
+  GET|HEAD        api/v1/teacher/messages/{contactId} Teacher\MessageControll???
+  GET|HEAD        api/v1/teacher/permissions Teacher\PermissionController@ind???
+  POST            api/v1/teacher/permissions Teacher\PermissionController@sto???
+  POST            api/v1/teacher/permissions/bulk/approve Teacher\PermissionC???
+  POST            api/v1/teacher/permissions/bulk/reject Teacher\PermissionCo???
+  GET|HEAD        api/v1/teacher/permissions/history Teacher\PermissionContro???
+  GET|HEAD        api/v1/teacher/permissions/history/export Teacher\Permissio???
+  GET|HEAD        api/v1/teacher/permissions/retro Teacher\PermissionControll???
+  PATCH           api/v1/teacher/permissions/{id}/approve Teacher\PermissionC???
+  PATCH           api/v1/teacher/permissions/{id}/reject Teacher\PermissionCo???
+  PATCH           api/v1/teacher/permissions/{id}/retro-approve Teacher\Permi???
+  GET|HEAD        api/v1/teacher/schedule/today Teacher\DashboardController@t???
+  GET|HEAD        api/v1/teacher/students Teacher\AttendanceController@studen???
+  GET|HEAD        api/v1/teacher/students/grid Teacher\AttendanceController@s???
+  GET|HEAD        api/v1/teacher/students/{id}/attendance Teacher\AttendanceC???
+  GET|HEAD        api/v1/teacher/students/{id}/attendance/export Teacher\Atte???
+  GET|HEAD        api/v1/teacher/students/{id}/retro-profile Teacher\Attendan???
+  GET|HEAD        api/v1/teacher/subjects Teacher\DashboardController@mySubje???
+  GET|HEAD        api/{fallbackPlaceholder} ............... routes/api.php:632
+
+                                                          Showing [275] routes
+
