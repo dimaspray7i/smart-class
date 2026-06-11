@@ -744,11 +744,20 @@ class User extends Authenticatable
      */
     public function getCurrentClass(): ?ClassModel
     {
-        return $this->classes()
+        $currentClass = $this->classes()
             ->wherePivot('academic_year', date('Y'))
             ->wherePivot('is_active', true)
             ->wherePivot('role_in_class', 'siswa')
             ->first();
+
+        if (!$currentClass) {
+            $currentClass = $this->classes()
+                ->wherePivot('is_active', true)
+                ->wherePivot('role_in_class', 'siswa')
+                ->first();
+        }
+
+        return $currentClass;
     }
 
     /**

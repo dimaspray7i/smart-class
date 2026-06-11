@@ -8,6 +8,7 @@ use App\Models\AttendanceRecord;
 use App\Services\AttendanceService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 
 class AttendanceController extends Controller
 {
@@ -194,7 +195,7 @@ class AttendanceController extends Controller
         $selfieFile = $request->file('selfie');
         $filename = sprintf('attendance-selfie-%s-%s.%s', $request->user()->id, time(), $selfieFile->getClientOriginalExtension());
         $storedPath = $selfieFile->storeAs('attendance_selfies', $filename, 'local');
-        $selfiePath = storage_path('app/' . $storedPath);
+        $selfiePath = Storage::disk('local')->path($storedPath);
 
         $result = $this->attendanceService->verifyFace(
             $request->user(),

@@ -313,16 +313,9 @@ return new class extends Migration
             }
         }
 
-        // Laravel doesn't have a built-in "index exists" check, so we query information_schema
-        $indexExists = DB::selectOne("
-            SELECT COUNT(*) as count 
-            FROM information_schema.statistics 
-            WHERE table_schema = DATABASE() 
-            AND table_name = ? 
-            AND index_name = ?
-        ", [$tableName, $indexName]);
-        
-        if ($indexExists && $indexExists->count == 0) {
+        $indexExists = $this->doesIndexExist($tableName, $indexName);
+
+        if (!$indexExists) {
             $table->index($columns, $indexName);
         }
     }
@@ -332,18 +325,34 @@ return new class extends Migration
      */
     private function dropIndexIfExists(string $tableName, string $indexName): void
     {
-        $indexExists = DB::selectOne("
-            SELECT COUNT(*) as count 
-            FROM information_schema.statistics 
-            WHERE table_schema = DATABASE() 
-            AND table_name = ? 
-            AND index_name = ?
-        ", [$tableName, $indexName]);
-        
-        if ($indexExists && $indexExists->count > 0) {
+        if ($this->doesIndexExist($tableName, $indexName)) {
             Schema::table($tableName, function (Blueprint $table) use ($indexName) {
                 $table->dropIndex($indexName);
             });
         }
+    }
+
+    private function doesIndexExist(string $tableName, string $indexName): bool
+    {
+        $driver = DB::getDriverName();
+
+        if ($driver === 'sqlite') {
+            $indexes = DB::select("PRAGMA index_list('{$tableName}')");
+            return collect($indexes)->contains(fn ($index) => ($index->name ?? $index['name'] ?? null) === $indexName);
+        }
+
+        if ($driver === 'mysql') {
+            $indexExists = DB::selectOne("
+                SELECT COUNT(*) as count 
+                FROM information_schema.statistics 
+                WHERE table_schema = DATABASE() 
+                AND table_name = ? 
+                AND index_name = ?
+            ", [$tableName, $indexName]);
+
+            return $indexExists && $indexExists->count > 0;
+        }
+
+        return false;
     }
 };

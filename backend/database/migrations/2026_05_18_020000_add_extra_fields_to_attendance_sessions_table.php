@@ -16,10 +16,12 @@ return new class extends Migration
     public function up(): void
     {
         // Fix any invalid zero-datetime rows that would block FK addition in MySQL strict mode
-        DB::statement("UPDATE attendance_sessions SET updated_at = NOW() WHERE updated_at = '0000-00-00 00:00:00'");
-        DB::statement("UPDATE attendance_sessions SET created_at = NOW() WHERE created_at = '0000-00-00 00:00:00'");
-        DB::statement("UPDATE attendance_sessions SET valid_from = NOW() WHERE valid_from = '0000-00-00 00:00:00'");
-        DB::statement("UPDATE attendance_sessions SET valid_until = NOW() WHERE valid_until = '0000-00-00 00:00:00'");
+        $nowExpression = DB::getDriverName() === 'sqlite' ? "datetime('now')" : 'NOW()';
+
+        DB::statement("UPDATE attendance_sessions SET updated_at = {$nowExpression} WHERE updated_at = '0000-00-00 00:00:00'");
+        DB::statement("UPDATE attendance_sessions SET created_at = {$nowExpression} WHERE created_at = '0000-00-00 00:00:00'");
+        DB::statement("UPDATE attendance_sessions SET valid_from = {$nowExpression} WHERE valid_from = '0000-00-00 00:00:00'");
+        DB::statement("UPDATE attendance_sessions SET valid_until = {$nowExpression} WHERE valid_until = '0000-00-00 00:00:00'");
 
         Schema::table('attendance_sessions', function (Blueprint $table) {
             if (!Schema::hasColumn('attendance_sessions', 'location')) {

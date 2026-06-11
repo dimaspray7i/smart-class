@@ -40,7 +40,9 @@ export default function StudentSchedule() {
     fetchSchedule(selectedDay);
   }, [selectedDay]);
 
-  const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const days = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+  const dayLabels = { senin:'Senin', selasa:'Selasa', rabu:'Rabu', kamis:'Kamis', jumat:'Jumat', sabtu:'Sabtu' };
+  const capitalize = (s) => s ? (dayLabels[s.toLowerCase()] || s.charAt(0).toUpperCase() + s.slice(1)) : s;
 
   if (loading && !data) {
     return (
@@ -117,7 +119,7 @@ export default function StudentSchedule() {
               <div className="flex items-center gap-2 mb-4 border-b-4 border-base-black pb-3">
                 <Clock className="w-4 h-4 text-retro-purple" />
                 <h3 className="font-retro-display font-black text-base-black uppercase tracking-tight text-xs">
-                  Hari Ini ({data?.today_name})
+                  Hari Ini ({capitalize(data?.today_name)})
                 </h3>
               </div>
 
@@ -203,7 +205,7 @@ export default function StudentSchedule() {
                         : 'bg-base-white text-base-black hover:bg-retro-purple/10'
                     }`}
                   >
-                    {day}
+                    {capitalize(day)}
                   </button>
                 ))}
               </div>
@@ -220,10 +222,14 @@ export default function StudentSchedule() {
               <div className="space-y-6">
                 {Object.entries(allSchedules)
                   .filter(([dayName]) => !selectedDay || dayName.toLowerCase() === selectedDay.toLowerCase())
+                  .sort(([a], [b]) => {
+                    const order = ['senin','selasa','rabu','kamis','jumat','sabtu'];
+                    return order.indexOf(a.toLowerCase()) - order.indexOf(b.toLowerCase());
+                  })
                   .map(([dayName, schedules]) => (
                     <div key={dayName} className="space-y-3">
                       <h4 className="font-retro-display font-black text-xs text-base-black border-l-4 border-base-black pl-2.5 uppercase tracking-widest bg-retro-yellow/15 py-1 rounded-sm">
-                        📅 Hari {dayName}
+                        📅 Hari {capitalize(dayName)}
                       </h4>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
