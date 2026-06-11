@@ -13,11 +13,18 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Intervention\Image\ImageManagerStatic as Image;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\ImageManager;
 use Exception;
 
 class AttendanceService
 {
+    protected ImageManager $imageManager;
+
+    public function __construct()
+    {
+        $this->imageManager = new ImageManager(new GdDriver());
+    }
     /**
      * Submit attendance for student
      * 
@@ -502,9 +509,16 @@ class AttendanceService
             ];
         }
 
+        Log::error('AttendanceService::verifyFace debug', [
+            'selfie_path' => $selfiePath,
+            'selfie_exists' => file_exists($selfiePath),
+            'avatar_path' => $avatarPath,
+            'avatar_exists' => file_exists($avatarPath),
+        ]);
+
         try {
             $faceScore = $this->getFaceSimilarityScore($selfiePath, $avatarPath);
-            $image = Image::make($selfiePath);
+            $image = $this->imageManager->read($selfiePath);
 
             if ($this->isImageBlurred($image)) {
                 return [
@@ -548,7 +562,12 @@ class AttendanceService
             Log::error('AttendanceService::verifyFace failed', [
                 'user_id' => $user->id,
                 'record_id' => $recordId,
+                'selfie_path' => $selfiePath,
+                'avatar_path' => $avatarPath,
+                'selfie_exists' => file_exists($selfiePath),
+                'avatar_exists' => file_exists($avatarPath),
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return [
@@ -715,8 +734,8 @@ class AttendanceService
 
     protected function getFaceSimilarityScore(string $selfiePath, string $avatarPath): int
     {
-        $selfie = Image::make($selfiePath)->resize(32, 32)->greyscale();
-        $avatar = Image::make($avatarPath)->resize(32, 32)->greyscale();
+        $selfie = $this->imageManager->read($selfiePath)->resize(32, 32)->greyscale();
+        $avatar = $this->imageManager->read($avatarPath)->resize(32, 32)->greyscale();
 
         $selfieHash = $this->imageHash($selfie);
         $avatarHash = $this->imageHash($avatar);
@@ -732,7 +751,9 @@ class AttendanceService
         $pixels = [];
         for ($x = 0; $x < 64; $x++) {
             for ($y = 0; $y < 64; $y++) {
-                $pixels[] = $resized->pickColor($x, $y)[0];
+                $color = $resized->pickColor($x, $y);
+                $channels = $color->toArray();
+                $pixels[] = $channels[0] ?? 0;
             }
         }
 
@@ -747,7 +768,9 @@ class AttendanceService
         $pixels = [];
         for ($x = 0; $x < 8; $x++) {
             for ($y = 0; $y < 8; $y++) {
-                $pixels[] = $image->pickColor($x, $y)[0];
+                $color = $image->pickColor($x, $y);
+                $channels = $color->toArray();
+                $pixels[] = $channels[0] ?? 0;
             }
         }
 
@@ -758,7 +781,7 @@ class AttendanceService
     protected function storeSelfieImage(string $selfiePath, int $studentId, int $recordId): string
     {
         $filename = sprintf('attendance_selfies/%s_%s_%s.jpg', $studentId, $recordId, time());
-        $image = Image::make($selfiePath)->orientate()->encode('jpg', 80);
+        $image = $this->imageManager->read($selfiePath)->encodeByExtension('jpg', 80);
         Storage::disk('public')->put($filename, (string) $image);
         return asset('storage/' . $filename);
     }
