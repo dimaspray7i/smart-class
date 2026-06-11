@@ -84,10 +84,10 @@ class UserController extends Controller
             $scheduleClassIds = $user->taughtSchedules->pluck('class_id')->toArray();
             $allClassIds = array_values(array_unique(array_filter(array_merge($classUserIds, $scheduleClassIds))));
 
-            // Load classes with students count
             $classes = \App\Models\ClassModel::whereIn('id', $allClassIds)
                 ->withCount(['students as students_count'])
-                ->get(['id', 'name', 'level', 'slug']);
+                ->get(['id', 'name', 'level', 'slug'])
+                ->makeHidden(['wali_kelas', 'subject_count', 'available_capacity', 'is_full', 'teacher_count']);
 
             // Total unique students across those classes
             $totalStudents = \App\Models\User::where('role', 'siswa')
@@ -373,8 +373,12 @@ class UserController extends Controller
             // Handle avatar update if provided
             if ($request->hasFile('avatar') && $result['user']) {
                 // Delete old avatar if exists
-                if ($result['user']->avatar_url && file_exists(public_path('storage/' . parse_url($result['user']->avatar_url, PHP_URL_PATH)))) {
-                    unlink(public_path('storage/' . parse_url($result['user']->avatar_url, PHP_URL_PATH)));
+                if ($result['user']->avatar_url) {
+                    $path = parse_url($result['user']->avatar_url, PHP_URL_PATH);
+                    $storagePath = preg_replace('/^\/?storage\//', '', $path);
+                    if (\Illuminate\Support\Facades\Storage::disk('public')->exists($storagePath)) {
+                        \Illuminate\Support\Facades\Storage::disk('public')->delete($storagePath);
+                    }
                 }
                 $avatarPath = $request->file('avatar')->store('avatars', 'public');
                 $result['user']->update(['avatar_url' => asset('storage/' . $avatarPath)]);

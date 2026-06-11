@@ -7,6 +7,7 @@ use App\Services\PermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -88,7 +89,7 @@ class PermissionController extends Controller
                 'auto_update_attendance' => 'nullable|boolean',
             ]);
 
-            $result = $this->permissionService->approve($id, $teacherId, $validated);
+            $result = $this->permissionService->approve($id, $teacherId, $validated['note'] ?? null);
 
             if (!$result['success']) {
                 return response()->json([
@@ -148,7 +149,7 @@ class PermissionController extends Controller
                 'notify_student' => 'nullable|boolean',
             ]);
 
-            $result = $this->permissionService->reject($id, $teacherId, $validated);
+            $result = $this->permissionService->reject($id, $teacherId, $validated['reason'] ?? null);
 
             if (!$result['success']) {
                 return response()->json([
@@ -260,57 +261,87 @@ class PermissionController extends Controller
     {
         try {
             $teacherId = $request->user()->id;
-            
+
             $validated = $request->validate([
-                'student_id' => 'required|exists:users,id',
-                'date_from' => 'required|date|after_or_equal:today',
-                'date_to' => 'required|date|after_or_equal:date_from',
-                'type' => 'required|in:Izin,Sakit',
-                'reason' => 'required|string|max:1000',
-                'attachment_url' => 'nullable|string|max:500',
+                'student_id'      => 'required|exists:users,id',
+                'date_from'       => 'required|date|after_or_equal:today',
+                'date_to'         => 'required|date|after_or_equal:date_from',
+                'type'            => 'required|in:Izin,Sakit',
+                'reason'          => 'required|string|max:1000',
+                'attachment_url'  => 'nullable|string|max:500',
                 'attachment_file' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
-                'notify_parent' => 'nullable|boolean',
+                'notify_parent'   => 'nullable|boolean',
             ]);
+
+            // ── SECURITY: IDOR prevention ────────────────────────────────
+            // Ensure the target student belongs to one of this teacher's classes.
+            // Without this check, a teacher from class A can proxy-submit
+            // permission requests for students of class B (Broken Access Control).
+            $teacherClassIds = DB::table('class_user')
+                ->where('user_id', $teacherId)
+                ->whereIn('role_in_class', ['wali_kelas', 'guru_pengampu'])
+                ->where('is_active', true)
+                ->pluck('class_id');
+
+            $studentBelongsToTeacher = DB::table('class_user')
+                ->where('user_id', $validated['student_id'])
+                ->where('role_in_class', 'siswa')
+                ->where('is_active', true)
+                ->whereIn('class_id', $teacherClassIds)
+                ->exists();
+
+            if (!$studentBelongsToTeacher) {
+                Log::warning('PermissionController::store IDOR attempt blocked', [
+                    'teacher_id' => $teacherId,
+                    'student_id' => $validated['student_id'],
+                ]);
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Anda tidak memiliki akses untuk mengajukan izin bagi siswa ini.',
+                    'code'    => 'FORBIDDEN_STUDENT',
+                ], 403);
+            }
+            // ────────────────────────────────────────────────────────────
 
             // Handle file upload if present
             if ($request->hasFile('attachment_file')) {
                 $validated['attachment_file'] = $request->file('attachment_file');
             }
 
-            $result = $this->permissionService->submit($teacherId, $validated);
+            $result = $this->permissionService->submit($validated['student_id'], $validated);
 
             if (!$result['success']) {
                 return response()->json([
-                    'status' => 'error',
+                    'status'  => 'error',
                     'message' => $result['message'],
-                    'code' => $result['code'] ?? 'SUBMIT_FAILED',
+                    'code'    => $result['code'] ?? 'SUBMIT_FAILED',
                 ], 400);
             }
 
             return response()->json([
-                'status' => 'success',
+                'status'  => 'success',
                 'message' => $result['message'],
-                'code' => 'SUBMIT_SUCCESS',
-                'data' => $result['permission'],
+                'code'    => 'SUBMIT_SUCCESS',
+                'data'    => $result['permission'],
             ], 201);
 
         } catch (ValidationException $e) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Validasi gagal.',
-                'code' => 'VALIDATION_ERROR',
-                'errors' => $e->errors(),
+                'code'    => 'VALIDATION_ERROR',
+                'errors'  => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             Log::error('PermissionController::store failed', [
                 'teacher_id' => $request->user()?->id,
-                'error' => $e->getMessage(),
+                'error'      => $e->getMessage(),
             ]);
 
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Gagal mengajukan permohonan izin.',
-                'code' => 'SUBMIT_ERROR',
+                'code'    => 'SUBMIT_ERROR',
             ], 500);
         }
     }

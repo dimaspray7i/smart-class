@@ -39,14 +39,17 @@ function PermissionCard({ permission, onApprove, onReject, isMutating }) {
             </div>
             <p className="font-retro-mono text-[10px] text-base-black/50 mt-0.5 flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {new Date(permission.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              {permission.date_from === permission.date_to 
+                ? new Date(permission.date_from).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                : `${new Date(permission.date_from).toLocaleDateString('id-ID')} - ${new Date(permission.date_to).toLocaleDateString('id-ID')}`
+              }
             </p>
             <AnimatePresence>
               {expanded && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mt-3">
                   <p className="font-retro-mono text-xs bg-base-gray/40 p-3 rounded-retro border border-base-black/20">{permission.reason}</p>
-                  {permission.attachment && (
-                    <a href={permission.attachment} target="_blank" rel="noopener noreferrer"
+                  {permission.attachment_url && (
+                    <a href={permission.attachment_url} target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 mt-2 text-retro-orange hover:underline font-retro-mono text-[10px]">
                       <Download className="w-3 h-3" /> Lihat Lampiran
                     </a>

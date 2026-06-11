@@ -768,14 +768,10 @@ class AttendanceController extends Controller
             $validated = $request->validate([
                 'format' => 'required|in:csv,xlsx',
                 'class_id' => 'nullable|exists:classes,id',
+                'date_from' => 'nullable|date',
+                'date_to' => 'nullable|date|after_or_equal:date_from',
+                'status' => 'nullable|in:Hadir,Terlambat,Izin,Sakit,Alpha',
                 'subject_id' => 'nullable|exists:subjects,id',
-                'start_date' => 'nullable|date',
-                'end_date' => 'nullable|date|after_or_equal:start_date',
-                'period_type' => 'nullable|in:week,month,semester,year,custom',
-                'week' => 'nullable|integer|min:1|max:53',
-                'month' => 'nullable|integer|min:1|max:12',
-                'year' => 'nullable|integer|min:2000|max:2100',
-                'semester' => 'nullable|in:1,2',
             ]);
 
             $result = $this->attendanceExportService->exportAttendance($teacherId, $validated);
@@ -818,6 +814,164 @@ class AttendanceController extends Controller
                 'status' => 'error',
                 'message' => 'Gagal export data absensi.',
                 'code' => 'EXPORT_ERROR',
+            ], 500);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // MISSING METHODS — added to fix BadMethodCallException
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * ✅ Bulk verify multiple attendance records at once.
+     * Route: POST /api/v1/teacher/attendance/bulk/verify
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function bulkVerify(Request $request): JsonResponse
+    {
+        try {
+            $teacherId = $request->user()->id;
+
+            $validated = $request->validate([
+                'attendance_ids' => 'required|array|min:1',
+                'attendance_ids.*' => 'required|integer|exists:attendances,id',
+                'status' => 'required|in:Hadir,Terlambat,Izin,Sakit,Alpha',
+                'notes' => 'nullable|string|max:500',
+            ]);
+
+            $processed = [];
+            $failed    = [];
+            $errors    = [];
+
+            foreach ($validated['attendance_ids'] as $attendanceId) {
+                try {
+                    $result = $this->attendanceService->manualVerify(
+                        $teacherId,
+                        $attendanceId,
+                        $validated['status']
+                    );
+
+                    if ($result['success']) {
+                        $processed[] = $attendanceId;
+                    } else {
+                        $failed[]           = $attendanceId;
+                        $errors[$attendanceId] = $result['message'] ?? 'Unknown error';
+                    }
+                } catch (\Exception $e) {
+                    $failed[]           = $attendanceId;
+                    $errors[$attendanceId] = $e->getMessage();
+                }
+            }
+
+            $totalProcessed = count($processed);
+            $totalFailed    = count($failed);
+
+            Log::info('AttendanceController::bulkVerify completed', [
+                'teacher_id'    => $teacherId,
+                'processed'     => $totalProcessed,
+                'failed'        => $totalFailed,
+                'status_target' => $validated['status'],
+            ]);
+
+            return response()->json([
+                'status'  => $totalProcessed > 0 ? 'success' : 'error',
+                'message' => "{$totalProcessed} data absensi berhasil diverifikasi, {$totalFailed} gagal.",
+                'code'    => 'BULK_VERIFY_DONE',
+                'data'    => [
+                    'processed' => $processed,
+                    'failed'    => $failed,
+                    'errors'    => $errors,
+                ],
+            ], $totalProcessed > 0 ? 200 : 400);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Validasi gagal.',
+                'code'    => 'VALIDATION_ERROR',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('AttendanceController::bulkVerify failed', [
+                'teacher_id' => $request->user()?->id,
+                'error'      => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal memproses verifikasi massal absensi.',
+                'code'    => 'BULK_VERIFY_ERROR',
+            ], 500);
+        }
+    }
+
+    /**
+     * 📤 Bulk export attendance records as CSV.
+     * Route: POST /api/v1/teacher/attendance/bulk/export
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\Response|JsonResponse
+     */
+    public function bulkExport(Request $request)
+    {
+        try {
+            $teacherId = $request->user()->id;
+
+            $validated = $request->validate([
+                'format'          => 'nullable|in:csv,xlsx',
+                'attendance_ids'  => 'nullable|array',
+                'attendance_ids.*'=> 'integer|exists:attendances,id',
+                'class_id'        => 'nullable|exists:classes,id',
+                'date_from'       => 'nullable|date',
+                'date_to'         => 'nullable|date|after_or_equal:date_from',
+                'status'          => 'nullable|in:Hadir,Terlambat,Izin,Sakit,Alpha',
+            ]);
+
+            // Delegate to the existing export service, injecting format default
+            $validated['format'] = $validated['format'] ?? 'csv';
+
+            $result = $this->attendanceExportService->exportAttendance($teacherId, $validated);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => $result['message'],
+                    'code'    => $result['code'] ?? 'BULK_EXPORT_FAILED',
+                ], 400);
+            }
+
+            $headers = [
+                'Content-Type'        => $result['content_type'],
+                'Content-Disposition' => "attachment; filename=\"{$result['filename']}\"",
+            ];
+
+            if (isset($result['file_content'])) {
+                $headers['Content-Length'] = (string) mb_strlen($result['file_content'], '8bit');
+            }
+
+            return response()->streamDownload(function () use ($result) {
+                echo $result['file_content'];
+            }, $result['filename'], $headers);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Validasi parameter export gagal.',
+                'code'    => 'VALIDATION_ERROR',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('AttendanceController::bulkExport failed', [
+                'teacher_id' => $request->user()?->id,
+                'error'      => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal mengekspor data absensi secara massal.',
+                'code'    => 'BULK_EXPORT_ERROR',
             ], 500);
         }
     }

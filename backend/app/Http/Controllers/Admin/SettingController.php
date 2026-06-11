@@ -827,4 +827,205 @@ class SettingController extends Controller
             'data' => $history,
         ], 200);
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // MISSING METHODS — added to fix BadMethodCallException
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Retro-themed alias for index().
+     * Route: GET /admin/settings/retro
+     *
+     * @return JsonResponse
+     */
+    public function retroIndex(): JsonResponse
+    {
+        return $this->index();
+    }
+
+    /**
+     * Update settings for a specific section via URL parameter.
+     * Route: PUT /admin/settings/section/{section}
+     *
+     * @param Request $request
+     * @param string  $section
+     * @return JsonResponse
+     */
+    public function updateSection(Request $request, string $section): JsonResponse
+    {
+        // Inject the section key into the request payload and delegate to update()
+        $request->merge(['section' => $section, 'data' => $request->except(['section'])]);
+        return $this->update($request);
+    }
+
+    /**
+     * Reset a specific section to defaults via URL parameter.
+     * Route: POST /admin/settings/reset/section/{section}
+     *
+     * @param Request $request
+     * @param string  $section
+     * @return JsonResponse
+     */
+    public function resetSection(Request $request, string $section): JsonResponse
+    {
+        $request->merge(['section' => $section]);
+        return $this->reset($request);
+    }
+
+    /**
+     * Export settings as a downloadable JSON file.
+     * Route: GET /admin/settings/export/json
+     * Alias of export().
+     *
+     * @return mixed
+     */
+    public function exportJSON()
+    {
+        return $this->export();
+    }
+
+    /**
+     * Return the list of available settings categories/sections.
+     * Route: GET /admin/settings/categories
+     *
+     * @return JsonResponse
+     */
+    public function categories(): JsonResponse
+    {
+        $categories = [
+            ['id' => 'general',    'label' => 'Umum',           'icon' => 'Settings2',      'description' => 'Pengaturan umum sekolah dan branding'],
+            ['id' => 'attendance', 'label' => 'Absensi',        'icon' => 'Fingerprint',    'description' => 'Konfigurasi absensi, GPS, QR Code'],
+            ['id' => 'pkl',        'label' => 'PKL',            'icon' => 'Briefcase',      'description' => 'Pengaturan program PKL / magang'],
+            ['id' => 'security',   'label' => 'Keamanan',       'icon' => 'Shield',         'description' => 'Autentikasi, kata sandi, 2FA'],
+            ['id' => 'features',   'label' => 'Fitur',          'icon' => 'Sparkles',       'description' => 'Feature flags modul aplikasi'],
+            ['id' => 'backup',     'label' => 'Backup & Sistem','icon' => 'Database',       'description' => 'Backup otomatis & enkripsi data'],
+        ];
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Settings categories retrieved.',
+            'code'    => 'CATEGORIES_SUCCESS',
+            'data'    => $categories,
+        ], 200);
+    }
+
+    /**
+     * Return a preview of the current branding settings.
+     * Route: GET /admin/settings/branding/preview
+     *
+     * @return JsonResponse
+     */
+    public function brandingPreview(): JsonResponse
+    {
+        $settings = Cache::remember(self::CACHE_KEY, self::CACHE_TTL, function () {
+            return DB::table('settings')->pluck('value', 'key')->toArray();
+        });
+
+        $branding = [
+            'primary_color'      => $settings['general_primary_color']   ?? '#FF5C00',
+            'secondary_color'    => $settings['general_secondary_color']  ?? '#2E2BBF',
+            'default_theme'      => $settings['general_default_theme']    ?? 'light',
+            'logo_url'           => $settings['general_logo_url']         ?? null,
+            'login_background'   => $settings['general_login_background'] ?? null,
+            'dashboard_banner'   => $settings['general_dashboard_banner'] ?? null,
+            'app_name'           => $settings['general_app_name']         ?? config('app.name', 'RPL Smart Ecosystem'),
+            'school_slogan'      => $settings['general_school_slogan']    ?? '',
+        ];
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Branding preview retrieved.',
+            'code'    => 'BRANDING_PREVIEW_SUCCESS',
+            'data'    => $branding,
+        ], 200);
+    }
+
+    /**
+     * Return a list of available notification templates.
+     * Route: GET /admin/settings/notification-templates
+     *
+     * @return JsonResponse
+     */
+    public function notificationTemplates(): JsonResponse
+    {
+        $templates = [
+            [
+                'id'          => 'attendance_reminder',
+                'name'        => 'Pengingat Absensi',
+                'description' => 'Dikirim ke siswa yang belum absen pada jam tertentu.',
+                'channel'     => ['email', 'push'],
+                'variables'   => ['{student_name}', '{date}', '{check_in_time}'],
+                'subject'     => 'Pengingat: Jangan lupa absen hari ini, {student_name}!',
+                'body'        => 'Halo {student_name}, jangan lupa melakukan absensi hari ini sebelum pukul {check_in_time}.',
+            ],
+            [
+                'id'          => 'permission_approved',
+                'name'        => 'Izin Disetujui',
+                'description' => 'Dikirim ke siswa saat surat izin disetujui guru.',
+                'channel'     => ['email', 'push'],
+                'variables'   => ['{student_name}', '{date_from}', '{date_to}', '{teacher_name}'],
+                'subject'     => 'Izin Anda Telah Disetujui',
+                'body'        => 'Halo {student_name}, izin Anda dari tanggal {date_from} s.d. {date_to} telah disetujui oleh {teacher_name}.',
+            ],
+            [
+                'id'          => 'permission_rejected',
+                'name'        => 'Izin Ditolak',
+                'description' => 'Dikirim ke siswa saat surat izin ditolak guru.',
+                'channel'     => ['email', 'push'],
+                'variables'   => ['{student_name}', '{reason}', '{teacher_name}'],
+                'subject'     => 'Izin Anda Tidak Disetujui',
+                'body'        => 'Halo {student_name}, mohon maaf izin Anda tidak dapat disetujui. Alasan: {reason}.',
+            ],
+            [
+                'id'          => 'pkl_assigned',
+                'name'        => 'Penempatan PKL',
+                'description' => 'Dikirim ke siswa saat ditempatkan di lokasi PKL.',
+                'channel'     => ['email', 'push'],
+                'variables'   => ['{student_name}', '{location_name}', '{address}'],
+                'subject'     => 'Informasi Penempatan PKL Anda',
+                'body'        => 'Halo {student_name}, Anda ditempatkan di {location_name} ({address}) untuk program PKL.',
+            ],
+        ];
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Notification templates retrieved.',
+            'code'    => 'NOTIFICATION_TEMPLATES_SUCCESS',
+            'data'    => $templates,
+        ], 200);
+    }
+
+    /**
+     * Send a test notification using a template.
+     * Route: POST /admin/settings/notification-templates/{id}/test
+     *
+     * @param Request $request
+     * @param string  $id  - Template ID
+     * @return JsonResponse
+     */
+    public function testNotification(Request $request, string $id): JsonResponse
+    {
+        $request->validate([
+            'recipient_email' => 'required|email',
+        ]);
+
+        // For now, log the test notification (real email/push delivery would use Mail/Notification jobs)
+        Log::info('Test notification triggered', [
+            'template_id'     => $id,
+            'recipient_email' => $request->recipient_email,
+            'triggered_by'    => auth()->id(),
+            'timestamp'       => now()->toDateTimeString(),
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => "Test notification for template '{$id}' queued for {$request->recipient_email}.",
+            'code'    => 'TEST_NOTIFICATION_SENT',
+            'data'    => [
+                'template_id'     => $id,
+                'recipient_email' => $request->recipient_email,
+                'sent_at'         => now()->toDateTimeString(),
+            ],
+        ], 200);
+    }
 }

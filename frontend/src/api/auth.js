@@ -208,24 +208,28 @@ export const getLastLogin = () => {
 
 /**
  * 🔄 Check if token is about to expire (within 5 minutes)
- * @param {string} [token] - JWT token string (optional, uses stored token if not provided)
+ * 
+ * NOTE: Laravel Sanctum uses opaque tokens (NOT JWTs), so we cannot decode
+ * an expiry timestamp from the token string itself. Instead, we use a
+ * sliding-session approach based on the last login timestamp stored locally.
+ * The Axios 401 interceptor also handles true server-side token expiry.
+ *
+ * @param {string} [token] - Token string (optional, uses stored token if not provided)
  * @returns {boolean}
  */
 export const isTokenExpiring = (token) => {
-  try {
-    const tokenToCheck = token || getToken()
-    if (!tokenToCheck) return true
-    
-    // Decode JWT payload (base64url)
-    const payload = tokenToCheck.split('.')[1]
-    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
-    
-    const expiry = decoded.exp * 1000 // Convert to milliseconds
-    const now = Date.now()
-    const fiveMinutes = 5 * 60 * 1000
-    
-    return expiry - now < fiveMinutes
-  } catch {
-    return true // Assume expired if we can't decode
-  }
+  const tokenToCheck = token || getToken()
+  if (!tokenToCheck) return true
+
+  const lastLogin = getLastLogin()
+  if (!lastLogin) return true
+
+  // Sliding session: consider token "expiring" after 115 minutes (of a 2h window)
+  // so we can proactively refresh or re-prompt login with 5 min to spare.
+  const sessionDurationMs = 2 * 60 * 60 * 1000       // 2 hours in ms
+  const fiveMinutesMs     = 5 * 60 * 1000              // 5 minutes buffer
+  const expiry = lastLogin.getTime() + sessionDurationMs
+  const now    = Date.now()
+
+  return expiry - now < fiveMinutesMs
 }

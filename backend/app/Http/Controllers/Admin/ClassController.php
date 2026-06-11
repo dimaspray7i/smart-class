@@ -298,7 +298,8 @@ class ClassController extends Controller
 
             DB::commit();
 
-            $class->load(['teachers', 'waliKelasRelation', 'subjectsRelation']);
+            $class->load(['teachers', 'waliKelasRelation', 'subjectsRelation'])
+                  ->loadCount(['students', 'subjectsRelation as subjects_count']);
 
             return response()->json([
                 'status' => 'success',
@@ -405,8 +406,11 @@ class ClassController extends Controller
         $filters = $request->only(['level', 'is_active', 'search']);
         
         $query = ClassModel::query()
-            ->withCount(['students', 'subjects'])
-            ->with(['teachers' => fn($q) => $q->select('users.name')->limit(3)]);
+            ->withCount(['students', 'subjectsRelation as subjects_count'])
+            ->with([
+                'teachers' => fn($q) => $q->select('users.name')->limit(3),
+                'waliKelasRelation'
+            ]);
 
         if (!empty($filters['search'])) {
             $query->where('name', 'like', "%{$filters['search']}%");

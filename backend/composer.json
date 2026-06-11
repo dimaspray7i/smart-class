@@ -12,6 +12,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "phpoffice/phpspreadsheet": "^5.7",
+        "pragmarx/google2fa": "*",
         "predis/predis": "^3.4",
         "spatie/laravel-permission": "^6.25"
     },

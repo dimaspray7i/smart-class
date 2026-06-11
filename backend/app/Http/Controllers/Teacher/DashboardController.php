@@ -304,7 +304,8 @@ class DashboardController extends Controller
                 
             $classIds = array_unique(array_merge($scheduleClassIds, $classUserIds));
                 
-            $classes = ClassModel::whereIn('id', $classIds)->get();
+            $classes = ClassModel::whereIn('id', $classIds)->get()
+                ->makeHidden(['wali_kelas', 'student_count', 'subject_count', 'available_capacity', 'is_full', 'teacher_count']);
             
             return response()->json([
                 'status' => 'success',
