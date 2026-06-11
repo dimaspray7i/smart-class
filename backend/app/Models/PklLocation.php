@@ -80,6 +80,14 @@ class PklLocation extends Model
     }
 
     /**
+     * Get students assigned to this location.
+     */
+    public function students(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(User::class, 'pkl_location_id');
+    }
+
+    /**
      * Check if location is within valid distance from student coordinates.
      */
     public function isWithinRadius(float $lat, float $lng): bool

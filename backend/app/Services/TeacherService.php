@@ -56,7 +56,7 @@ class TeacherService
                 ->whereHas('student', function ($q) use ($studentIds) {
                     $q->whereIn('id', $studentIds);
                 })
-                ->with(['student.user' => fn($q) => $q->select('id', 'name', 'avatar_url')])
+                ->with(['student' => fn($q) => $q->select('id', 'name', 'avatar_url')])
                 ->latest()
                 ->limit(5)
                 ->get()
@@ -64,8 +64,8 @@ class TeacherService
                     'id' => $p->id,
                     'student' => [
                         'id' => $p->student->id,
-                        'name' => $p->student->user?->name,
-                        'avatar_url' => $p->student->user?->avatar_url,
+                        'name' => $p->student?->name,
+                        'avatar_url' => $p->student?->avatar_url,
                     ],
                     'type' => $p->type,
                     'type_label' => $p->type_label,
@@ -695,13 +695,13 @@ class TeacherService
     {
         return Permission::whereHas('student', fn($q) => $q->whereIn('id', $studentIds))
             ->whereBetween('date_from', [$startDate, $endDate])
-            ->with(['student.user' => fn($q) => $q->select('id', 'name', 'email')])
+            ->with(['student' => fn($q) => $q->select('id', 'name', 'email')])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(fn($p) => [
                 'id' => $p->id,
-                'student_name' => $p->student->user?->name,
-                'student_email' => $p->student->user?->email,
+                'student_name' => $p->student?->name,
+                'student_email' => $p->student?->email,
                 'type' => $p->type,
                 'date_from' => $p->date_from,
                 'date_to' => $p->date_to,

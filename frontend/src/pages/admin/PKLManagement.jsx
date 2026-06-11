@@ -154,6 +154,18 @@ export default function PKLManagement() {
     }
   });
 
+  const unassignMutation = useMutation({
+    mutationFn: (studentId) => adminAPI.unassignPklStudent(studentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['pkl-students']);
+      queryClient.invalidateQueries(['pkl-locations']);
+      showToast('✅ Penempatan siswa berhasil dibatalkan!', 'success');
+    },
+    onError: (err) => {
+      showToast(`❌ ${err.message || 'Gagal membatalkan penempatan siswa'}`, 'error');
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id) => adminAPI.deletePklLocation(id),
     onSuccess: () => {
@@ -384,7 +396,14 @@ export default function PKLManagement() {
                       <select 
                         className="bg-base-white border-2 border-base-black rounded-retro-sm px-3 py-1.5 text-xs font-retro-mono focus:border-retro-orange focus:outline-none"
                         value={row.pkl_location_id || ''}
-                        onChange={(e) => assignMutation.mutate({ student_ids: [row.id], pkl_location_id: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '') {
+                            unassignMutation.mutate(row.id);
+                          } else {
+                            assignMutation.mutate({ student_ids: [row.id], pkl_location_id: val });
+                          }
+                        }}
                       >
                         <option value="">Batalkan Penempatan</option>
                         {ensureArray(locationsData).map(loc => (

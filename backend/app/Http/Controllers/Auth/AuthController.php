@@ -116,8 +116,13 @@ class AuthController extends Controller
                 'device_info' => 'nullable|array',
             ]);
 
-            // Attempt authentication
-            if (!auth()->attempt($credentials)) {
+            // Attempt authentication using only email and password
+            $loginCredentials = [
+                'email' => $credentials['email'],
+                'password' => $credentials['password'],
+            ];
+
+            if (!auth()->attempt($loginCredentials)) {
                 // Track failed attempt for security
                 $this->trackFailedLogin($request->ip(), $credentials['email']);
                 
@@ -909,27 +914,32 @@ class AuthController extends Controller
             // Check cache for setup code (authenticator app setup)
             $setupSecret = Cache::get("2fa_setup_{$user->id}");
             if ($setupSecret) {
-                // Verify TOTP code (implement with google2fa or similar)
-                // if (Google2FA::verifyKey($setupSecret, $validated['code'])) {
-                if ($validated['code'] === '123456') { // Demo: accept any 6-digit code
+                // Verify TOTP code using pragmarx/google2fa (real-time TOTP check)
+                $google2fa = new \PragmaRX\Google2FA\Google2FA();
+                $isValid = $google2fa->verifyKey($setupSecret, $validated['code']);
+
+                if ($isValid) {
                     // Enable 2FA permanently
                     $user->update([
                         'two_factor_enabled' => true,
-                        'two_factor_method' => 'authenticator',
-                        'two_factor_secret' => $setupSecret,
+                        'two_factor_method'  => 'authenticator',
+                        'two_factor_secret'  => $setupSecret,
                     ]);
                     Cache::forget("2fa_setup_{$user->id}");
-                    
+
+                    Log::info('2FA enabled via TOTP', ['user_id' => $user->id]);
+
                     return response()->json([
-                        'status' => 'success',
+                        'status'  => 'success',
                         'message' => 'Two-factor authentication enabled successfully! 🎉',
-                        'code' => '2FA_ENABLED',
+                        'code'    => '2FA_ENABLED',
                     ], 200);
                 }
+
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Invalid verification code.',
-                    'code' => '2FA_INVALID_CODE',
+                    'status'  => 'error',
+                    'message' => 'Invalid verification code. Please try again.',
+                    'code'    => '2FA_INVALID_CODE',
                 ], 400);
             }
 

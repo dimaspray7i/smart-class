@@ -39,7 +39,7 @@ class PermissionService
                 ->pluck('user_id');
 
             $query = Permission::whereIn('user_id', $studentIds)
-                ->with(['student.user:id,name,email,avatar_url']);
+                ->with(['student:id,name,email,avatar_url']);
 
             // Apply Filters
             if (!empty($filters['status'])) {
@@ -359,5 +359,179 @@ class PermissionService
             'pending' => 'yellow',
             default => 'gray',
         };
+    }
+
+    /**
+     * Bulk process permissions (approve/reject multiple)
+     */
+    public function bulkProcess(int $teacherId, array $data): array
+    {
+        $processed = [];
+        $failed = [];
+        $errors = [];
+
+        foreach ($data['permission_ids'] as $id) {
+            try {
+                if ($data['action'] === 'approve') {
+                    $res = $this->approve($id, $teacherId, $data['note'] ?? null);
+                } else {
+                    $res = $this->reject($id, $teacherId, $data['reason'] ?? null);
+                }
+
+                if ($res['success']) {
+                    $processed[] = $id;
+                } else {
+                    $failed[] = $id;
+                    $errors[$id] = $res['message'];
+                }
+            } catch (\Exception $e) {
+                $failed[] = $id;
+                $errors[$id] = $e->getMessage();
+            }
+        }
+
+        return [
+            'success' => count($processed) > 0,
+            'message' => count($processed) . ' permohonan berhasil diproses, ' . count($failed) . ' gagal.',
+            'processed' => $processed,
+            'failed' => $failed,
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * Get permission history
+     */
+    public function getHistory(int $teacherId, array $filters = [], int $perPage = 20): array
+    {
+        return $this->getPermissions($teacherId, $filters, $perPage);
+    }
+
+    /**
+     * Get permission analytics/statistics
+     */
+    public function getAnalytics(int $teacherId, string $period = 'monthly'): array
+    {
+        $classIds = DB::table('class_user')
+            ->where('user_id', $teacherId)
+            ->whereIn('role_in_class', ['wali_kelas', 'guru_pengampu'])
+            ->where('is_active', true)
+            ->pluck('class_id');
+
+        if ($classIds->isEmpty()) {
+            return [
+                'total' => 0,
+                'pending' => 0,
+                'approved' => 0,
+                'rejected' => 0,
+                'by_type' => ['Izin' => 0, 'Sakit' => 0],
+            ];
+        }
+
+        $studentIds = DB::table('class_user')
+            ->whereIn('class_id', $classIds)
+            ->where('role_in_class', 'siswa')
+            ->where('is_active', true)
+            ->pluck('user_id');
+
+        $total = Permission::whereIn('user_id', $studentIds)->count();
+        $pending = Permission::whereIn('user_id', $studentIds)->where('status', 'pending')->count();
+        $approved = Permission::whereIn('user_id', $studentIds)->where('status', 'approved')->count();
+        $rejected = Permission::whereIn('user_id', $studentIds)->where('status', 'rejected')->count();
+        
+        $sick = Permission::whereIn('user_id', $studentIds)->where('type', 'Sakit')->count();
+        $permit = Permission::whereIn('user_id', $studentIds)->where('type', 'Izin')->count();
+
+        return [
+            'total' => $total,
+            'pending' => $pending,
+            'approved' => $approved,
+            'rejected' => $rejected,
+            'by_type' => [
+                'Izin' => $permit,
+                'Sakit' => $sick,
+            ]
+        ];
+    }
+
+    /**
+     * Export permissions data
+     */
+    public function exportData(int $teacherId, array $filters): array
+    {
+        $classIds = DB::table('class_user')
+            ->where('user_id', $teacherId)
+            ->whereIn('role_in_class', ['wali_kelas', 'guru_pengampu'])
+            ->where('is_active', true)
+            ->pluck('class_id');
+
+        if ($classIds->isEmpty()) {
+            return ['success' => false, 'message' => 'No classes found.'];
+        }
+
+        $studentIds = DB::table('class_user')
+            ->whereIn('class_id', $classIds)
+            ->where('role_in_class', 'siswa')
+            ->where('is_active', true)
+            ->pluck('user_id');
+
+        $query = Permission::whereIn('user_id', $studentIds)->with('student');
+
+        if (!empty($filters['status']) && $filters['status'] !== 'all') {
+            $query->where('status', $filters['status']);
+        }
+        if (!empty($filters['start_date'])) {
+            $query->where('date_from', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('date_to', '<=', $filters['end_date']);
+        }
+        if (!empty($filters['class_id'])) {
+            $specificStudentIds = DB::table('class_user')
+                ->where('class_id', $filters['class_id'])
+                ->where('role_in_class', 'siswa')
+                ->pluck('user_id');
+            $query->whereIn('user_id', $specificStudentIds);
+        }
+
+        $permissions = $query->orderBy('created_at', 'desc')->get();
+
+        if ($filters['format'] === 'json') {
+            return [
+                'success' => true,
+                'data' => $permissions,
+            ];
+        }
+
+        $filename = 'permissions_export_' . now()->format('Ymd_His') . '.csv';
+        $headers = ['ID', 'Nama Siswa', 'Tipe', 'Dari', 'Sampai', 'Alasan', 'Status', 'Catatan', 'Diajukan Pada'];
+
+        $callback = fopen('php://temp', 'r+');
+        fputcsv($callback, $headers);
+
+        foreach ($permissions as $p) {
+            fputcsv($callback, [
+                $p->id,
+                $p->student?->name ?? 'N/A',
+                $p->type,
+                $p->date_from->format('Y-m-d'),
+                $p->date_to->format('Y-m-d'),
+                $p->reason,
+                $p->status,
+                $p->note ?? '',
+                $p->created_at->format('Y-m-d H:i:s'),
+            ]);
+        }
+
+        rewind($callback);
+        $content = stream_get_contents($callback);
+        fclose($callback);
+
+        return [
+            'success' => true,
+            'file_content' => $content,
+            'filename' => $filename,
+            'content_type' => 'text/csv',
+        ];
     }
 }

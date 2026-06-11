@@ -712,6 +712,45 @@ class PklLocationController extends Controller
     }
 
     /**
+     * Unassign a single student from PKL location.
+     */
+    public function unassignStudent(int $studentId): JsonResponse
+    {
+        try {
+            $user = User::where('id', $studentId)->where('role', 'siswa')->first();
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Student not found.',
+                    'code' => 'NOT_FOUND',
+                ], 404);
+            }
+
+            $user->update(['pkl_location_id' => null]);
+
+            Log::info('Student unassigned from PKL', [
+                'student_id' => $studentId,
+                'unassigned_by' => auth()->id(),
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Student unassigned from PKL successfully.',
+                'code' => 'PKL_UNASSIGN_SUCCESS',
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('PklLocationController::unassignStudent failed', [
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to unassign student.',
+                'code' => 'SERVER_ERROR',
+            ], 500);
+        }
+    }
+
+    /**
      * Export PKL locations to CSV.
      */
     public function export(Request $request): \Illuminate\Http\Response
