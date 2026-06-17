@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QrCode, ShieldAlert, Sparkles, CheckSquare, Camera } from 'lucide-react';
-import studentApi from '../../../api/student';
 import { motion } from 'framer-motion';
 import { PageHeader, RetroCard } from '../../../components/ui/RetroLayouts';
 
@@ -24,49 +23,55 @@ export default function StudentQRScan() {
 
   const handleScanSubmit = async (e) => {
     e.preventDefault();
-    if (!qrCodeData) return;
+    if (!qrCodeData.trim()) return;
 
-      try {
+    try {
       setSubmitting(true);
       setError(null);
       setSuccess(null);
 
-      // Verify QR Code Absensi with coordinates
-      const payload = {
-        qr_code: qrCodeData,
-        // don't send fixed coords here; let student attendance page obtain accurate GPS
-      };
+      // Extract code from QR data - QR contains code or URL with code parameter
+      let code = qrCodeData.trim();
 
-      const res = await studentApi.verifyQR(payload);
-      if (res.status === 'success') {
-        // If backend returns a session code, route to attendance page with code param
-        const sessionCode = res.data?.session?.code || res.data?.code || res.data?.verification_code;
-        if (sessionCode) {
-          setSuccess('Kode QR valid. Mengarahkan ke halaman absensi...');
-          setTimeout(() => {
-            navigate(`/dashboard/student/attendance?code=${encodeURIComponent(sessionCode)}`);
-          }, 800);
-          return;
-        }
-
-        // Fallback: if no session code returned, show success message
-        setSuccess(res.message || 'Absensi Berhasil Diverifikasi!');
-        setTimeout(() => navigate('/dashboard/student/attendance'), 1200);
-      } else {
-        setError(res.message || 'Kode QR tidak valid atau kedaluwarsa.');
+      // If QR contains full URL, extract code parameter
+      if (code.includes('code=')) {
+        const urlParams = new URLSearchParams(code.split('?')[1] || '');
+        code = urlParams.get('code');
       }
+
+      // If QR contains session ID, extract code as well
+      if (code.includes('sid=')) {
+        const urlParams = new URLSearchParams(code.split('?')[1] || '');
+        code = urlParams.get('code');
+      }
+
+      if (!code || code.length !== 6) {
+        setError('Format kode QR tidak valid. Kode harus 6 karakter alphanumerik.');
+        return;
+      }
+
+      // Redirect to attendance page with code for actual submission
+      setSuccess('Kode QR valid. Mengarahkan ke halaman absensi...');
+      setTimeout(() => {
+        navigate(`/dashboard/student/attendance?code=${encodeURIComponent(code.toUpperCase())}`);
+      }, 600);
+
     } catch (err) {
-      console.error(err);
-      setError(err?.message || err?.response?.data?.message || 'Gagal memverifikasi presensi. Silakan coba lagi.');
+      console.error('QR Scan Error:', err);
+      setError('Gagal memproses kode QR. Silakan coba lagi.');
     } finally {
       setSubmitting(false);
     }
   };
 
   const simulateQuickScan = () => {
-    // Generate a typical session token for testing
-    const simulatedToken = `CLASSROOM_SESSION_${Date.now()}`;
-    setQrCodeData(simulatedToken);
+    // Generate a proper 6-character attendance code
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setQrCodeData(code);
   };
 
   return (
