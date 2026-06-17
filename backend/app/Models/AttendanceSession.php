@@ -33,12 +33,12 @@ class AttendanceSession extends Model
         'valid_from',
         'valid_until',
         'is_active',
+        'is_manual',
         'max_uses',
         'used_count',
         'radius_meters',
         'center_lat',
         'center_lng',
-        // PKL: Link session to specific PKL location if created for PKL
         'pkl_location_id',
     ];
 
@@ -53,6 +53,7 @@ class AttendanceSession extends Model
             'valid_from' => 'datetime',
             'valid_until' => 'datetime',
             'is_active' => 'boolean',
+            'is_manual' => 'boolean',
             'radius_meters' => 'integer',
             'center_lat' => 'float',
             'center_lng' => 'float',
