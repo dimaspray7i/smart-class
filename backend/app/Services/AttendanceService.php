@@ -270,13 +270,27 @@ class AttendanceService
         $retentionDays = config('app.analytics_retention_days', 90);
         $since = Carbon::today()->subDays($retentionDays);
 
-        $total = Attendance::where('user_id', $userId)->where('date', '>=', $since)->count();
-        $hadir = Attendance::where('user_id', $userId)->where('status', 'Hadir')->where('date', '>=', $since)->count();
-        $terlambat = Attendance::where('user_id', $userId)->where('status', 'Terlambat')->where('date', '>=', $since)->count();
-        $izin = Attendance::where('user_id', $userId)->where('status', 'Izin')->where('date', '>=', $since)->count();
-        $sakit = Attendance::where('user_id', $userId)->where('status', 'Sakit')->where('date', '>=', $since)->count();
-        $alpha = Attendance::where('user_id', $userId)->where('status', 'Alpha')->where('date', '>=', $since)->count();
-        $pklCount = Attendance::where('user_id', $userId)->whereNotNull('pkl_location_id')->where('date', '>=', $since)->count();
+        // OPTIMIZED: Single query instead of 7 separate queries
+        $stats = Attendance::where('user_id', $userId)
+            ->where('date', '>=', $since)
+            ->select(
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(CASE WHEN status = 'Hadir' THEN 1 ELSE 0 END) as hadir_count"),
+                DB::raw("SUM(CASE WHEN status = 'Terlambat' THEN 1 ELSE 0 END) as terlambat_count"),
+                DB::raw("SUM(CASE WHEN status = 'Izin' THEN 1 ELSE 0 END) as izin_count"),
+                DB::raw("SUM(CASE WHEN status = 'Sakit' THEN 1 ELSE 0 END) as sakit_count"),
+                DB::raw("SUM(CASE WHEN status = 'Alpha' THEN 1 ELSE 0 END) as alpha_count"),
+                DB::raw("SUM(CASE WHEN pkl_location_id IS NOT NULL THEN 1 ELSE 0 END) as pkl_count")
+            )
+            ->first();
+
+        $total = $stats->total ?? 0;
+        $hadir = $stats->hadir_count ?? 0;
+        $terlambat = $stats->terlambat_count ?? 0;
+        $izin = $stats->izin_count ?? 0;
+        $sakit = $stats->sakit_count ?? 0;
+        $alpha = $stats->alpha_count ?? 0;
+        $pklCount = $stats->pkl_count ?? 0;
 
         return [
             'period' => [
