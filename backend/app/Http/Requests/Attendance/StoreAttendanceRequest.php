@@ -27,6 +27,7 @@ class StoreAttendanceRequest extends FormRequest
         return [
             'lat'        => 'required|numeric|between:-90,90',
             'lng'        => 'required|numeric|between:-180,180',
+            'accuracy'   => 'nullable|numeric|min:0',
             'code'       => 'required|string|size:6',
             'photo_url'  => 'nullable|string|url|max:500',
             'device'     => 'nullable|string|in:web,android,ios',
@@ -47,6 +48,8 @@ class StoreAttendanceRequest extends FormRequest
             'lng.required'        => 'Longitude (koordinat lokasi) wajib diisi.',
             'lng.numeric'         => 'Longitude harus berupa angka.',
             'lng.between'         => 'Longitude tidak valid (harus antara -180 sampai 180).',
+            'accuracy.numeric'    => 'Akurasi GPS harus berupa angka.',
+            'accuracy.min'        => 'Akurasi GPS tidak boleh negatif.',
             'code.required'       => 'Kode absensi wajib diisi.',
             'code.string'         => 'Kode absensi harus berupa teks.',
             'code.size'           => 'Kode absensi harus 6 karakter.',

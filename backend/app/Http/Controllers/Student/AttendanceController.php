@@ -32,11 +32,12 @@ class AttendanceController extends Controller
 
         if (!$result['success']) {
             $statusCode = match ($result['code']) {
-                'ALREADY_ATTENDED' => 409, // Conflict
-                'INVALID_CODE' => 400,     // Bad Request
-                'OUT_OF_RADIUS' => 400,    // Bad Request
-                'OUT_OF_TIME_WINDOW' => 403, // Forbidden
-                default => 422,            // Unprocessable Entity
+                'ALREADY_ATTENDED' => 409,      // Conflict
+                'INVALID_CODE' => 400,          // Bad Request
+                'OUT_OF_RADIUS' => 400,         // Bad Request
+                'POOR_GPS_ACCURACY' => 400,     // Bad Request
+                'OUT_OF_TIME_WINDOW' => 403,    // Forbidden
+                default => 422,                 // Unprocessable Entity
             };
 
             return response()->json([

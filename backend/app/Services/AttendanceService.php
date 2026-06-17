@@ -104,7 +104,24 @@ class AttendanceService
                 }
             }
 
-            // 3. Validate: Location radius (using determined center & radius)
+            // 3. Validate: GPS accuracy threshold
+            $accuracy = isset($data['accuracy']) ? (int) $data['accuracy'] : null;
+            $minAccuracyThreshold = config('app.attendance_min_gps_accuracy', 50); // meters
+
+            if ($accuracy !== null && $accuracy > $minAccuracyThreshold) {
+                DB::rollBack();
+                return [
+                    'success' => false,
+                    'message' => sprintf('Akurasi GPS kurang baik (%d m). Pastikan GPS aktif dan coba lagi.', $accuracy),
+                    'code' => 'POOR_GPS_ACCURACY',
+                    'debug' => config('app.debug') ? [
+                        'accuracy_meters' => $accuracy,
+                        'threshold_meters' => $minAccuracyThreshold,
+                    ] : null,
+                ];
+            }
+
+            // 4. Validate: Location radius (using determined center & radius)
             $distance = GeoHelper::calculateDistance(
                 $data['lat'],
                 $data['lng'],
@@ -134,7 +151,7 @@ class AttendanceService
                 ];
             }
 
-            // 4. Validate: Time window
+            // 5. Validate: Time window
             $openTime = config('app.attendance_open_time', '06:00');
             $closeTime = config('app.attendance_close_time', '16:00');
             $currentTime = $now->format('H:i');
@@ -148,13 +165,13 @@ class AttendanceService
                 ];
             }
 
-            // 5. Determine status (Hadir/Terlambat)
+            // 6. Determine status (Hadir/Terlambat)
             $scheduledStartTime = $this->getClassStartTime($user, $session->class_id);
             $status = $scheduledStartTime && $now->gt($scheduledStartTime)
                 ? 'Terlambat'
                 : 'Hadir';
 
-            // 6. Create attendance record
+            // 7. Create attendance record
             $attendance = Attendance::create([
                 'user_id' => $user->id,
                 'date' => $today,
@@ -170,7 +187,7 @@ class AttendanceService
                 'location_name' => $matchedPklLocation?->company_name,
             ]);
 
-            // 7. Increment session usage counter
+            // 8. Increment session usage counter
             $session->incrementUsage();
 
             DB::commit();
