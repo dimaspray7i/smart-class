@@ -9,6 +9,7 @@ use App\Models\Schedule;
 use App\Models\Attendance;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class AdminService
@@ -46,12 +47,20 @@ class AdminService
     public function getOverview(): array
     {
         try {
+            // OPTIMIZED: Consolidate user counts into 1 query
+            $userStats = User::select(
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) as admin_count"),
+                DB::raw("SUM(CASE WHEN role = 'guru' THEN 1 ELSE 0 END) as guru_count"),
+                DB::raw("SUM(CASE WHEN role = 'siswa' THEN 1 ELSE 0 END) as siswa_count")
+            )->first();
+
             return [
                 'users' => [
-                    'total' => User::count(),
-                    'admin' => User::where('role', 'admin')->count(),
-                    'guru' => User::where('role', 'guru')->count(),
-                    'siswa' => User::where('role', 'siswa')->count(),
+                    'total' => $userStats->total ?? 0,
+                    'admin' => $userStats->admin_count ?? 0,
+                    'guru' => $userStats->guru_count ?? 0,
+                    'siswa' => $userStats->siswa_count ?? 0,
                 ],
                 'classes' => ClassModel::count(),
                 'subjects' => Subject::count(),
