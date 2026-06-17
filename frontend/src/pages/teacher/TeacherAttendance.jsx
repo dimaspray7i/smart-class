@@ -215,7 +215,7 @@ export default function TeacherAttendance() {
   const [statusFilter, setStatusFilter] = useState('');
   const [form, setForm] = useState({
     class_id: '', subject_id: '', date: new Date().toISOString().split('T')[0],
-    start_time: '07:00', end_time: '08:30', location: ''
+    start_time: '07:00', end_time: '08:30', location: '', is_manual: false
   });
   const [reopenForm, setReopenForm] = useState({ extra_minutes: 15, notes: '' });
   const [isExportOpen, setIsExportOpen] = useState(false);
@@ -720,6 +720,22 @@ export default function TeacherAttendance() {
               <input type="text" placeholder="Contoh: Lab Komputer 1" value={form.location}
                 onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                 className="w-full py-2 px-3 border-2 border-base-black rounded-retro font-retro-mono text-sm bg-base-white focus:outline-none focus:border-retro-orange" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.is_manual}
+                  onChange={e => setForm(f => ({ ...f, is_manual: e.target.checked }))}
+                  className="w-5 h-5 border-2 border-base-black rounded-retro cursor-pointer accent-retro-orange"
+                />
+                <span className="font-retro-mono text-xs font-black uppercase tracking-wider text-base-black">
+                  📋 Sesi Manual (Tanpa Jadwal)
+                </span>
+              </label>
+              <p className="font-retro-mono text-[10px] text-base-black/50 mt-1 ml-8">
+                Centang untuk membuat sesi di luar jadwal yang telah ditentukan
+              </p>
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
