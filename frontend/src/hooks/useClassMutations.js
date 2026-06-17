@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAPI } from '../../api';
+import { createErrorToast } from '../utils/errorHandler';
 
 export function useClassMutations(callbacks = {}) {
   const queryClient = useQueryClient();
@@ -10,7 +11,10 @@ export function useClassMutations(callbacks = {}) {
       queryClient.invalidateQueries({ queryKey: ['admin-classes'] });
       callbacks.onCreate?.();
     },
-    onError: (err) => callbacks.onError?.(err),
+    onError: (err) => {
+      const errorToast = createErrorToast(err, 'ClassMutations');
+      callbacks.onError?.(err, errorToast);
+    },
   });
 
   const updateClassMutation = useMutation({
@@ -19,7 +23,10 @@ export function useClassMutations(callbacks = {}) {
       queryClient.invalidateQueries({ queryKey: ['admin-classes'] });
       callbacks.onUpdate?.();
     },
-    onError: (err) => callbacks.onError?.(err),
+    onError: (err) => {
+      const errorToast = createErrorToast(err, 'ClassMutations');
+      callbacks.onError?.(err, errorToast);
+    },
   });
 
   const deleteClassMutation = useMutation({
@@ -28,7 +35,10 @@ export function useClassMutations(callbacks = {}) {
       queryClient.invalidateQueries({ queryKey: ['admin-classes'] });
       callbacks.onDelete?.();
     },
-    onError: (err) => callbacks.onError?.(err),
+    onError: (err) => {
+      const errorToast = createErrorToast(err, 'ClassMutations');
+      callbacks.onError?.(err, errorToast);
+    },
   });
 
   const bulkDeleteMutation = useMutation({
@@ -37,7 +47,10 @@ export function useClassMutations(callbacks = {}) {
       queryClient.invalidateQueries({ queryKey: ['admin-classes'] });
       callbacks.onBulkDelete?.();
     },
-    onError: (err) => callbacks.onError?.(err),
+    onError: (err) => {
+      const errorToast = createErrorToast(err, 'ClassMutations');
+      callbacks.onError?.(err, errorToast);
+    },
   });
 
   return {

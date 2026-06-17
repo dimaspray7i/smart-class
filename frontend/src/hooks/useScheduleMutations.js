@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAPI } from '../../api';
+import { createErrorToast } from '../utils/errorHandler';
 
 export function useScheduleMutations(onSuccess) {
   const queryClient = useQueryClient();
@@ -12,7 +13,10 @@ export function useScheduleMutations(onSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       onSuccess.onCreate?.();
     },
-    onError: (err) => onSuccess.onError?.(err),
+    onError: (err) => {
+      const errorToast = createErrorToast(err, 'createSchedule');
+      onSuccess.onError?.(err, errorToast);
+    },
   });
 
   const updateScheduleMutation = useMutation({
@@ -23,7 +27,10 @@ export function useScheduleMutations(onSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       onSuccess.onUpdate?.();
     },
-    onError: (err) => onSuccess.onError?.(err),
+    onError: (err) => {
+      const errorToast = createErrorToast(err, 'createSchedule');
+      onSuccess.onError?.(err, errorToast);
+    },
   });
 
   const deleteScheduleMutation = useMutation({
@@ -34,7 +41,10 @@ export function useScheduleMutations(onSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       onSuccess.onDelete?.();
     },
-    onError: (err) => onSuccess.onError?.(err),
+    onError: (err) => {
+      const errorToast = createErrorToast(err, 'createSchedule');
+      onSuccess.onError?.(err, errorToast);
+    },
   });
 
   const bulkDeleteMutation = useMutation({
@@ -45,7 +55,10 @@ export function useScheduleMutations(onSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
       onSuccess.onBulkDelete?.();
     },
-    onError: (err) => onSuccess.onError?.(err),
+    onError: (err) => {
+      const errorToast = createErrorToast(err, 'createSchedule');
+      onSuccess.onError?.(err, errorToast);
+    },
   });
 
   const exportSchedulesMutation = useMutation({
@@ -58,7 +71,10 @@ export function useScheduleMutations(onSuccess) {
       a.click();
       onSuccess.onExport?.();
     },
-    onError: (err) => onSuccess.onError?.(err),
+    onError: (err) => {
+      const errorToast = createErrorToast(err, 'createSchedule');
+      onSuccess.onError?.(err, errorToast);
+    },
   });
 
   return {
