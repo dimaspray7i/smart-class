@@ -28,7 +28,7 @@ export function useScheduleMutations(onSuccess) {
       onSuccess.onUpdate?.();
     },
     onError: (err) => {
-      const errorToast = createErrorToast(err, 'createSchedule');
+      const errorToast = createErrorToast(err, 'updateSchedule');
       onSuccess.onError?.(err, errorToast);
     },
   });
@@ -42,7 +42,7 @@ export function useScheduleMutations(onSuccess) {
       onSuccess.onDelete?.();
     },
     onError: (err) => {
-      const errorToast = createErrorToast(err, 'createSchedule');
+      const errorToast = createErrorToast(err, 'deleteSchedule');
       onSuccess.onError?.(err, errorToast);
     },
   });
@@ -56,7 +56,7 @@ export function useScheduleMutations(onSuccess) {
       onSuccess.onBulkDelete?.();
     },
     onError: (err) => {
-      const errorToast = createErrorToast(err, 'createSchedule');
+      const errorToast = createErrorToast(err, 'bulkDeleteSchedule');
       onSuccess.onError?.(err, errorToast);
     },
   });
@@ -72,7 +72,7 @@ export function useScheduleMutations(onSuccess) {
       onSuccess.onExport?.();
     },
     onError: (err) => {
-      const errorToast = createErrorToast(err, 'createSchedule');
+      const errorToast = createErrorToast(err, 'exportSchedules');
       onSuccess.onError?.(err, errorToast);
     },
   });
