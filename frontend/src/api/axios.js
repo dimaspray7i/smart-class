@@ -114,26 +114,32 @@ const simpleDecrypt = (encrypted, key = 'rpl-retro-key-2024') => {
 };
 
 // ═══════════════════════════════════════════════════════════
-// 🔐 REQUEST INTERCEPTOR - Attach Bearer Token
+// 🔐 REQUEST INTERCEPTOR - Attach Bearer Token & CSRF
 // ═══════════════════════════════════════════════════════════
 api.interceptors.request.use(
   (config) => {
     // Get token from localStorage
     const encryptedToken = localStorage.getItem(RETRO_CONFIG.storage.token)
-    
+
     if (encryptedToken) {
       const token = simpleDecrypt(encryptedToken);
       if (token) {
         config.headers.Authorization = `Bearer ${token.trim()}`
       }
     }
-    
+
+    // Add CSRF token if available (from meta tag)
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
+
     // Add timestamp header for caching/debugging
     config.headers['X-Request-Timestamp'] = Date.now().toString()
-    
+
     // Log request (dev only)
     retroLog.request(config)
-    
+
     return config
   },
   (error) => {
