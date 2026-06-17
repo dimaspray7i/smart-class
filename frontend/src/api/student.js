@@ -18,7 +18,6 @@ export const studentApi = {
   getAttendanceStats: () => api.get('/student/attendance/stats'),
   getTodayAttendance: () => api.get('/student/attendance/today'),
   scanQR: (data) => api.post('/student/attendance', data),
-  verifyQR: (data) => api.post('/student/attendance/qr/verify', data),
   verifyAttendanceCode: (data) => api.post('/student/attendance/verify-code', data),
   verifyAttendanceFace: (formData) => api.post('/student/attendance/verify-face', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
