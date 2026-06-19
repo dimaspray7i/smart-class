@@ -1,10 +1,10 @@
 import React from 'react';
 import { Plus, ListIcon, LayoutGrid, CalendarDays } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
-import { PageHeader, StatGrid, RetroStatWidget } from '../../components/ui/RetroLayouts';
-import Button from '../../components/ui/Button';
+import { PageHeader, StatGrid, RetroStatWidget } from '@/components/ui/RetroLayouts';
+import Button from '@/components/ui/Button';
 import { Calendar, School, BookOpen, Users } from 'lucide-react';
-import { ID } from '../../i18n/id';
+import { ID } from '@/i18n/id';
 
 export function ScheduleHeader({
   viewMode,

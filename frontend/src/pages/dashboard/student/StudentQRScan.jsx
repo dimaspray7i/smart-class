@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { QrCode, ShieldAlert, Sparkles, CheckSquare, Camera } from 'lucide-react';
+import { QrCode, ShieldAlert, CheckSquare, Camera, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PageHeader, RetroCard } from '../../../components/ui/RetroLayouts';
 
@@ -40,7 +40,7 @@ export default function StudentQRScan() {
       }
 
       // If QR contains session ID, extract code as well
-      if (code.includes('sid=')) {
+      if (code && code.includes('sid=')) {
         const urlParams = new URLSearchParams(code.split('?')[1] || '');
         code = urlParams.get('code');
       }
@@ -64,15 +64,9 @@ export default function StudentQRScan() {
     }
   };
 
-  const simulateQuickScan = () => {
-    // Generate a proper 6-character attendance code
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setQrCodeData(code);
-  };
+  // ⛔ SECURITY: simulateQuickScan() telah DIHAPUS.
+  // Siswa TIDAK diperbolehkan generate token absensi.
+  // Token hanya boleh dibuat oleh GURU melalui endpoint /teacher/attendance/sessions.
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
@@ -81,12 +75,25 @@ export default function StudentQRScan() {
       <PageHeader 
         title="Scan QR Code"
         icon={QrCode}
-        description="Arahkan kamera ke QR Code absensi harian yang ditayangkan oleh guru Anda."
+        description="Masukkan kode 6 karakter dari QR Code absensi yang ditampilkan oleh guru Anda."
         breadcrumbs={[
           { label: 'Dashboard', path: '/dashboard/student' },
           { label: 'Scan QR', path: '/dashboard/student/qrscan' }
         ]}
       />
+
+      {/* ── Security Notice ───────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-start gap-3 bg-retro-blue/10 border-2 border-retro-blue/30 rounded-retro p-3"
+      >
+        <Lock className="w-4 h-4 text-retro-blue flex-shrink-0 mt-0.5" />
+        <p className="font-retro-mono text-[9px] uppercase tracking-wider text-base-black/70 leading-relaxed">
+          Kode absensi hanya dapat diperoleh dari QR Code yang ditampilkan guru di kelas.
+          Tidak diperbolehkan memasukkan kode sembarangan.
+        </p>
+      </motion.div>
 
       {success && (
         <motion.div 
@@ -139,41 +146,37 @@ export default function StudentQRScan() {
               [ CAMERA FEED ACTIVE ]
             </p>
             <p className="font-retro-mono text-[8px] text-base-white/50 uppercase mt-2.5 text-center leading-relaxed max-w-xs relative z-10">
-              Silakan masukkan payload absen secara manual atau tekan tombol simulator generator di bawah.
+              Arahkan kamera ke QR Code guru, atau masukkan kode 6 karakter secara manual.
             </p>
           </div>
 
-          {/* Form Input */}
+          {/* Form Input - hanya input kode dari guru, tanpa tombol GENERATE */}
           <form onSubmit={handleScanSubmit} className="space-y-5">
             <div className="space-y-2">
               <label className="block text-[9px] font-black uppercase tracking-wider text-base-black">
-                🔑 KODE QR PAYLOAD (TOKEN SESI)
+                🔑 KODE QR ABSENSI (6 KARAKTER DARI GURU)
               </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={qrCodeData}
-                  onChange={(e) => setQrCodeData(e.target.value)}
-                  placeholder="Masukkan token absensi (e.g. CLASSROOM_SESSION_XXX)"
-                  className="block w-full py-2 px-3 bg-base-white border-2 border-base-black rounded-retro text-xs font-retro-mono focus:outline-none focus:ring-4 focus:ring-retro-purple/20 focus:border-retro-purple transition-all"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={simulateQuickScan}
-                  className="retro-btn bg-retro-yellow text-base-black text-xs py-2 px-4 flex items-center gap-1.5 flex-shrink-0"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>GENERATE</span>
-                </button>
-              </div>
+              <input
+                type="text"
+                value={qrCodeData}
+                onChange={(e) => setQrCodeData(e.target.value.toUpperCase().slice(0, 6))}
+                placeholder="Masukkan 6 karakter kode absensi"
+                maxLength={6}
+                className="block w-full py-2 px-3 bg-base-white border-2 border-base-black rounded-retro text-xs font-retro-mono focus:outline-none focus:ring-4 focus:ring-retro-purple/20 focus:border-retro-purple transition-all uppercase tracking-widest text-center text-lg"
+                required
+              />
+              <p className="text-[8px] font-retro-mono text-base-black/40 uppercase tracking-wider">
+                Kode diperoleh dari QR Code yang ditampilkan guru. Bukan dari tombol generate.
+              </p>
             </div>
 
             <button
               type="submit"
-              disabled={submitting || !qrCodeData}
+              disabled={submitting || !qrCodeData || qrCodeData.length !== 6}
               className={`retro-btn w-full py-3.5 flex items-center justify-center gap-2 ${
-                submitting || !qrCodeData ? 'opacity-40 cursor-not-allowed shadow-none' : 'bg-base-black text-base-white hover:bg-retro-purple'
+                submitting || !qrCodeData || qrCodeData.length !== 6 
+                  ? 'opacity-40 cursor-not-allowed shadow-none' 
+                  : 'bg-base-black text-base-white hover:bg-retro-purple'
               }`}
             >
               {submitting ? (

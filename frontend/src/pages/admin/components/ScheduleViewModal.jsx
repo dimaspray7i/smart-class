@@ -2,9 +2,9 @@ import React from 'react';
 import { Calendar, BookOpen, Users, MapPin, Clock } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
-import Modal from '../../components/ui/Modal';
-import Button from '../../components/ui/Button';
-import RetroCard from '../../components/ui/RetroLayouts';
+import Modal from '@/components/ui/Modal';
+import Button from '@/components/ui/Button';
+import { RetroCard } from '@/components/ui/RetroLayouts';
 
 export function ScheduleViewModal({
   isOpen,

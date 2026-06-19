@@ -38,7 +38,7 @@ use App\Http\Controllers\Admin\PklLocationController;
 use App\Http\Controllers\Admin\AnalyticsController;
 
 // ═══════════════════════════════════════════════════════════
-// 🎨 RETRO FUTURISTIC API ROUTES
+//  RETRO FUTURISTIC API ROUTES
 // RPL Smart Ecosystem v2.0 - Cyber Retro Edition
 // ═══════════════════════════════════════════════════════════
 
@@ -117,7 +117,7 @@ Route::middleware('api')->group(function () {
         });
     });
 
-    // ═══════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════
     // 🔐 AUTHENTICATION ROUTES
     // ═══════════════════════════════════════════════════════════
     Route::prefix('v1/auth')->group(function () {
@@ -181,8 +181,14 @@ Route::middleware('api')->group(function () {
                 Route::get('/pkl-locations/retro', [StudentAttendance::class, 'retroPklLocations']);
                 Route::get('/pkl-locations/map-preview', [StudentAttendance::class, 'mapPreview']);
                 
-                // QR Code for Attendance (Retro Animated)
-                Route::get('/qr/generate', [StudentAttendance::class, 'generateQR']);
+                // ⛔ SECURITY: QR Generate is FORBIDDEN for students (teachers only)
+                Route::get('/qr/generate', function () {
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => 'Siswa tidak diperbolehkan generate QR absensi. Fitur ini hanya untuk guru.',
+                        'code'    => 'FORBIDDEN_STUDENT_GENERATE_QR',
+                    ], 403);
+                });
                 Route::post('/qr/verify', [StudentAttendance::class, 'verifyQR']);
                 Route::post('/verify-code', [StudentAttendance::class, 'verifyCode']);
                 Route::post('/verify-face', [StudentAttendance::class, 'verifyFace']);
@@ -274,6 +280,10 @@ Route::middleware('api')->group(function () {
             Route::get('/subjects', [TeacherDashboard::class, 'mySubjects']);
             Route::get('/schedule/today', [TeacherDashboard::class, 'todaySchedule']);
             
+            // Notifications
+            Route::get('/notifications', [TeacherDashboard::class, 'notifications']);
+            Route::patch('/notifications/{id}/read', [TeacherDashboard::class, 'markNotificationRead']);
+            
             Route::prefix('attendance')->group(function () {
                 Route::get('/sessions', [TeacherAttendance::class, 'sessions']);
                 Route::post('/generate/{schedule_id}', [TeacherAttendance::class, 'generateFromSchedule']);
@@ -356,7 +366,7 @@ Route::middleware('api')->group(function () {
         });
 
     // ═══════════════════════════════════════════════════════════
-    // 📤 Teacher attendance export usable by guru or admin
+    //  Teacher attendance export usable by guru or admin
     // ═══════════════════════════════════════════════════════════
     Route::middleware(['auth:sanctum', 'role:guru|admin'])->group(function () {
         Route::get('/v1/teacher/attendance/export', [TeacherAttendance::class, 'export']);
@@ -364,7 +374,7 @@ Route::middleware('api')->group(function () {
 
     // ═══════════════════════════════════════════════════════════
     // 🛡️ ADMIN ROUTES (Role: admin) - FULL ACCESS
-    // ═══════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════
     Route::prefix('v1/admin')
         ->middleware(['auth:sanctum', 'role:admin'])
         ->group(function () {
@@ -378,8 +388,9 @@ Route::middleware('api')->group(function () {
             Route::get('/analytics/students/retro', [AdminDashboard::class, 'retroStudentAnalytics']);
             Route::get('/analytics/export', [AdminDashboard::class, 'exportAnalytics']);
             
-            // ═══════════════════════════════════════════════════            // 📢 ADMIN ANNOUNCEMENTS - BROADCAST & CRUD
-            // ═══════════════════════════════════════════════════════════════════
+            // ══════════════════════════════════════════════════
+            // 📢 ADMIN ANNOUNCEMENTS - BROADCAST & CRUD
+            // ══════════════════════════════════════════════════
             Route::prefix('announcements')->group(function () {
                 Route::get('/', [AdminAnnouncement::class, 'index']);
                 Route::get('/{id}', [AdminAnnouncement::class, 'show']);
@@ -389,8 +400,11 @@ Route::middleware('api')->group(function () {
                 Route::delete('/{id}', [AdminAnnouncement::class, 'destroy']);
             });
             
-            // ═══════════════════════════════════════════════════════════════════            // 👥 USER MANAGEMENT - RETRO STYLE
             // ═══════════════════════════════════════════════════
+            //  USER MANAGEMENT - RETRO STYLE
+            // ═══════════════════════════════════════════════════
+            Route::apiResource('users', AdminUser::class);
+            
             Route::get('/users/export', [AdminUser::class, 'export']);
             Route::get('/users/export/csv', [AdminUser::class, 'exportCSV']);
             Route::get('/users/export/json', [AdminUser::class, 'exportJSON']);
@@ -406,10 +420,9 @@ Route::middleware('api')->group(function () {
             Route::get('/users/analytics', [AdminUser::class, 'analytics']);
             Route::get('/users/analytics/retro', [AdminUser::class, 'retroAnalytics']);
 
-            Route::apiResource('users', AdminUser::class);
             
             // ═══════════════════════════════════════════════════
-            // 🏫 CLASS MANAGEMENT - RETRO STYLE
+            //  CLASS MANAGEMENT - RETRO STYLE
             // ═══════════════════════════════════════════════════
             Route::apiResource('classes', AdminClass::class);
             Route::get('/classes/export', [AdminClass::class, 'export']);
@@ -487,7 +500,7 @@ Route::middleware('api')->group(function () {
                 Route::post('/from-template', [AdminSchedule::class, 'createFromTemplate']);
             });
             
-            // ═══════════════════════════════════════════════════
+            // ══════════════════════════════════════════════════
             // ⚙️ SYSTEM SETTINGS - RETRO STYLE
             // ═══════════════════════════════════════════════════
             Route::prefix('settings')->group(function () {
@@ -543,7 +556,7 @@ Route::middleware('api')->group(function () {
                 Route::patch('/{id}/status', [\App\Http\Controllers\Admin\AttendanceController::class, 'updateStatus']);
             });
             
-            // ═══════════════════════════════════════════════════
+            // ══════════════════════════════════════════════════
             // 🔧 SYSTEM UTILITIES - RETRO STYLE
             // ═══════════════════════════════════════════════════
             
@@ -612,7 +625,7 @@ Route::middleware('api')->group(function () {
             });
 
             // ═══════════════════════════════════════════════════
-            // 📊 ANALYTICS CONTROLLER (DEDICATED)
+            //  ANALYTICS CONTROLLER (DEDICATED)
             // ═══════════════════════════════════════════════════
             Route::prefix('analytics')->group(function () {
                 Route::get('/', [AnalyticsController::class, 'index']);
@@ -647,9 +660,9 @@ Route::middleware('api')->group(function () {
 Route::fallback(function () {
     return response()->json([
         'status' => 'error',
-        'message' => '🔍 Route not found',
+        'message' => ' Route not found',
         'code' => 'ROUTE_NOT_FOUND',
-        'retro_hint' => 'Check your API endpoint spelling! ✨',
+        'retro_hint' => 'Check your API endpoint spelling! ',
         'available_endpoints' => [
             'GET /health',
             'GET /status', 

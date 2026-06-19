@@ -87,24 +87,38 @@ class AttendanceController extends Controller
             $teacherId = $request->user()->id;
             
             $validated = $request->validate([
-                'class_id' => 'required|exists:classes,id',
-                'subject_id' => 'required|exists:subjects,id',
-                'date' => 'required|date|after_or_equal:today',
-                'start_time' => 'required|date_format:H:i',
-                'end_time' => 'required|date_format:H:i|after:start_time',
+                'class_id'         => 'required|exists:classes,id',
+                'subject_id'       => 'required|exists:subjects,id',
+                'date'             => 'required|date',   // manual timezone check below
+                'start_time'       => 'required|date_format:H:i',
+                'end_time'         => 'required|date_format:H:i|after:start_time',
                 'duration_minutes' => 'sometimes|integer|min:1|max:240',
-                'location' => 'nullable|string|max:255',
-                'notes' => 'nullable|string|max:1000',
+                'location'         => 'nullable|string|max:255',
+                'notes'            => 'nullable|string|max:1000',
                 // Geofence settings
-                'enable_geofence' => 'nullable|boolean',
-                'radius_meters' => 'nullable|integer|min:10|max:1000',
-                'center_lat' => 'nullable|numeric|between:-90,90',
-                'center_lng' => 'nullable|numeric|between:-180,180',
+                'enable_geofence'  => 'nullable|boolean',
+                'radius_meters'    => 'nullable|integer|min:10|max:1000',
+                'center_lat'       => 'nullable|numeric|between:-90,90',
+                'center_lng'       => 'nullable|numeric|between:-180,180',
                 // QR settings
-                'enable_qr' => 'nullable|boolean',
-                'qr_expiry_minutes' => 'nullable|integer|min:5|max:120',
-                'max_uses' => 'nullable|integer|min:1',
+                'enable_qr'        => 'nullable|boolean',
+                'qr_expiry_minutes'=> 'nullable|integer|min:5|max:120',
+                'max_uses'         => 'nullable|integer|min:1',
             ]);
+
+            // ── Timezone-safe date validation (Asia/Jakarta) ──────────────────
+            $todayWib = \Carbon\Carbon::now('Asia/Jakarta')->startOfDay();
+            $inputDate = \Carbon\Carbon::parse($validated['date'], 'Asia/Jakarta')->startOfDay();
+            if ($inputDate->lt($todayWib)) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Tanggal sesi tidak boleh sebelum hari ini.',
+                    'code'    => 'VALIDATION_ERROR',
+                    'errors'  => ['date' => ['Tanggal sesi tidak boleh sebelum hari ini (WIB).']],
+                ], 422);
+            }
+            // ─────────────────────────────────────────────────────────────────
+
 
             $result = $this->attendanceService->createSession($teacherId, $validated);
 

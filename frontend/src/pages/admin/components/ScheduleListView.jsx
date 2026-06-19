@@ -1,6 +1,6 @@
 import React from 'react';
 import { BookOpen, Users, Clock, MapPin, School } from 'lucide-react';
-import RetroTable, { TableActions } from '../../components/ui/RetroTable';
+import RetroTable, { TableActions } from '@/components/ui/RetroTable';
 
 export function ScheduleListView({
   schedules,

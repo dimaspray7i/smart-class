@@ -1,5 +1,6 @@
 import React from 'react';
-import { useNavigate, useQueryClient } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Shield, RefreshCw, AlertCircle, Sparkles, Smile } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';

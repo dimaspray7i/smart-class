@@ -1,10 +1,10 @@
 import React from 'react';
 import { AlertCircle, Clock, Users } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
-import Modal from '../../components/ui/Modal';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import Select from '../../components/ui/Select';
+import Modal from '@/components/ui/Modal';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
 
 const dayOptions = [
   { value: 'senin', label: 'Senin' },

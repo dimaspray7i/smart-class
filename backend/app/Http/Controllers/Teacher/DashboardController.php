@@ -240,7 +240,7 @@ class DashboardController extends Controller
      * @param int $id
      * @return JsonResponse
      */
-    public function markNotificationRead(Request $request, int $id): JsonResponse
+    public function markNotificationRead(Request $request, $id): JsonResponse
     {
         try {
             $teacherId = $request->user()->id;

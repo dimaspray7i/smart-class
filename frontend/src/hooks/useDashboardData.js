@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../api';
+import { api } from '@/api';
 
 export function useDashboardData() {
   const {

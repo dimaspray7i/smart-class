@@ -992,18 +992,25 @@ class AttendanceService
             return [
                 'success' => true,
                 'message' => 'Sesi absensi berhasil dibuat.',
-                'code' => 'SESSION_CREATED',
-                'data' => [
-                    'session_id' => $session->id,
-                    'code' => $code,
-                    'valid_from' => $validFrom->format('H:i:s'),
-                    'valid_until' => $validUntil->format('H:i:s'),
-                    'duration_minutes' => $duration,
-                    'radius_meters' => $session->radius_meters,
+                'code'    => 'SESSION_CREATED',
+                'data'    => [
+                    'id'              => $session->id,      // ← required by frontend activeSession.id
+                    'session_id'      => $session->id,
+                    'code'            => $code,
+                    'valid_from'      => $validFrom->toDateTimeString(),
+                    'valid_until'     => $validUntil->toDateTimeString(),
+                    'duration_minutes'=> $duration,
+                    'radius_meters'   => $session->radius_meters,
                     'center_location' => $session->center_location,
-                    'max_uses' => $session->max_uses,
-                    'is_manual' => $isManual,
-                    'session_type' => $isManual ? 'manual' : 'scheduled',
+                    'max_uses'        => $session->max_uses,
+                    'is_active'       => true,
+                    'is_manual'       => $isManual,
+                    'session_status'  => 'active',
+                    'session_type'    => $isManual ? 'manual' : 'scheduled',
+                    'class'           => ['id' => $session->class_id, 'name' => $session->class?->name],
+                    'subject'         => ['id' => $session->subject_id, 'name' => $session->subject?->name],
+                    'attended_count'  => 0,
+                    'total_students'  => 0,
                 ],
             ];
 

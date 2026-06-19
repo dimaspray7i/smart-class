@@ -4,17 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Performance Index Migration
- *
- * Adds composite indexes identified during the code audit as missing.
- * These indexes significantly speed up:
- *   1. Teacher IDOR check (class_user): user_id + role_in_class + is_active
- *   2. Permission dashboard filters (permissions): user_id + status + created_at
- *   3. Teacher session overview (attendance_sessions): teacher_id + status + date
- *   4. Login audit queries (login_histories): user_id + created_at
- *   5. Student skills analytics (student_skills): user_id + level
- */
 return new class extends Migration
 {
     public function up(): void
@@ -116,7 +105,15 @@ return new class extends Migration
      */
     private function hasIndex(string $table, string $indexName): bool
     {
-        $indexes = collect(\Illuminate\Support\Facades\DB::select("SHOW INDEX FROM `{$table}`"));
+        $conn = \Illuminate\Support\Facades\DB::connection();
+        $driver = $conn->getDriverName();
+
+        if ($driver === 'sqlite') {
+            $indexes = collect($conn->select("PRAGMA index_list(`{$table}`)"));
+            return $indexes->contains('name', $indexName);
+        }
+
+        $indexes = collect($conn->select("SHOW INDEX FROM `{$table}`"));
         return $indexes->contains('Key_name', $indexName);
     }
 };

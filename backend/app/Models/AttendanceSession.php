@@ -40,6 +40,15 @@ class AttendanceSession extends Model
         'center_lat',
         'center_lng',
         'pkl_location_id',
+        // Fields added for complete session metadata
+        'date',
+        'start_time',
+        'end_time',
+        'status',
+        'session_status',
+        'enable_geofence',
+        'location',
+        'notes',
     ];
 
     /**

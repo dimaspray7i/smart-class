@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminAPI } from '../../api';
+import { adminAPI } from '@/api';
 import { createErrorToast } from '../utils/errorHandler';
 
 export function useScheduleMutations(onSuccess) {

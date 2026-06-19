@@ -362,7 +362,7 @@ class TeacherService
     /**
      * ✅ Mark notification as read
      */
-    public function markNotificationRead(int $teacherId, int $notificationId): array
+    public function markNotificationRead(int $teacherId, $notificationId): array
     {
         // In a real app, this would update a notifications table
         // For now, just return success

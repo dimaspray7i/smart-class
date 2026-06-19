@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { twMerge } from 'tailwind-merge';
-import Input from '../../components/ui/Input';
-import Select from '../../components/ui/Select';
+import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
 
 export function RetroTag({ label, color = 'orange' }) {
   const colors = {
