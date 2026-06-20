@@ -99,7 +99,7 @@ class InitialDataSeeder extends Seeder
             'phone'     => '08987654321',
             'is_active' => true,
         ]);
-        $class = ClassModel::where('name', 'RPL XI-1')->first();
+        $class = ClassModel::where('name', 'RPL FutureLabs')->first() ?? ClassModel::where('level', 'XI')->first();
         $studentProfile = Profile::create([
             'user_id'     => $student->id,
             'nis'         => '2024001001',
@@ -112,8 +112,13 @@ class InitialDataSeeder extends Seeder
                 'academic_year' => date('Y'),
                 'is_active'     => true,
             ]);
+            $teacher->classes()->attach($class->id, [
+                'role_in_class' => 'wali_kelas',
+                'academic_year' => date('Y'),
+                'is_active'     => true,
+            ]);
         } else {
-            $this->command->warn('⚠️ Kelas RPL XI-1 tidak ditemukan. Lewati attach siswa ke kelas.');
+            $this->command->warn('⚠️ Kelas RPL FutureLabs tidak ditemukan. Lewati attach siswa ke kelas.');
         }
         $this->command->info("✅ Sample siswa: {$student->email} | Password: password123");
 

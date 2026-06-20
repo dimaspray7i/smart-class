@@ -26,6 +26,7 @@ class Attendance extends Model
      */
     protected $fillable = [
         'user_id',
+        'attendance_session_id',
         'date',
         'lat',
         'lng',
@@ -80,6 +81,14 @@ class Attendance extends Model
     public function session(): BelongsTo
     {
         return $this->belongsTo(AttendanceSession::class, 'code_used', 'code');
+    }
+
+    /**
+     * Attendance belongs to an AttendanceSession via attendance_session_id
+     */
+    public function attendanceSession(): BelongsTo
+    {
+        return $this->belongsTo(AttendanceSession::class, 'attendance_session_id');
     }
 
     public function record(): BelongsTo

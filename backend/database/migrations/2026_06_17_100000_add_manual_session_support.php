@@ -79,6 +79,10 @@ return new class extends Migration
         // ═══════════════════════════════════════════════════
         if (Schema::hasTable('attendances')) {
             Schema::table('attendances', function (Blueprint $table) {
+                if (!Schema::hasColumn('attendances', 'attendance_session_id')) {
+                    $table->foreignId('attendance_session_id')->nullable()->after('id')->constrained('attendance_sessions')->onDelete('set null');
+                }
+
                 try {
                     $table->unique(
                         ['attendance_session_id', 'user_id'],
@@ -162,6 +166,16 @@ return new class extends Migration
                     $table->dropIndex('idx_attendance_user_created');
                 } catch (\Exception $e) {
                     //
+                }
+
+                try {
+                    $table->dropForeign(['attendance_session_id']);
+                } catch (\Exception $e) {
+                    //
+                }
+
+                if (Schema::hasColumn('attendances', 'attendance_session_id')) {
+                    $table->dropColumn('attendance_session_id');
                 }
             });
         }

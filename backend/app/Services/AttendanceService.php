@@ -174,6 +174,7 @@ class AttendanceService
             // 7. Create attendance record
             $attendance = Attendance::create([
                 'user_id' => $user->id,
+                'attendance_session_id' => $session->id,
                 'date' => $today,
                 'lat' => $data['lat'],
                 'lng' => $data['lng'],
@@ -723,6 +724,7 @@ class AttendanceService
 
         $attendance = Attendance::create([
             'user_id' => $user->id,
+            'attendance_session_id' => $session->id,
             'date' => $today,
             'lat' => $record->latitude,
             'lng' => $record->longitude,
@@ -1298,6 +1300,7 @@ class AttendanceService
                     Attendance::firstOrCreate(
                         ['user_id' => $studentId, 'date' => $today],
                         [
+                            'attendance_session_id' => $session->id,
                             'status' => 'Alpha',
                             'code_used' => $session->code,
                             'device_info' => 'auto-marked',
